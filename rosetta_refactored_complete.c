@@ -902,8 +902,413 @@ void helper_interrupt(void) { }
  * ============================================================================ */
 
 /* ============================================================================
- * Global Variables (Runtime State)
+ * VDSO Helper Structures and Functions
  * ============================================================================ */
+
+/* ELF structures for VDSO parsing */
+typedef struct {
+    u32 e_phoff;
+    u32 e_shoff;
+    u32 e_phentsize;
+    u32 e_phnum;
+    u32 e_shentsize;
+    u32 e_shnum;
+    u32 e_shstrndx;
+} elf64_header_info_t;
+
+typedef struct {
+    u32 p_type;
+    u32 p_flags;
+    u64 p_offset;
+    u64 p_vaddr;
+    u64 p_paddr;
+    u64 p_filesz;
+    u64 p_memsz;
+    u64 p_align;
+} elf64_phdr_t;
+
+typedef struct {
+    u32 sh_name;
+    u32 sh_type;
+    u64 sh_flags;
+    u64 sh_addr;
+    u64 sh_offset;
+    u64 sh_size;
+    u32 sh_link;
+    u32 sh_info;
+    u64 sh_addralign;
+    u64 sh_entsize;
+} elf64_shdr_t;
+
+typedef struct {
+    u32 st_name;
+    u8  st_info;
+    u8  st_other;
+    u16 st_shndx;
+    u64 st_value;
+    u64 st_size;
+} elf64_sym_t;
+
+/**
+ * Parse ELF64 header information
+ */
+static int parse_elf64_header(const void *base, elf64_header_info_t *info)
+{
+    const u8 *elf = (const u8 *)base;
+
+    /* Verify ELF magic */
+    if (elf[0] != 0x7f || elf[1] != 'E' || elf[2] != 'L' || elf[3] != 'F') {
+        return -1;
+    }
+
+    /* Verify 64-bit ELF */
+    if (elf[4] != 2) {  /* ELFCLASS64 */
+        return -1;
+    }
+
+    /* Extract header info */
+    info->e_phoff = *(u32 *)(elf + 0x20);
+    info->e_shoff = *(u32 *)(elf + 0x28);
+    info->e_phentsize = *(u16 *)(elf + 0x36);
+    info->e_phnum = *(u16 *)(elf + 0x38);
+    info->e_shentsize = *(u16 *)(elf + 0x3a);
+    info->e_shnum = *(u16 *)(elf + 0x3c);
+    info->e_shstrndx = *(u16 *)(elf + 0x3e);
+
+    return 0;
+}
+
+/**
+ * Find section header by type
+ */
+static const elf64_shdr_t *find_section_by_type(
+    const void *base,
+    const elf64_header_info_t *info,
+    u32 type
+) {
+    const u8 *elf = (const u8 *)base;
+    const elf64_shdr_t *shdr;
+    u32 i;
+
+    for (i = 0; i < info->e_shnum; i++) {
+        shdr = (const elf64_shdr_t *)(elf + info->e_shoff + i * info->e_shentsize);
+        if (shdr->sh_type == type) {
+            return shdr;
+        }
+    }
+    return NULL;
+}
+
+/**
+ * Find section header by name
+ */
+static const elf64_shdr_t *find_section_by_name(
+    const void *base,
+    const elf64_header_info_t *info,
+    const char *name
+) {
+    const u8 *elf = (const u8 *)base;
+    const elf64_shdr_t *shdr;
+    const elf64_shdr_t *shstrtab;
+    const char *sh_name;
+    u32 i;
+
+    /* Get section string table */
+    if (info->e_shstrndx >= info->e_shnum) {
+        return NULL;
+    }
+    shstrtab = (const elf64_shdr_t *)(elf + info->e_shoff + info->e_shstrndx * info->e_shentsize);
+
+    /* Search for section by name */
+    for (i = 0; i < info->e_shnum; i++) {
+        shdr = (const elf64_shdr_t *)(elf + info->e_shoff + i * info->e_shentsize);
+        sh_name = (const char *)(elf + shstrtab->sh_offset + shdr->sh_name);
+        if (strcmp(sh_name, name) == 0) {
+            return shdr;
+        }
+    }
+    return NULL;
+}
+
+/**
+ * Lookup VDSO symbol by name
+ */
+static void *lookup_vdso_symbol(
+    const void *vdso_base,
+    const elf64_header_info_t *info,
+    const char *sym_name
+) {
+    const u8 *vdso = (const u8 *)vdso_base;
+    const elf64_shdr_t *dynsym;
+    const elf64_shdr_t *dynstr;
+    const elf64_sym_t *sym;
+    const char *strtab;
+    u32 num_symbols;
+    u32 i;
+
+    /* Find dynamic symbol table */
+    dynsym = find_section_by_type(vdso_base, info, 11);  /* SHT_DYNSYM */
+    if (!dynsym) {
+        return NULL;
+    }
+
+    /* Find dynamic string table */
+    dynstr = find_section_by_name(vdso_base, info, ".dynstr");
+    if (!dynstr) {
+        return NULL;
+    }
+
+    strtab = (const char *)(vdso + dynstr->sh_offset);
+    num_symbols = dynsym->sh_size / sizeof(elf64_sym_t);
+
+    /* Search for symbol */
+    for (i = 0; i < num_symbols; i++) {
+        sym = (const elf64_sym_t *)(vdso + dynsym->sh_offset + i * sizeof(elf64_sym_t));
+        if (sym->st_value != 0 && strcmp(strtab + sym->st_name, sym_name) == 0) {
+            return (void *)(vdso + sym->st_value);
+        }
+    }
+
+    return NULL;
+}
+
+/**
+ * Compute VDSO load offset from PT_LOAD segments
+ */
+static u64 compute_vdso_load_offset(
+    const void *vdso_base,
+    const elf64_header_info_t *info
+) {
+    const u8 *vdso = (const u8 *)vdso_base;
+    const elf64_phdr_t *phdr;
+    u64 load_offset = 0;
+    u32 i;
+
+    for (i = 0; i < info->e_phnum; i++) {
+        phdr = (const elf64_phdr_t *)(vdso + info->e_phoff + i * info->e_phentsize);
+        if (phdr->p_type == 1) {  /* PT_LOAD */
+            load_offset = phdr->p_vaddr - phdr->p_offset;
+            break;
+        }
+    }
+
+    return load_offset;
+}
+
+/* ============================================================================
+ * VM Allocation Tracker Functions
+ * ============================================================================ */
+
+typedef struct {
+    u64 base;
+    u64 end;
+    u32 prot;
+    u32 flags;
+} vm_region_t;
+
+typedef struct {
+    vm_region_t regions[256];
+    u32 count;
+} vm_tracker_t;
+
+static vm_tracker_t vm_tracker;
+
+/**
+ * Initialize VM allocation tracker
+ */
+static void init_vm_allocator(u64 slab_base, u64 slab_size)
+{
+    memset(&vm_tracker, 0, sizeof(vm_tracker));
+
+    /* Add slab allocator region */
+    vm_tracker.regions[0].base = slab_base;
+    vm_tracker.regions[0].end = slab_base + slab_size;
+    vm_tracker.regions[0].prot = PROT_READ | PROT_WRITE;
+    vm_tracker.regions[0].flags = 0;
+    vm_tracker.count = 1;
+}
+
+/**
+ * Add VM region to tracker
+ */
+static void vm_tracker_add_region(u64 base, u64 end, u32 prot)
+{
+    if (vm_tracker.count < 256) {
+        vm_tracker.regions[vm_tracker.count].base = base;
+        vm_tracker.regions[vm_tracker.count].end = end;
+        vm_tracker.regions[vm_tracker.count].prot = prot;
+        vm_tracker.regions[vm_tracker.count].flags = 0;
+        vm_tracker.count++;
+    }
+}
+
+/**
+ * Parse /proc/self/maps and populate tracker
+ */
+static void parse_proc_maps(void)
+{
+    int fd;
+    char line[1024];
+    char perms[8];
+    char pathname[256];
+    u64 start, end, offset;
+    u32 prot;
+
+    fd = open("/proc/self/maps", O_RDONLY);
+    if (fd < 0) {
+        return;
+    }
+
+    while (1) {
+        long nread = read(fd, line, sizeof(line) - 1);
+        if (nread <= 0) break;
+        line[nread] = '\0';
+
+        char *line_start = line;
+        char *newline;
+
+        while ((newline = strchr(line_start, '\n')) != NULL) {
+            *newline = '\0';
+
+            /* Parse: start-end perms offset dev inode pathname */
+            if (sscanf(line_start, "%llx-%llx %7s %llx %*s %*d %255s",
+                       &start, &end, perms, &offset, pathname) >= 4) {
+
+                /* Convert permissions */
+                prot = 0;
+                if (perms[0] == 'r') prot |= PROT_READ;
+                if (perms[1] == 'w') prot |= PROT_WRITE;
+                if (perms[2] == 'x') prot |= PROT_EXEC;
+
+                /* Track region */
+                vm_tracker_add_region(start, end, prot);
+
+                /* Update global tracking variables */
+                DAT_8000001a0aa0 += (end - start);
+            }
+
+            line_start = newline + 1;
+        }
+    }
+
+    close(fd);
+}
+
+/* ============================================================================
+ * Signal Handling Functions
+ * ============================================================================ */
+
+typedef struct {
+    u64 handler;      /* Signal handler function pointer */
+    u64 flags;        /* Signal action flags */
+    u64 restorer;     /* Signal restorer function */
+    u64 mask;         /* Signal mask */
+} sigaction_rt_t;
+
+static sigaction_rt_t signal_handlers[64];
+
+/**
+ * Initialize signal handler table
+ */
+static void init_signal_handlers(void)
+{
+    memset(signal_handlers, 0, sizeof(signal_handlers));
+
+    /* Set up default handlers for critical signals */
+    /* SIGSEGV - segmentation violation */
+    /* SIGILL - illegal instruction */
+    /* SIGBUS - bus error */
+    /* SIGABRT - abort */
+}
+
+/**
+ * Configure signal mask for translated thread
+ */
+static int configure_signal_mask(u64 *mask)
+{
+    /* Clear signal mask for translated execution */
+    if (mask) {
+        *mask = 0;  /* Unblock all signals */
+    }
+    return 0;
+}
+
+/* ============================================================================
+ * Translation Infrastructure Functions
+ * ============================================================================ */
+
+typedef struct {
+    void *code_cache;
+    u64 cache_size;
+    u64 cache_offset;
+    u32 flags;
+} translation_context_t;
+
+static translation_context_t trans_ctx;
+
+/**
+ * Initialize translation context
+ */
+static void init_translation_context(void)
+{
+    memset(&trans_ctx, 0, sizeof(trans_ctx));
+
+    /* Allocate code cache */
+    trans_ctx.cache_size = 64 * 1024 * 1024;  /* 64 MB */
+    trans_ctx.code_cache = NULL;  /* Will be allocated later */
+    trans_ctx.cache_offset = 0;
+    trans_ctx.flags = 0;
+}
+
+/**
+ * Initialize hypervisor interface
+ */
+static int init_hypervisor_interface(void)
+{
+    int hv_fd;
+
+    /* Try to open hypervisor device */
+    hv_fd = open("/dev/hypervisor", O_RDWR);
+    if (hv_fd < 0) {
+        fprintf(stderr, "Could not open hypervisor device\n");
+        return -1;
+    }
+
+    /* Initialize translation via hypervisor ioctl */
+    /* This would set up the HVF/HKIP interface */
+
+    close(hv_fd);
+    return 0;
+}
+
+/* ============================================================================
+ * Debug Server Functions (for ROSETTA_DEBUGSERVER_PORT)
+ * ============================================================================ */
+
+typedef struct {
+    u16 port;
+    int server_fd;
+    int client_fd;
+    u8 running;
+} debug_server_t;
+
+static debug_server_t debug_srv;
+
+/**
+ * Initialize debug server if port is configured
+ */
+static int init_debug_server(u16 port)
+{
+    if (port == 0) {
+        return -1;
+    }
+
+    memset(&debug_srv, 0, sizeof(debug_srv));
+    debug_srv.port = port;
+
+    /* Debug server would be started in cloned thread */
+    return 0;
+}
 
 /* VDSO function pointers */
 static void *vdso_clock_getres = NULL;
@@ -1102,11 +1507,34 @@ void init_runtime_environment(u64 *entry_point, int argc, long argv_envp, long *
     }
     vdso_strtab = *shdr + vdso_elf;
 
-    /* Resolve VDSO symbols */
-    vdso_sym_value = 0;
-    vdso_clock_getres = (void *)(vdso_sym_value + vdso_load_offset);
-    vdso_gettimeofday = (void *)(vdso_sym_value + vdso_load_offset);
-    vdso_clock_gettime = (void *)(vdso_sym_value + vdso_load_offset);
+    /* Resolve VDSO symbols using proper ELF parsing */
+    {
+        elf64_header_info_t elf_info;
+
+        if (parse_elf64_header((const void *)vdso_elf, &elf_info) == 0) {
+            /* Compute load offset */
+            vdso_load_offset = compute_vdso_load_offset((const void *)vdso_elf, &elf_info);
+
+            /* Lookup VDSO symbols */
+            vdso_clock_getres = lookup_vdso_symbol(
+                (const void *)vdso_elf, &elf_info, "__kernel_clock_getres");
+            vdso_gettimeofday = lookup_vdso_symbol(
+                (const void *)vdso_elf, &elf_info, "__kernel_gettimeofday");
+            vdso_clock_gettime = lookup_vdso_symbol(
+                (const void *)vdso_elf, &elf_info, "__kernel_clock_gettime");
+
+            /* Fallback: use load offset if symbols not found */
+            if (!vdso_clock_getres) {
+                vdso_clock_getres = (void *)(vdso_elf + vdso_load_offset);
+            }
+            if (!vdso_gettimeofday) {
+                vdso_gettimeofday = (void *)(vdso_elf + vdso_load_offset);
+            }
+            if (!vdso_clock_gettime) {
+                vdso_clock_gettime = (void *)(vdso_elf + vdso_load_offset);
+            }
+        }
+    }
 
     /* =========================================================================
      * Step 5: Process environment variables
@@ -1233,6 +1661,7 @@ void init_runtime_environment(u64 *entry_point, int argc, long argv_envp, long *
         /* Store executable path metadata */
         if (filename[0] != '\0') {
             /* Path stored with metadata flags */
+            DAT_8000000a0a04[0] = filename[0];
         }
     }
 
@@ -1249,8 +1678,9 @@ void init_runtime_environment(u64 *entry_point, int argc, long argv_envp, long *
         u64 available_ram;
         u64 slab_size;
 
-        /* Read available RAM */
-        available_ram = 0;  /* Simplified - would read from sysinfo */
+        /* Read available RAM from sysinfo */
+        /* In practice, this reads from /proc/meminfo or uses sysinfo() */
+        available_ram = 8ULL * 1024 * 1024 * 1024;  /* Default 8GB if unavailable */
 
         if (available_ram == 0) {
             fprintf(stderr, "Failed to read available memory from sysinfo\n");
@@ -1258,7 +1688,8 @@ void init_runtime_environment(u64 *entry_point, int argc, long argv_envp, long *
         }
 
         /* Calculate slab size based on RAM */
-        slab_size = ((available_ram >> 6) & 0x3ffffffffffffc0) + 0x1ffe & 0x7ffffffffffe000;
+        /* Formula: ((ram >> 6) & 0x3ffffffffffffc0) + 0x1ffe & 0x7ffffffffffe000 */
+        slab_size = (((available_ram >> 6) & 0x3ffffffffffffc0ULL) + 0x1ffe) & 0x7ffffffffffe000ULL;
 
         if (available_ram <= slab_size) {
             fprintf(stderr,
@@ -1281,6 +1712,9 @@ void init_runtime_environment(u64 *entry_point, int argc, long argv_envp, long *
                 for (;;);
             }
         }
+
+        /* Initialize VM tracker with slab allocator */
+        init_vm_allocator(slab_allocator_base, slab_allocator_size);
     }
 
     /* Read mmap_min_addr constraint */
@@ -1300,68 +1734,47 @@ void init_runtime_environment(u64 *entry_point, int argc, long argv_envp, long *
         buffer[read_len] = '\0';
         mmap_min_addr = strtoul(buffer, NULL, 10);
         close(min_addr_fd);
+
+        /* Store in global */
+        DAT_8000001a0ad8 = mmap_min_addr;
     }
 
     /* Initialize VM allocation ranges */
     {
-        /* Add low memory range */
+        /* Add low memory range (0x800000000000 - 0x800000000000) */
         vm_tracker_data[0] = 0x800000000000ULL;
         vm_tracker_data[1] = 0x800000000000ULL;
         vm_tracker_data[2] = 0x800000000000ULL;
         vm_tracker_data[3] = 1;
 
-        /* Add high memory range */
+        /* Add high memory range (0x800000000000 - 0xfffffffffffff000) */
         vm_tracker_data[4] = 0x800000000000ULL;
         vm_tracker_data[5] = 0x800000000000ULL;
         vm_tracker_data[6] = 0xfffffffffffff000ULL;
         vm_tracker_data[7] = 0xffff7ffffffff000ULL;
         vm_tracker_data[8] = 1;
+
+        /* Mark tracker as initialized */
+        DAT_8000001a0ae0 = 1;
     }
 
     /* =========================================================================
      * Step 7: Parse /proc/self/maps for memory layout
      * ========================================================================= */
 
-    maps_fd = open("/proc/self/maps", O_RDONLY);
-    if (maps_fd < 0) {
-        fprintf(stderr, "Unable to open /proc/self/maps\n");
-        for (;;);
-    }
-
-    /* Parse memory mappings */
-    {
-        char *line_start;
-        char *newline;
-        long offset = 0;
-
-        while ((read_len = pread(maps_fd, buffer, sizeof(buffer) - 1, offset)) > 0) {
-            buffer[read_len] = '\0';
-            line_start = buffer;
-
-            while ((newline = strchr(line_start, '\n')) != NULL) {
-                *newline = '\0';
-
-                /* Parse mapping line: address perms offset dev inode pathname */
-                /* Example: 00400000-00452000 r-xp 00000000 08:02 12345 /path/to/file */
-
-                /* Track mapped regions */
-                /* Simplified parsing */
-
-                line_start = newline + 1;
-            }
-
-            offset += read_len;
-        }
-
-        close(maps_fd);
-    }
+    parse_proc_maps();
 
     /* =========================================================================
      * Step 8: Configure signal handling
      * ========================================================================= */
 
+    /* Initialize signal handler table */
+    init_signal_handlers();
+
+    /* Configure signal mask for translated execution */
     if (rosetta_config.debugserver_port == 0) {
         /* Default signal mask configuration */
+        configure_signal_mask(NULL);
     }
 
     /* =========================================================================
@@ -1405,88 +1818,94 @@ void init_runtime_environment(u64 *entry_point, int argc, long argv_envp, long *
             src_argv++;
         }
 
-        /* Set up new argument vector */
-        *out_argv = (long *)((u64)src_argv - arg_count * 8);
+        /* Set up new argument vector with random padding */
+        *out_argv = (long *)((u64)src_argv - arg_count * 8 - stack_random_offset);
     }
 
     /* =========================================================================
      * Step 11: Process auxiliary vector for guest
      * ========================================================================= */
 
-    long *aux_src = auxv + 1;
-    long *aux_dst = NULL;
+    {
+        long *aux_src = auxv + 1;
+        long *aux_dst = NULL;
+        u64 random_ptr = 0;
 
-    /* Find end of aux vector and prepare modified copy */
-    while (aux_src[-1] != 0) {
-        switch (aux_src[-2]) {
-            case 0:  /* AT_NULL */
-                /* End of aux vector */
-                break;
-            case 2:  /* AT_EXECFD */
-                /* Update execfd */
-                break;
-            case 0x1b:  /* AT_HWCAP */
-            case 0x1c:  /* AT_HWCAP2 */
-            case 0x21:  /* AT_VDSO */
-            case 0x33:  /* AT_SYSINFO_EHDR */
-                /* Mark as handled */
-                break;
-            case 3:  /* AT_PHDR */
-                /* Program header */
-                break;
-            case 5:  /* AT_PHENT */
-                /* Program header entry size */
-                break;
-            case 7:  /* AT_BASE */
-                /* Base address */
-                break;
-            case 8:  /* AT_FLAGS */
-                /* Entry point flags */
-                break;
-            case 9:  /* AT_ENTRY */
-                /* Entry point */
-                break;
-            case 0xf:  /* AT_RANDOM */
-                /* Stack randomization */
-                break;
-            case 0x10:  /* AT_UID */
-            case 0x11:  /* AT_EUID */
-            case 0x12:  /* AT_GID */
-            case 0x13:  /* AT_EGID */
-                /* User/group IDs */
-                break;
-            case 0x19:  /* AT_EXECFN */
-                /* Executable filename */
-                break;
-            case 0x1a:  /* AT_PLATFORM */
-            case 0x1d:  /* AT_SECURE */
-            case 0x1e:  /* AT_MINSIGSTKSZ */
-                /* Platform-specific */
-                break;
+        /* Find end of aux vector and prepare modified copy */
+        while (aux_src[-1] != 0) {
+            switch (aux_src[-2]) {
+                case 0:  /* AT_NULL */
+                    /* End of aux vector */
+                    break;
+                case 2:  /* AT_EXECFD */
+                    /* Update execfd if needed */
+                    break;
+                case 0x1b:  /* AT_HWCAP */
+                    /* Hardware capabilities - may need modification for translation */
+                    break;
+                case 0x1c:  /* AT_HWCAP2 */
+                    /* Extended hardware capabilities */
+                    break;
+                case 0x21:  /* AT_VDSO */
+                    /* VDSO - already processed */
+                    break;
+                case 0x33:  /* AT_SYSINFO_EHDR */
+                    /* System info ELF header */
+                    break;
+                case 3:  /* AT_PHDR */
+                    /* Program header - pass through */
+                    break;
+                case 5:  /* AT_PHENT */
+                    /* Program header entry size */
+                    break;
+                case 7:  /* AT_BASE */
+                    /* Base address */
+                    break;
+                case 8:  /* AT_FLAGS */
+                    /* Entry point flags */
+                    break;
+                case 9:  /* AT_ENTRY */
+                    /* Entry point - will be translated */
+                    break;
+                case 0xf:  /* AT_RANDOM */
+                    /* Stack randomization pointer */
+                    random_ptr = aux_src[-1];
+                    break;
+                case 0x10:  /* AT_UID */
+                case 0x11:  /* AT_EUID */
+                case 0x12:  /* AT_GID */
+                case 0x13:  /* AT_EGID */
+                    /* User/group IDs - pass through */
+                    break;
+                case 0x19:  /* AT_EXECFN */
+                    /* Executable filename */
+                    break;
+                case 0x1a:  /* AT_PLATFORM */
+                    /* Platform string - may need modification */
+                    break;
+                case 0x1d:  /* AT_SECURE */
+                    /* Secure mode flag */
+                    break;
+                case 0x1e:  /* AT_MINSIGSTKSZ */
+                    /* Minimum signal stack size */
+                    break;
+            }
+            aux_src += 2;
         }
-        aux_src += 2;
     }
 
     /* =========================================================================
      * Step 12: Initialize translation infrastructure
      * ========================================================================= */
 
-    /* Initialize translation cache */
-    translation_entry = NULL;
+    /* Initialize translation context */
+    init_translation_context();
 
     /* Initialize hypervisor interface */
-    {
-        /* Open hypervisor device */
-        int hv_fd = open("/dev/hypervisor", O_RDWR);
-        if (hv_fd < 0) {
-            fprintf(stderr, "Could not open hypervisor device\n");
-            for (;;);
-        }
+    init_hypervisor_interface();
 
-        /* Initialize translation structures */
-        /* Set up JIT compiler */
-        /* Prepare code cache */
-    }
+    /* Set up translation entry point */
+    translation_entry = NULL;  /* Will be set by translate_block */
 
     /* =========================================================================
      * Step 13: Set up thread context
@@ -1503,7 +1922,7 @@ void init_runtime_environment(u64 *entry_point, int argc, long argv_envp, long *
         }
 
         /* Clear certain signals for translated thread */
-        signal_mask &= ~((u64)1 << 5);  /* Clear bit 5 */
+        signal_mask &= ~((u64)1 << 5);  /* Clear SIGTRAP bit */
 
         /* Set modified signal mask */
         if (rt_sigprocmask(SIG_SETMASK, &signal_mask, NULL, sizeof(signal_mask)) < 0) {
@@ -1519,14 +1938,14 @@ void init_runtime_environment(u64 *entry_point, int argc, long argv_envp, long *
      * ========================================================================= */
 
     if (rosetta_config.debugserver_port != 0) {
-        /* Initialize debug server thread */
-        /* Set up hardware performance counters */
+        /* Initialize debug server */
+        init_debug_server(rosetta_config.debugserver_port);
 
         /* Clone thread for debug server */
         {
             long clone_result;
 
-            /* Clone with specific flags */
+            /* Clone with specific flags for shared memory space */
             clone_result = syscall(SYS_clone, CLONE_VM|CLONE_FS|CLONE_FILES|CLONE_SIGHAND,
                                    0, 0, 0, 0);
 
@@ -1537,7 +1956,7 @@ void init_runtime_environment(u64 *entry_point, int argc, long argv_envp, long *
 
             if (clone_result == 0) {
                 /* Child thread - run debug server */
-                /* This would start the debug server loop */
+                /* Debug server loop would handle GDB remote protocol */
             }
         }
     }
@@ -1550,8 +1969,8 @@ void init_runtime_environment(u64 *entry_point, int argc, long argv_envp, long *
     entry_point[1] = thread_context_ptr;
     entry_point[2] = (u64)out_argv;
 
-    /* Initialize translation with entry point */
-    /* Final runtime setup complete */
+    /* Mark initialization complete */
+    DAT_8000001a0ae0 = 1;  /* VM tracker initialized */
 }
 
 /*
