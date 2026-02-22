@@ -1406,19 +1406,123 @@ void init_runtime_environment(u64 *entry_point, int argc, long argv_envp, long *
         return;
     }
 
-    /* Verify Rosetta binary hash/signature */
+    /* Verify Rosetta binary hash/signature
+     *
+     * The original code performs an ioctl(2) call with command 0x80456125 to
+     * compute a hash of the binary. This is a macOS hypervisor-specific
+     * operation that validates the Rosetta binary's integrity.
+     *
+     * Expected hash (69 bytes at DAT_80000000eb19):
+     * "Rosetta\000...[padding]...\000" (ASCII string with null padding)
+     *
+     * The hash verification ensures the binary hasn't been tampered with
+     * and is running on genuine Apple Silicon hardware.
+     */
     {
-        char hash_result[0x80];
-        memset(hash_result, 0, sizeof(hash_result));
-        /* Compute expected hash - simplified */
-        hash_result[0] = 0x45;
+        char computed_hash[0x80];
+        const char expected_hash[] = "Rosetta";  /* First 7 bytes of expected hash */
+        ssize_t bytes_read;
+        int match;
 
-        if (strcmp(hash_result, "Rosetta") != 0) {
+        memset(computed_hash, 0, sizeof(computed_hash));
+
+        /*
+         * Compute hash of Rosetta binary.
+         *
+         * In the original implementation, this uses a hypervisor ioctl call
+         * (command 0x80456125) to compute a cryptographic hash of the binary.
+         *
+         * For Linux virtualization environments, we simulate this by reading
+         * the beginning of the binary and checking for expected markers.
+         *
+         * The magic value 0x80456125 encodes:
+         * - Bit 31 (0x80): Write flag
+         * - Bits 29-24 (0x04): Size class
+         * - Bits 23-8 (0x4561): Type/subtype
+         * - Bits 7-0 (0x25): Command number
+         */
+
+        /* Read ELF header and initial bytes for verification */
+        bytes_read = read(fd, computed_hash, 0x45);  /* Read 69 bytes */
+        if (bytes_read < 0x45) {
+            fprintf(stderr, "Failed to read Rosetta binary for verification\n");
+            for (;;);  /* Fatal error */
+        }
+
+        /* Verify ELF magic number (first 4 bytes: 0x7f 'E' 'L' 'F') */
+        if (computed_hash[0] != 0x7f ||
+            computed_hash[1] != 'E' ||
+            computed_hash[2] != 'L' ||
+            computed_hash[3] != 'F') {
             fprintf(stderr,
                 "Rosetta is only intended to run on Apple Silicon with "
                 "a macOS host using Virtualization.framework with Rosetta mode enabled\n");
             for (;;);  /* Fatal error */
         }
+
+        /* Verify ELF class (64-bit) */
+        if (computed_hash[4] != 2) {  /* ELFCLASS64 */
+            fprintf(stderr,
+                "Rosetta is only intended to run on Apple Silicon with "
+                "a macOS host using Virtualization.framework with Rosetta mode enabled\n");
+            for (;;);  /* Fatal error */
+        }
+
+        /* Verify ELF data encoding (little endian) */
+        if (computed_hash[5] != 1) {  /* ELFDATA2LSB */
+            fprintf(stderr,
+                "Rosetta is only intended to run on Apple Silicon with "
+                "a macOS host using Virtualization.framework with Rosetta mode enabled\n");
+            for (;;);  /* Fatal error */
+        }
+
+        /* Verify ELF version */
+        if (computed_hash[6] != 1) {  /* EV_CURRENT */
+            fprintf(stderr,
+                "Rosetta is only intended to run on Apple Silicon with "
+                "a macOS host using Virtualization.framework with Rosetta mode enabled\n");
+            for (;;);  /* Fatal error */
+        }
+
+        /* Verify ELF OS/ABI (ARM64 Linux) */
+        if (computed_hash[7] != 0) {  /* ELFOSABI_NONE or ELFOSABI_LINUX */
+            /* Some variants may use different ABI values */
+        }
+
+        /* Additional verification: check for expected section markers
+         *
+         * The original hash comparison checks 69 bytes against a known value.
+         * We verify key structural elements that would be present in a valid
+         * Rosetta binary.
+         */
+
+        /* Verify this looks like the rosetta binary by checking
+         * for expected machine type at offset 0x12-0x13 (ARM64 = 0xb7) */
+        if ((u8)computed_hash[0x12] != 0xb7) {
+            fprintf(stderr,
+                "Rosetta is only intended to run on Apple Silicon with "
+                "a macOS host using Virtualization.framework with Rosetta mode enabled\n");
+            for (;;);  /* Fatal error */
+        }
+
+        /*
+         * Final hash comparison - in the original code this compares
+         * against DAT_80000000eb19 which contains "Rosetta" followed
+         * by padding bytes.
+         *
+         * We verify the binary contains expected string markers.
+         */
+        match = (memcmp(computed_hash, expected_hash, 7) == 0);
+
+        if (!match) {
+            fprintf(stderr,
+                "Rosetta is only intended to run on Apple Silicon with "
+                "a macOS host using Virtualization.framework with Rosetta mode enabled\n");
+            for (;;);  /* Fatal error */
+        }
+
+        /* Rewind file for subsequent reads */
+        lseek(fd, 0, SEEK_SET);
     }
 
     close(fd);
@@ -1649,7 +1753,7 @@ void init_runtime_environment(u64 *entry_point, int argc, long argv_envp, long *
      * ========================================================================= */
 
     /* Initialize slab allocator state */
-    memset(vm_tracker_data, 0, 0x6e);
+    memset(vm_tracker_data, 0, sizeof(vm_tracker_data));
 
     /* Read system memory info */
     fd = open("/proc/self/exe", O_RDONLY);
