@@ -12973,3 +12973,575 @@ Vector128 v128_aesimc(Vector128 col)
     return result;
 }
 
+/* ============================================================================
+ * Session 33: SHA Cryptographic Extensions
+ * ============================================================================ */
+
+/**
+ * v128_sha1c - SHA-1 hash update (Choose function)
+ * @param hash Current hash state (a, b, c, d)
+ * @param data Message schedule vector
+ * @param wk Working constant
+ * @return Updated hash vector
+ *
+ * Implements SHA1C instruction - SHA-1 hash update using F(X,Y,Z) = (X AND Y) OR (NOT X AND Z)
+ */
+Vector128 v128_sha1c(Vector128 hash, Vector128 data, Vector128 wk)
+{
+    Vector128 result;
+    uint32_t *h = (uint32_t *)&hash;
+    uint32_t *d = (uint32_t *)&data;
+    uint32_t *w = (uint32_t *)&wk;
+    uint32_t *out = (uint32_t *)&result;
+
+    /* SHA-1 hash update using F function: F(X,Y,Z) = (X AND Y) OR (NOT X AND Z) */
+    for (int i = 0; i < 4; i++) {
+        uint32_t a = h[i];
+        uint32_t b = h[(i + 1) & 3];
+        uint32_t c = h[(i + 2) & 3];
+        uint32_t d_val = h[(i + 3) & 3];
+        uint32_t msg = d[i];
+        uint32_t k = w[i];
+
+        /* F(X,Y,Z) = (X AND Y) OR (NOT X AND Z) for rounds 0-19 */
+        uint32_t f = (b & c) | ((~b) & d_val);
+
+        /* TEMP = ROTL(a, 5) + F + e + msg + k */
+        uint32_t temp = ((a << 5) | (a >> 27)) + f + ((a << 30) | (a >> 2)) + msg + k;
+
+        out[i] = temp;
+    }
+
+    return result;
+}
+
+/**
+ * v128_sha1p - SHA-1 hash update (Parity function)
+ * @param hash Current hash state (a, b, c, d)
+ * @param data Message schedule vector
+ * @param wk Working constant
+ * @return Updated hash vector
+ *
+ * Implements SHA1P instruction - SHA-1 hash update using F(X,Y,Z) = X XOR Y XOR Z
+ */
+Vector128 v128_sha1p(Vector128 hash, Vector128 data, Vector128 wk)
+{
+    Vector128 result;
+    uint32_t *h = (uint32_t *)&hash;
+    uint32_t *d = (uint32_t *)&data;
+    uint32_t *w = (uint32_t *)&wk;
+    uint32_t *out = (uint32_t *)&result;
+
+    /* SHA-1 hash update using P function: F(X,Y,Z) = X XOR Y XOR Z */
+    for (int i = 0; i < 4; i++) {
+        uint32_t a = h[i];
+        uint32_t b = h[(i + 1) & 3];
+        uint32_t c = h[(i + 2) & 3];
+        uint32_t d_val = h[(i + 3) & 3];
+        uint32_t msg = d[i];
+        uint32_t k = w[i];
+
+        /* P(X,Y,Z) = X XOR Y XOR Z for rounds 40-59 */
+        uint32_t f = b ^ c ^ d_val;
+
+        /* TEMP = ROTL(a, 5) + F + e + msg + k */
+        uint32_t temp = ((a << 5) | (a >> 27)) + f + ((a << 30) | (a >> 2)) + msg + k;
+
+        out[i] = temp;
+    }
+
+    return result;
+}
+
+/**
+ * v128_sha1m - SHA-1 hash update (Majority function)
+ * @param hash Current hash state (a, b, c, d)
+ * @param data Message schedule vector
+ * @param wk Working constant
+ * @return Updated hash vector
+ *
+ * Implements SHA1M instruction - SHA-1 hash update using F(X,Y,Z) = (X AND Y) OR (X AND Z) OR (Y AND Z)
+ */
+Vector128 v128_sha1m(Vector128 hash, Vector128 data, Vector128 wk)
+{
+    Vector128 result;
+    uint32_t *h = (uint32_t *)&hash;
+    uint32_t *d = (uint32_t *)&data;
+    uint32_t *w = (uint32_t *)&wk;
+    uint32_t *out = (uint32_t *)&result;
+
+    /* SHA-1 hash update using M function: F(X,Y,Z) = (X AND Y) OR (X AND Z) OR (Y AND Z) */
+    for (int i = 0; i < 4; i++) {
+        uint32_t a = h[i];
+        uint32_t b = h[(i + 1) & 3];
+        uint32_t c = h[(i + 2) & 3];
+        uint32_t d_val = h[(i + 3) & 3];
+        uint32_t msg = d[i];
+        uint32_t k = w[i];
+
+        /* M(X,Y,Z) = (X AND Y) OR (X AND Z) OR (Y AND Z) for rounds 20-39, 60-79 */
+        uint32_t f = (b & c) | (b & d_val) | (c & d_val);
+
+        /* TEMP = ROTL(a, 5) + F + e + msg + k */
+        uint32_t temp = ((a << 5) | (a >> 27)) + f + ((a << 30) | (a >> 2)) + msg + k;
+
+        out[i] = temp;
+    }
+
+    return result;
+}
+
+/**
+ * v128_sha1su0 - SHA-1 schedule update 0
+ * @param data Message schedule vector (W[t-3], W[t-4], W[t-5], W[t-6])
+ * @param wk Working vector
+ * @return Updated message schedule vector
+ *
+ * Implements SHA1SU0 instruction - first part of SHA-1 message schedule update.
+ * W[t] = W[t-3] XOR W[t-8] XOR W[t-14] XOR W[t-16]
+ */
+Vector128 v128_sha1su0(Vector128 data, Vector128 wk)
+{
+    Vector128 result;
+    uint32_t *d = (uint32_t *)&data;
+    uint32_t *w = (uint32_t *)&wk;
+    uint32_t *out = (uint32_t *)&result;
+
+    /* SHA-1 message schedule update - first part */
+    for (int i = 0; i < 4; i++) {
+        uint32_t w_t_minus_3 = d[i];
+        uint32_t w_t_minus_4 = w[i];
+
+        /* ROTR(W[t-3], 2) XOR ROTR(W[t-3], 13) XOR ROTR(W[t-3], 22) */
+        uint32_t s0 = ((w_t_minus_3 >> 2) | (w_t_minus_3 << 30)) ^
+                      ((w_t_minus_3 >> 13) | (w_t_minus_3 << 19)) ^
+                      ((w_t_minus_3 >> 22) | (w_t_minus_3 << 10));
+
+        out[i] = s0 ^ w_t_minus_4;
+    }
+
+    return result;
+}
+
+/**
+ * v128_sha1su1 - SHA-1 schedule update 1
+ * @param data Message schedule vector
+ * @param wk Working vector
+ * @return Updated message schedule vector
+ *
+ * Implements SHA1SU1 instruction - second part of SHA-1 message schedule update.
+ */
+Vector128 v128_sha1su1(Vector128 data, Vector128 wk)
+{
+    Vector128 result;
+    uint32_t *d = (uint32_t *)&data;
+    uint32_t *w = (uint32_t *)&wk;
+    uint32_t *out = (uint32_t *)&result;
+
+    /* SHA-1 message schedule update - second part */
+    for (int i = 0; i < 4; i++) {
+        uint32_t w_prev = d[i];
+        uint32_t w_curr = w[i];
+
+        /* W[t] = W[t-1] + W[t-2] XOR ROTR(W[t-2], 23) */
+        uint32_t rotr23 = (w_curr >> 23) | (w_curr << 9);
+        out[i] = w_prev + (w_curr ^ rotr23);
+    }
+
+    return result;
+}
+
+/**
+ * v128_sha256h - SHA-256 hash update (high part)
+ * @param hash Current hash state (a, b, c, d)
+ * @param data Message schedule vector
+ * @param wk Working constant
+ * @return Updated hash vector
+ *
+ * Implements SHA256H instruction - SHA-256 hash update using Sigma1 and Ch functions.
+ */
+Vector128 v128_sha256h(Vector128 hash, Vector128 data, Vector128 wk)
+{
+    Vector128 result;
+    uint32_t *h = (uint32_t *)&hash;
+    uint32_t *d = (uint32_t *)&data;
+    uint32_t *w = (uint32_t *)&wk;
+    uint32_t *out = (uint32_t *)&result;
+
+    /* SHA-256 hash update using Ch function: Ch(E,F,G) = (E AND F) XOR (NOT E AND G) */
+    for (int i = 0; i < 4; i++) {
+        uint32_t a = h[i];
+        uint32_t b = h[(i + 1) & 3];
+        uint32_t c = h[(i + 2) & 3];
+        uint32_t d_val = h[(i + 3) & 3];
+        uint32_t msg = d[i];
+        uint32_t k = w[i];
+
+        /* Ch(E,F,G) = (E AND F) XOR (NOT E AND G) */
+        uint32_t ch = (b & c) ^ ((~b) & d_val);
+
+        /* Sigma1: ROTR(E, 6) XOR ROTR(E, 11) XOR ROTR(E, 25) */
+        uint32_t sigma1 = ((b >> 6) | (b << 26)) ^
+                          ((b >> 11) | (b << 21)) ^
+                          ((b >> 25) | (b << 7));
+
+        /* TEMP = ROTL(a, 5) + Ch + msg + k */
+        uint32_t temp = ((a << 5) | (a >> 27)) + ch + msg + k;
+
+        out[i] = temp + sigma1;
+    }
+
+    return result;
+}
+
+/**
+ * v128_sha256h2 - SHA-256 hash update (high part 2)
+ * @param hash Current hash state (e, f, g, h)
+ * @param data Message schedule vector
+ * @param wk Working constant
+ * @return Updated hash vector
+ *
+ * Implements SHA256H2 instruction - SHA-256 hash update using Sigma0 and Maj functions.
+ */
+Vector128 v128_sha256h2(Vector128 hash, Vector128 data, Vector128 wk)
+{
+    Vector128 result;
+    uint32_t *h = (uint32_t *)&hash;
+    uint32_t *d = (uint32_t *)&data;
+    uint32_t *w = (uint32_t *)&wk;
+    uint32_t *out = (uint32_t *)&result;
+
+    /* SHA-256 hash update using Maj function: Maj(A,B,C) = (A AND B) XOR (A AND C) XOR (B AND C) */
+    for (int i = 0; i < 4; i++) {
+        uint32_t a = h[i];
+        uint32_t b = h[(i + 1) & 3];
+        uint32_t c = h[(i + 2) & 3];
+        uint32_t d_val = h[(i + 3) & 3];
+        uint32_t msg = d[i];
+        uint32_t k = w[i];
+
+        /* Maj(A,B,C) = (A AND B) XOR (A AND C) XOR (B AND C) */
+        uint32_t maj = (a & b) ^ (a & c) ^ (b & c);
+
+        /* Sigma0: ROTR(A, 2) XOR ROTR(A, 13) XOR ROTR(A, 22) */
+        uint32_t sigma0 = ((a >> 2) | (a << 30)) ^
+                          ((a >> 13) | (a << 19)) ^
+                          ((a >> 22) | (a << 10));
+
+        /* Combine with message and constant */
+        out[i] = maj + sigma0 + msg + k;
+    }
+
+    return result;
+}
+
+/**
+ * v128_sha256su0 - SHA-256 schedule update 0
+ * @param data Message schedule vector (W[t-15]..W[t-12])
+ * @param wk Working vector
+ * @return Updated message schedule vector
+ *
+ * Implements SHA256SU0 instruction - first part of SHA-256 message schedule update.
+ * W[t] = W[t-15] XOR sigma0(W[t-15])
+ */
+Vector128 v128_sha256su0(Vector128 data, Vector128 wk)
+{
+    Vector128 result;
+    uint32_t *d = (uint32_t *)&data;
+    uint32_t *w = (uint32_t *)&wk;
+    uint32_t *out = (uint32_t *)&result;
+
+    /* SHA-256 message schedule update - first part */
+    for (int i = 0; i < 4; i++) {
+        uint32_t w_prev = d[i];
+
+        /* sigma0: ROTR(W[t-15], 7) XOR ROTR(W[t-15], 18) XOR SHR(W[t-15], 3) */
+        uint32_t sigma0 = ((w_prev >> 7) | (w_prev << 25)) ^
+                          ((w_prev >> 18) | (w_prev << 14)) ^
+                          (w_prev >> 3);
+
+        out[i] = w_prev ^ sigma0;
+    }
+
+    /* Apply XOR with wk */
+    out[0] ^= w[0];
+    out[1] ^= w[1];
+
+    return result;
+}
+
+/**
+ * v128_sha256su1 - SHA-256 schedule update 1
+ * @param data Message schedule vector
+ * @param wk Working vector
+ * @return Updated message schedule vector
+ *
+ * Implements SHA256SU1 instruction - second part of SHA-256 message schedule update.
+ * W[t] = W[t-2] XOR sigma1(W[t-2]) + W[t-7] + W[t-16]
+ */
+Vector128 v128_sha256su1(Vector128 data, Vector128 wk)
+{
+    Vector128 result;
+    uint32_t *d = (uint32_t *)&data;
+    uint32_t *w = (uint32_t *)&wk;
+    uint32_t *out = (uint32_t *)&result;
+
+    /* SHA-256 message schedule update - second part */
+    for (int i = 0; i < 4; i++) {
+        uint32_t w_prev = d[i];
+        uint32_t w_curr = w[i];
+
+        /* sigma1: ROTR(W[t-2], 17) XOR ROTR(W[t-2], 19) XOR SHR(W[t-2], 10) */
+        uint32_t sigma1 = ((w_curr >> 17) | (w_curr << 15)) ^
+                          ((w_curr >> 19) | (w_curr << 13)) ^
+                          (w_curr >> 10);
+
+        out[i] = w_prev + (sigma1 ^ w_curr);
+    }
+
+    return result;
+}
+
+/* ============================================================================
+ * Session 33: CRC32 Extensions
+ * ============================================================================ */
+
+/**
+ * crc32b - CRC32 byte
+ * @param crc Current CRC value
+ * @param byte Byte to process
+ * @return Updated CRC32 value
+ *
+ * Implements CRC32B instruction - CRC32 for a single byte.
+ */
+uint32_t crc32b(uint32_t crc, uint8_t byte)
+{
+    /* CRC32 polynomial: 0xEDB88320 (reflected form of 0x04C11DB7) */
+    crc ^= byte;
+    for (int i = 0; i < 8; i++) {
+        crc = (crc >> 1) ^ ((crc & 1) ? 0xEDB88320 : 0);
+    }
+    return crc;
+}
+
+/**
+ * crc32h - CRC32 halfword
+ * @param crc Current CRC value
+ * @param halfword Halfword to process
+ * @return Updated CRC32 value
+ *
+ * Implements CRC32H instruction - CRC32 for a 16-bit halfword.
+ */
+uint32_t crc32h(uint32_t crc, uint16_t halfword)
+{
+    crc = crc32b(crc, halfword & 0xFF);
+    crc = crc32b(crc, (halfword >> 8) & 0xFF);
+    return crc;
+}
+
+/**
+ * crc32w - CRC32 word
+ * @param crc Current CRC value
+ * @param word Word to process
+ * @return Updated CRC32 value
+ *
+ * Implements CRC32W instruction - CRC32 for a 32-bit word.
+ */
+uint32_t crc32w(uint32_t crc, uint32_t word)
+{
+    crc = crc32b(crc, word & 0xFF);
+    crc = crc32b(crc, (word >> 8) & 0xFF);
+    crc = crc32b(crc, (word >> 16) & 0xFF);
+    crc = crc32b(crc, (word >> 24) & 0xFF);
+    return crc;
+}
+
+/* ============================================================================
+ * Session 33: Random Number Generation
+ * ============================================================================ */
+
+/**
+ * rndr - Random number
+ * @return 64-bit random number
+ *
+ * Implements RNDR instruction - hardware random number generator.
+ * Returns a random number using the system's random number generator.
+ */
+uint64_t rndr(void)
+{
+    /* Use /dev/urandom for random number generation */
+    static int fd = -1;
+    uint64_t result;
+
+    if (fd < 0) {
+        fd = open("/dev/urandom", O_RDONLY);
+        if (fd < 0) {
+            /* Fallback to pseudo-random if /dev/urandom unavailable */
+            return (uint64_t)rand();
+        }
+    }
+
+    ssize_t ret = read(fd, &result, sizeof(result));
+    if (ret != sizeof(result)) {
+        return (uint64_t)rand();
+    }
+
+    return result;
+}
+
+/**
+ * rndrrs - Reseeded random number
+ * @return 64-bit reseeded random number
+ *
+ * Implements RNDRRS instruction - reseeded random number generator.
+ * Returns a random number that is guaranteed to be reseeded from the entropy source.
+ */
+uint64_t rndrrs(void)
+{
+    /* For RNDRRS, we always reseed by reading fresh entropy */
+    int fd = open("/dev/urandom", O_RDONLY);
+    uint64_t result;
+
+    if (fd < 0) {
+        /* Fallback to pseudo-random if /dev/urandom unavailable */
+        srand((unsigned int)time(NULL));
+        return (uint64_t)rand();
+    }
+
+    ssize_t ret = read(fd, &result, sizeof(result));
+    close(fd);
+
+    if (ret != sizeof(result)) {
+        srand((unsigned int)time(NULL));
+        return (uint64_t)rand();
+    }
+
+    return result;
+}
+
+/* ============================================================================
+ * Session 33: Additional SIMD Utilities
+ * ============================================================================ */
+
+/**
+ * v128_bswap - Byte swap (reverse byte order)
+ * @param a Input vector
+ * @return Vector with reversed byte order
+ *
+ * Implements BSL/BSWAP instruction - reverses byte order in each element.
+ */
+Vector128 v128_bswap(Vector128 a)
+{
+    Vector128 result;
+    uint8_t *in = (uint8_t *)&a;
+    uint8_t *out = (uint8_t *)&result;
+
+    /* Reverse byte order */
+    for (int i = 0; i < 16; i++) {
+        out[i] = in[15 - i];
+    }
+
+    return result;
+}
+
+/**
+ * v128_bitsel - Bit select
+ * @param a First source vector
+ * @param b Second source vector
+ * @param c Condition vector
+ * @return Result vector (c ? a : b for each bit)
+ *
+ * Implements BSL (Bit Select) instruction - conditional select by bit.
+ * For each bit, if condition bit is 1, select from a, otherwise from b.
+ */
+Vector128 v128_bitsel(Vector128 a, Vector128 b, Vector128 c)
+{
+    Vector128 result;
+    uint64_t *in_a = (uint64_t *)&a;
+    uint64_t *in_b = (uint64_t *)&b;
+    uint64_t *in_c = (uint64_t *)&c;
+    uint64_t *out = (uint64_t *)&result;
+
+    /* BSL: result = (c AND a) OR (NOT c AND b) */
+    out[0] = (in_c[0] & in_a[0]) | ((~in_c[0]) & in_b[0]);
+    out[1] = (in_c[1] & in_a[1]) | ((~in_c[1]) & in_b[1]);
+
+    return result;
+}
+
+/**
+ * v128_rshrn - Rounded shift right narrow
+ * @param a Input vector
+ * @param shift Shift amount
+ * @return Narrowed result vector
+ *
+ * Implements RSHRN instruction - rounded shift right then narrow.
+ */
+Vector128 v128_rshrn(Vector128 a, int shift)
+{
+    Vector128 result;
+    uint16_t *in16 = (uint16_t *)&a;
+    uint8_t *out = (uint8_t *)&result;
+
+    /* Rounded shift right: add 2^(shift-1) before shifting */
+    uint16_t round = 1 << (shift - 1);
+
+    for (int i = 0; i < 8; i++) {
+        out[i] = (uint8_t)((in16[i] + round) >> shift);
+    }
+
+    return result;
+}
+
+/**
+ * v128_srshrn - Signed rounded shift right narrow
+ * @param a Input vector
+ * @param shift Shift amount
+ * @return Narrowed result vector
+ *
+ * Implements SRSHRN instruction - signed rounded shift right then narrow.
+ */
+Vector128 v128_srshrn(Vector128 a, int shift)
+{
+    Vector128 result;
+    int16_t *in16 = (int16_t *)&a;
+    int8_t *out = (int8_t *)&result;
+
+    /* Signed rounded shift right */
+    int16_t round = 1 << (shift - 1);
+
+    for (int i = 0; i < 8; i++) {
+        int32_t val = in16[i];
+        val = val + round;
+        val = val >> shift;
+        out[i] = (int8_t)val;
+    }
+
+    return result;
+}
+
+/**
+ * v128_urshrn - Unsigned rounded shift right narrow
+ * @param a Input vector
+ * @param shift Shift amount
+ * @return Narrowed result vector
+ *
+ * Implements URSHRN instruction - unsigned rounded shift right then narrow.
+ */
+Vector128 v128_urshrn(Vector128 a, int shift)
+{
+    Vector128 result;
+    uint16_t *in16 = (uint16_t *)&a;
+    uint8_t *out = (uint8_t *)&result;
+
+    /* Unsigned rounded shift right */
+    uint16_t round = 1 << (shift - 1);
+
+    for (int i = 0; i < 8; i++) {
+        out[i] = (uint8_t)((in16[i] + round) >> shift);
+    }
+
+    return result;
+}
+
+

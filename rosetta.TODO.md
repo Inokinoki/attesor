@@ -3,9 +3,9 @@
 **Date**: 2026-02-23
 **Original Binary**: `/Library/Apple/usr/libexec/oah/RosettaLinux/rosetta`
 **Original Size**: 74,677 lines, 828 functions
-**Refactored Size**: ~12,975 lines
+**Refactored Size**: ~13,546 lines
 
-**Note**: Session 32 completed - Cryptographic Extensions (AES) implemented
+**Note**: Session 33 completed - Cryptographic Extensions (SHA/CRC32) implemented
 
 ## Summary
 
@@ -74,8 +74,9 @@
 | NEON Narrowing/Widening | 15 | 15 | 0 | 100% |
 | NEON Narrowing with Shift | 21 | 21 | 0 | 100% |
 | Advanced SIMD Operations | 27 | 27 | 0 | 100% |
-| Cryptographic Extensions | 10 | 10 | 0 | 100% |
-| **TOTAL** | **1109** | **566** | **543** | **51.0%** |
+| Cryptographic Extensions AES | 10 | 10 | 0 | 100% |
+| Cryptographic Extensions SHA/CRC32 | 19 | 19 | 0 | 100% |
+| **TOTAL** | **1128** | **585** | **543** | **52.8%** |
 
 ---
 
@@ -1538,7 +1539,7 @@ The following functions from the original binary remain to be refactored:
 
 ---
 
-## Session 32: Cryptographic Extensions [IN PROGRESS]
+## Session 32: Cryptographic Extensions [COMPLETE]
 
 ### AES Cryptographic Extensions (4 functions)
 - [x] v128_aese - AES round encryption (SubBytes + ShiftRows)
@@ -1555,3 +1556,38 @@ The following functions from the original binary remain to be refactored:
 - [x] gf2_mul14 - Multiply by 14 in GF(2^8)
 
 **Session 32 Total: 10 new function implementations**
+
+---
+
+## Session 33: Cryptographic Extensions (SHA/CRC32) [COMPLETE]
+
+### SHA-1 Cryptographic Extensions (5 functions)
+- [x] v128_sha1c - SHA-1 hash update (Choose function)
+- [x] v128_sha1p - SHA-1 hash update (Parity function)
+- [x] v128_sha1m - SHA-1 hash update (Majority function)
+- [x] v128_sha1su0 - SHA-1 schedule update 0
+- [x] v128_sha1su1 - SHA-1 schedule update 1
+
+### SHA-256 Cryptographic Extensions (4 functions)
+- [x] v128_sha256h - SHA-256 hash update (high part)
+- [x] v128_sha256h2 - SHA-256 hash update (high part 2)
+- [x] v128_sha256su0 - SHA-256 schedule update 0
+- [x] v128_sha256su1 - SHA-256 schedule update 1
+
+### CRC32 Extensions (3 functions)
+- [x] crc32b - CRC32 byte
+- [x] crc32h - CRC32 halfword
+- [x] crc32w - CRC32 word
+
+### Random Number Generation (2 functions)
+- [x] rndr - Random number
+- [x] rndrrs - Reseeded random number
+
+### Additional SIMD Utilities (5 functions)
+- [x] v128_bswap - Byte swap (reverse byte order)
+- [x] v128_bitsel - Bit select
+- [x] v128_rshrn - Rounded shift right narrow
+- [x] v128_srshrn - Signed rounded shift right narrow
+- [x] v128_urshrn - Unsigned rounded shift right narrow
+
+**Session 33 Total: 19 new function implementations**
