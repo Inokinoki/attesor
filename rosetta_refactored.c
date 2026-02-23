@@ -10059,6 +10059,98 @@ Vector128 v128_fcvtnu(Vector128 a)
 }
 
 /**
+ * v128_scvtf - Signed convert to floating-point
+ * @param a Input vector with signed integers
+ * @param fracbits Number of fractional bits
+ * @return Vector with floating-point values
+ *
+ * Implements SCVTF (Signed Convert to Floating-point) instruction.
+ * Converts signed integers to floating-point values.
+ */
+Vector128 v128_scvtf(Vector128 a, int fracbits)
+{
+    Vector128 result;
+    int32_t *in = (int32_t *)&a;
+    float *out = (float *)&result;
+    float scale = 1.0f / (1 << fracbits);
+
+    for (int i = 0; i < 4; i++) {
+        out[i] = (float)in[i] * scale;
+    }
+
+    return result;
+}
+
+/**
+ * v128_ucvtf - Unsigned convert to floating-point
+ * @param a Input vector with unsigned integers
+ * @param fracbits Number of fractional bits
+ * @return Vector with floating-point values
+ *
+ * Implements UCVTF (Unsigned Convert to Floating-point) instruction.
+ * Converts unsigned integers to floating-point values.
+ */
+Vector128 v128_ucvtf(Vector128 a, int fracbits)
+{
+    Vector128 result;
+    uint32_t *in = (uint32_t *)&a;
+    float *out = (float *)&result;
+    float scale = 1.0f / (1 << fracbits);
+
+    for (int i = 0; i < 4; i++) {
+        out[i] = (float)in[i] * scale;
+    }
+
+    return result;
+}
+
+/**
+ * v128_fcvts - Float convert to signed integer
+ * @param a Input vector with floating-point values
+ * @param fracbits Number of fractional bits
+ * @return Vector with signed integer values
+ *
+ * Implements FCVTS (Floating-point Convert to Signed) instruction.
+ * Converts floating-point values to signed integers.
+ */
+Vector128 v128_fcvts(Vector128 a, int fracbits)
+{
+    Vector128 result;
+    float *in = (float *)&a;
+    int32_t *out = (int32_t *)&result;
+    float scale = (1 << fracbits);
+
+    for (int i = 0; i < 4; i++) {
+        out[i] = (int32_t)(in[i] * scale);
+    }
+
+    return result;
+}
+
+/**
+ * v128_fcvtu - Float convert to unsigned integer
+ * @param a Input vector with floating-point values
+ * @param fracbits Number of fractional bits
+ * @return Vector with unsigned integer values
+ *
+ * Implements FCVTU (Floating-point Convert to Unsigned) instruction.
+ * Converts floating-point values to unsigned integers.
+ */
+Vector128 v128_fcvtu(Vector128 a, int fracbits)
+{
+    Vector128 result;
+    float *in = (float *)&a;
+    uint32_t *out = (uint32_t *)&result;
+    float scale = (1 << fracbits);
+
+    for (int i = 0; i < 4; i++) {
+        out[i] = (uint32_t)(in[i] * scale);
+    }
+
+    return result;
+}
+
+/**
  * translate_ldrsb_imm - Load register signed byte immediate
  *
  * @param state Thread state
@@ -13353,6 +13445,27 @@ uint32_t crc32w(uint32_t crc, uint32_t word)
     crc = crc32b(crc, (word >> 8) & 0xFF);
     crc = crc32b(crc, (word >> 16) & 0xFF);
     crc = crc32b(crc, (word >> 24) & 0xFF);
+    return crc;
+}
+
+/**
+ * crc32x - CRC32 doubleword
+ * @param crc Current CRC value
+ * @param dword Doubleword to process
+ * @return Updated CRC32 value
+ *
+ * Implements CRC32X instruction - CRC32 for a 64-bit doubleword.
+ */
+uint64_t crc32x(uint64_t crc, uint64_t dword)
+{
+    crc = crc32b((uint32_t)crc, dword & 0xFF);
+    crc = crc32b((uint32_t)crc, (dword >> 8) & 0xFF);
+    crc = crc32b((uint32_t)crc, (dword >> 16) & 0xFF);
+    crc = crc32b((uint32_t)crc, (dword >> 24) & 0xFF);
+    crc = crc32b((uint32_t)crc, (dword >> 32) & 0xFF);
+    crc = crc32b((uint32_t)crc, (dword >> 40) & 0xFF);
+    crc = crc32b((uint32_t)crc, (dword >> 48) & 0xFF);
+    crc = crc32b((uint32_t)crc, (dword >> 56) & 0xFF);
     return crc;
 }
 

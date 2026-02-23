@@ -1837,3 +1837,26 @@ without errors (only one deprecation warning for sbrk on macOS).
 **Session 36 Total: Header file completed and verified**
 
 ---
+
+## Session 37: Missing Vector Convert and CRC32X Functions [COMPLETE]
+
+### CRC32 Extension (1 function)
+- [x] crc32x - CRC32 for 64-bit doubleword (CRC32X instruction)
+
+### Vector Floating-Point Convert (4 functions)
+- [x] v128_scvtf - Signed convert to floating-point with fractional scaling
+- [x] v128_ucvtf - Unsigned convert to floating-point with fractional scaling
+- [x] v128_fcvts - Float convert to signed integer with fractional scaling
+- [x] v128_fcvtu - Float convert to unsigned integer with fractional scaling
+
+### Files Summary
+- rosetta_refactored.c: 14,217 lines, 557 function implementations
+- rosetta_refactored.h: 1,211 lines, 559 function declarations
+
+**Note**: All previously missing function implementations have been added. The 4 vector
+convert functions (v128_scvtf, v128_ucvtf, v128_fcvts, v128_fcvtu) and crc32x were
+identified as missing and have been fully implemented.
+
+**Session 37 Total: 5 new function implementations**
+
+---
