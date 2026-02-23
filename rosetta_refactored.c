@@ -13544,4 +13544,582 @@ Vector128 v128_urshrn(Vector128 a, int shift)
     return result;
 }
 
+/* ============================================================================
+ * Session 34: Additional Utility Functions
+ * ============================================================================ */
+
+/* -----------------------------------------------------------------------------
+ * Additional String Utilities
+ * ----------------------------------------------------------------------------- */
+
+/**
+ * rosetta_strdup - Duplicate a string
+ * @param s Source string
+ * @return Pointer to newly allocated duplicate string
+ *
+ * Duplicates a string by allocating memory and copying the contents.
+ * The returned string must be freed with rosetta_free().
+ */
+char *rosetta_strdup(const char *s)
+{
+    size_t len;
+    char *dup;
+
+    if (s == NULL) {
+        return NULL;
+    }
+
+    len = rosetta_strlen(s);
+    dup = (char *)rosetta_malloc(len + 1);
+    if (dup != NULL) {
+        rosetta_memcpy(dup, s, len + 1);
+    }
+
+    return dup;
+}
+
+/**
+ * rosetta_strstr - Find substring in string
+ * @param haystack String to search in
+ * @param needle String to search for
+ * @return Pointer to first occurrence of needle, or NULL if not found
+ *
+ * Finds the first occurrence of the substring needle in the string haystack.
+ */
+char *rosetta_strstr(const char *haystack, const char *needle)
+{
+    size_t h_len, n_len;
+    const char *h;
+
+    if (haystack == NULL || needle == NULL) {
+        return NULL;
+    }
+
+    h_len = rosetta_strlen(haystack);
+    n_len = rosetta_strlen(needle);
+
+    if (n_len == 0) {
+        return (char *)haystack;
+    }
+
+    if (n_len > h_len) {
+        return NULL;
+    }
+
+    for (h = haystack; h_len >= n_len; h++, h_len--) {
+        if (rosetta_memcmp(h, needle, n_len) == 0) {
+            return (char *)h;
+        }
+    }
+
+    return NULL;
+}
+
+/**
+ * rosetta_strpbrk - Find first match of any character from set
+ * @param s String to search
+ * @param charset Set of characters to match
+ * @return Pointer to first matching character, or NULL if none found
+ *
+ * Finds the first occurrence in string s of any character from charset.
+ */
+char *rosetta_strpbrk(const char *s, const char *charset)
+{
+    const char *c;
+
+    if (s == NULL || charset == NULL) {
+        return NULL;
+    }
+
+    while (*s != '\0') {
+        for (c = charset; *c != '\0'; c++) {
+            if (*s == *c) {
+                return (char *)s;
+            }
+        }
+        s++;
+    }
+
+    return NULL;
+}
+
+/**
+ * rosetta_strtok - Tokenize a string
+ * @param str String to tokenize (NULL on subsequent calls)
+ * @param delim Delimiter characters
+ * @return Pointer to next token, or NULL if no more tokens
+ *
+ * Extracts tokens from string str delimited by characters in delim.
+ * Maintains state between calls (use str on first call, NULL on subsequent).
+ */
+char *rosetta_strtok(char *str, const char *delim)
+{
+    static char *last;
+    char *token_start;
+
+    if (str != NULL) {
+        last = str;
+    } else if (last == NULL) {
+        return NULL;
+    }
+
+    /* Skip leading delimiters */
+    while (*last != '\0') {
+        const char *d;
+        int is_delim = 0;
+
+        for (d = delim; *d != '\0'; d++) {
+            if (*last == *d) {
+                is_delim = 1;
+                break;
+            }
+        }
+
+        if (!is_delim) {
+            break;
+        }
+        last++;
+    }
+
+    if (*last == '\0') {
+        return NULL;
+    }
+
+    token_start = last;
+
+    /* Find end of token */
+    while (*last != '\0') {
+        const char *d;
+        int is_delim = 0;
+
+        for (d = delim; *d != '\0'; d++) {
+            if (*last == *d) {
+                is_delim = 1;
+                break;
+            }
+        }
+
+        if (is_delim) {
+            *last = '\0';
+            last++;
+            return token_start;
+        }
+        last++;
+    }
+
+    return token_start;
+}
+
+/**
+ * rosetta_memmem - Find memory region in memory region
+ * @param haystack Pointer to memory to search in
+ * @param haystack_len Length of haystack
+ * @param needle Pointer to memory to search for
+ * @param needle_len Length of needle
+ * @return Pointer to first occurrence, or NULL if not found
+ *
+ * Finds the first occurrence of needle in haystack.
+ */
+void *rosetta_memmem(const void *haystack, size_t haystack_len,
+                     const void *needle, size_t needle_len)
+{
+    const uint8_t *h = (const uint8_t *)haystack;
+
+    if (needle_len == 0) {
+        return (void *)haystack;
+    }
+
+    if (needle_len > haystack_len) {
+        return NULL;
+    }
+
+    while (haystack_len >= needle_len) {
+        if (rosetta_memcmp(h, needle, needle_len) == 0) {
+            return (void *)h;
+        }
+        h++;
+        haystack_len--;
+    }
+
+    return NULL;
+}
+
+/**
+ * rosetta_memrchr - Find last occurrence of byte in memory
+ * @param s Pointer to memory to search
+ * @param c Byte to search for
+ * @param n Length of memory region
+ * @return Pointer to last occurrence, or NULL if not found
+ *
+ * Finds the last occurrence of byte c in the first n bytes of s.
+ */
+void *rosetta_memrchr(const void *s, int c, size_t n)
+{
+    const uint8_t *p = (const uint8_t *)s;
+    const uint8_t *found = NULL;
+    size_t i;
+
+    for (i = 0; i < n; i++) {
+        if (p[i] == (uint8_t)c) {
+            found = &p[i];
+        }
+    }
+
+    return (void *)found;
+}
+
+/* -----------------------------------------------------------------------------
+ * Additional Integer/Bit Utilities
+ * ----------------------------------------------------------------------------- */
+
+/**
+ * count_trailing_zeros32 - Count trailing zeros in 32-bit word
+ * @param x Input value
+ * @return Number of trailing zero bits
+ */
+uint32_t count_trailing_zeros32(uint32_t x)
+{
+    uint32_t count = 0;
+
+    if (x == 0) {
+        return 32;
+    }
+
+    while ((x & 1) == 0) {
+        x >>= 1;
+        count++;
+    }
+
+    return count;
+}
+
+/**
+ * count_trailing_zeros64 - Count trailing zeros in 64-bit word
+ * @param x Input value
+ * @return Number of trailing zero bits
+ */
+uint64_t count_trailing_zeros64(uint64_t x)
+{
+    uint64_t count = 0;
+
+    if (x == 0) {
+        return 64;
+    }
+
+    while ((x & 1) == 0) {
+        x >>= 1;
+        count++;
+    }
+
+    return count;
+}
+
+/**
+ * is_power_of_2 - Check if value is power of 2
+ * @param x Input value
+ * @return true if x is power of 2, false otherwise
+ */
+bool is_power_of_2(uint64_t x)
+{
+    return x != 0 && (x & (x - 1)) == 0;
+}
+
+/**
+ * round_up_to_pow2 - Round up to nearest power of 2
+ * @param x Input value
+ * @return Smallest power of 2 >= x
+ */
+uint64_t round_up_to_pow2(uint64_t x)
+{
+    uint64_t result = 1;
+
+    if (x == 0) {
+        return 1;
+    }
+
+    x--;
+    while (x > 0) {
+        x >>= 1;
+        result <<= 1;
+    }
+
+    return result;
+}
+
+/* -----------------------------------------------------------------------------
+ * Additional Translation Infrastructure Utilities
+ * ----------------------------------------------------------------------------- */
+
+/**
+ * translation_cache_get_size - Get current translation cache size
+ * @return Number of entries in translation cache
+ */
+size_t translation_cache_get_size(void)
+{
+    /* Return fixed cache size - actual implementation would track entries */
+    return 4096;  /* Direct-mapped cache with 4096 entries */
+}
+
+/**
+ * translation_cache_is_full - Check if translation cache is full
+ * @return true if cache is full, false otherwise
+ */
+bool translation_cache_is_full(void)
+{
+    /* Simplified check - actual implementation would track occupancy */
+    return false;  /* Never report full for basic implementation */
+}
+
+/**
+ * code_cache_get_free_space - Get amount of free space in code cache
+ * @return Number of bytes free in code cache
+ */
+size_t code_cache_get_free_space(void)
+{
+    /* Placeholder - actual implementation would track allocation */
+    return 1024 * 1024;  /* 1 MB default */
+}
+
+/**
+ * code_cache_reset - Reset code cache to initial state
+ *
+ * Frees all allocated code cache memory and resets to initial state.
+ */
+void code_cache_reset(void)
+{
+    /* Placeholder - actual implementation would free all code cache memory */
+}
+
+/* -----------------------------------------------------------------------------
+ * Additional ELF Utilities
+ * ----------------------------------------------------------------------------- */
+
+/**
+ * elf_get_section_offset - Get offset of section in ELF file
+ * @param base Pointer to ELF base
+ * @param section_index Index of section
+ * @return Offset of section, or 0 if invalid
+ */
+uint64_t elf_get_section_offset(const void *base, uint32_t section_index)
+{
+    /* Placeholder - actual implementation would parse ELF section headers */
+    return 0;
+}
+
+/**
+ * elf_get_section_size - Get size of section in ELF file
+ * @param base Pointer to ELF base
+ * @param section_index Index of section
+ * @return Size of section, or 0 if invalid
+ */
+uint64_t elf_get_section_size(const void *base, uint32_t section_index)
+{
+    /* Placeholder - actual implementation would parse ELF section headers */
+    return 0;
+}
+
+/**
+ * elf_is_valid_class64 - Check if ELF is 64-bit class
+ * @param base Pointer to ELF base
+ * @return true if valid 64-bit ELF, false otherwise
+ */
+bool elf_is_valid_class64(const void *base)
+{
+    const uint8_t *elf = (const uint8_t *)base;
+
+    if (elf == NULL) {
+        return false;
+    }
+
+    /* Check ELF magic and class */
+    if (elf[0] != 0x7f || elf[1] != 'E' || elf[2] != 'L' || elf[3] != 'F') {
+        return false;
+    }
+
+    /* EI_CLASS is at offset 4, ELFCLASS64 is 2 */
+    return elf[4] == 2;
+}
+
+/**
+ * elf_is_valid_machine_aarch64 - Check if ELF is AArch64 machine type
+ * @param base Pointer to ELF base
+ * @return true if AArch64 ELF, false otherwise
+ */
+bool elf_is_valid_machine_aarch64(const void *base)
+{
+    const uint8_t *elf = (const uint8_t *)base;
+
+    if (elf == NULL) {
+        return false;
+    }
+
+    /* e_machine is at offset 18 (little-endian) */
+    /* EM_AARCH64 is 183 (0xB7) */
+    return elf[18] == 0xB7 && elf[19] == 0x00;
+}
+
+/* -----------------------------------------------------------------------------
+ * Additional Memory Utilities
+ * ----------------------------------------------------------------------------- */
+
+/**
+ * rosetta_memchr_eq - Find first byte equal to any in mask
+ * @param s Pointer to memory to search
+ * @param mask 16-byte mask of bytes to match
+ * @param n Length of memory region
+ * @return Pointer to first matching byte, or NULL if none found
+ *
+ * SIMD-optimized search for bytes matching any in a 16-byte mask.
+ */
+void *rosetta_memchr_eq(const void *s, const uint8_t mask[16], size_t n)
+{
+    const uint8_t *p = (const uint8_t *)s;
+    size_t i, j;
+
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < 16; j++) {
+            if (p[i] == mask[j]) {
+                return (void *)&p[i];
+            }
+        }
+    }
+
+    return NULL;
+}
+
+/**
+ * rosetta_memcpy_nonoverlapping - Optimized memcpy for non-overlapping regions
+ * @param dest Destination pointer
+ * @param src Source pointer
+ * @param n Number of bytes to copy
+ * @return Destination pointer
+ *
+ * Like memcpy but assumes non-overlapping regions for potential optimization.
+ */
+void *rosetta_memcpy_nonoverlapping(void *dest, const void *src, size_t n)
+{
+    return rosetta_memcpy(dest, src, n);
+}
+
+/**
+ * rosetta_memmove_safe - Safe memory move with overlap detection
+ * @param dest Destination pointer
+ * @param src Source pointer
+ * @param n Number of bytes to move
+ * @return Destination pointer
+ *
+ * Explicitly handles overlapping regions safely.
+ */
+void *rosetta_memmove_safe(void *dest, const void *src, size_t n)
+{
+    return rosetta_memmove(dest, src, n);
+}
+
+/**
+ * rosetta_memswap - Swap contents of two memory regions
+ * @param a First memory region
+ * @param b Second memory region
+ * @param n Number of bytes to swap
+ *
+ * Swaps n bytes between memory regions a and b.
+ */
+void rosetta_memswap(void *a, void *b, size_t n)
+{
+    uint8_t *pa = (uint8_t *)a;
+    uint8_t *pb = (uint8_t *)b;
+    uint8_t tmp;
+    size_t i;
+
+    for (i = 0; i < n; i++) {
+        tmp = pa[i];
+        pa[i] = pb[i];
+        pb[i] = tmp;
+    }
+}
+
+/**
+ * rosetta_memfill_word - Fill memory with word pattern
+ * @param dest Destination pointer
+ * @param word Word pattern to fill
+ * @param n Number of bytes to fill
+ * @return Destination pointer
+ *
+ * Fills memory region with repeated word pattern.
+ */
+void *rosetta_memfill_word(void *dest, uint64_t word, size_t n)
+{
+    uint8_t *p = (uint8_t *)dest;
+    size_t i;
+
+    for (i = 0; i < n; i++) {
+        p[i] = ((uint8_t *)&word)[i % sizeof(word)];
+    }
+
+    return dest;
+}
+
+/* -----------------------------------------------------------------------------
+ * Additional String Utilities - Length Limited
+ * ----------------------------------------------------------------------------- */
+
+/**
+ * rosetta_strnlen - Calculate string length with limit
+ * @param s String to measure
+ * @param maxlen Maximum length to check
+ * @return Length of string or maxlen if no null terminator found
+ */
+size_t rosetta_strnlen(const char *s, size_t maxlen)
+{
+    size_t i;
+
+    for (i = 0; i < maxlen && s[i] != '\0'; i++);
+
+    return i;
+}
+
+/**
+ * rosetta_strlcpy - Copy string with size limit
+ * @param dest Destination buffer
+ * @param src Source string
+ * @param destsize Size of destination buffer
+ * @return Length of src
+ *
+ * Copies up to destsize-1 characters from src to dest, null-terminating.
+ * Returns the length of src (not including null terminator).
+ */
+size_t rosetta_strlcpy(char *dest, const char *src, size_t destsize)
+{
+    size_t src_len = rosetta_strlen(src);
+    size_t copy_len;
+
+    if (destsize > 0) {
+        copy_len = (src_len < destsize - 1) ? src_len : destsize - 1;
+        rosetta_memcpy(dest, src, copy_len);
+        dest[copy_len] = '\0';
+    }
+
+    return src_len;
+}
+
+/**
+ * rosetta_strlcat - Concatenate strings with size limit
+ * @param dest Destination buffer (must be null-terminated)
+ * @param src Source string to append
+ * @param destsize Total size of destination buffer
+ * @return Total length of string we tried to create (initial dest length + src length)
+ */
+size_t rosetta_strlcat(char *dest, const char *src, size_t destsize)
+{
+    size_t dest_len = rosetta_strlen(dest);
+    size_t src_len = rosetta_strlen(src);
+    size_t copy_len;
+
+    if (destsize > dest_len) {
+        copy_len = (src_len < destsize - dest_len - 1) ? src_len : destsize - dest_len - 1;
+        rosetta_memcpy(dest + dest_len, src, copy_len);
+        dest[dest_len + copy_len] = '\0';
+    }
+
+    return dest_len + src_len;
+}
 

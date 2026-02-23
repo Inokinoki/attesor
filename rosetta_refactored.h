@@ -1165,4 +1165,47 @@ Vector128 v128_ucvtf(Vector128 a, int fracbits);  /* Unsigned convert to float *
 Vector128 v128_fcvts(Vector128 a, int fracbits);  /* Float convert to signed */
 Vector128 v128_fcvtu(Vector128 a, int fracbits);  /* Float convert to unsigned */
 
+/* ============================================================================
+ * Session 34: Additional Utility Functions
+ * ============================================================================ */
+
+/* Additional String Utilities */
+char *rosetta_strdup(const char *s);                    /* Duplicate a string */
+char *rosetta_strstr(const char *haystack, const char *needle);  /* Find substring */
+char *rosetta_strpbrk(const char *s, const char *charset);       /* Find first match from set */
+char *rosetta_strtok(char *str, const char *delim);             /* Tokenize string */
+void *rosetta_memmem(const void *haystack, size_t haystack_len,
+                     const void *needle, size_t needle_len);     /* Find memory region */
+void *rosetta_memrchr(const void *s, int c, size_t n);          /* Find last occurrence */
+
+/* Additional Integer/Bit Utilities */
+uint32_t count_trailing_zeros32(uint32_t x);            /* Count trailing zeros (32-bit) */
+uint64_t count_trailing_zeros64(uint64_t x);            /* Count trailing zeros (64-bit) */
+bool is_power_of_2(uint64_t x);                          /* Check if power of 2 */
+uint64_t round_up_to_pow2(uint64_t x);                   /* Round up to power of 2 */
+
+/* Translation Infrastructure Utilities */
+size_t translation_cache_get_size(void);                 /* Get cache size */
+bool translation_cache_is_full(void);                    /* Check if cache full */
+size_t code_cache_get_free_space(void);                  /* Get free code cache space */
+void code_cache_reset(void);                             /* Reset code cache */
+
+/* Additional ELF Utilities */
+uint64_t elf_get_section_offset(const void *base, uint32_t section_index);  /* Get section offset */
+uint64_t elf_get_section_size(const void *base, uint32_t section_index);    /* Get section size */
+bool elf_is_valid_class64(const void *base);             /* Check if 64-bit ELF */
+bool elf_is_valid_machine_aarch64(const void *base);     /* Check if AArch64 ELF */
+
+/* Additional Memory Utilities */
+void *rosetta_memchr_eq(const void *s, const uint8_t mask[16], size_t n);  /* Find byte in mask */
+void *rosetta_memcpy_nonoverlapping(void *dest, const void *src, size_t n); /* Non-overlapping copy */
+void *rosetta_memmove_safe(void *dest, const void *src, size_t n);         /* Safe memory move */
+void rosetta_memswap(void *a, void *b, size_t n);        /* Swap memory regions */
+void *rosetta_memfill_word(void *dest, uint64_t word, size_t n);  /* Fill with word pattern */
+
+/* Additional String Utilities - Length Limited */
+size_t rosetta_strnlen(const char *s, size_t maxlen);    /* String length with limit */
+size_t rosetta_strlcpy(char *dest, const char *src, size_t destsize);  /* Safe string copy */
+size_t rosetta_strlcat(char *dest, const char *src, size_t destsize);  /* Safe string concat */
+
 #endif /* ROSETTA_REFACTORED_H */
