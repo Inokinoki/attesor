@@ -43,6 +43,902 @@ typedef void (*entry_point_t)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t,
 static uint64_t initial_sp = 0;
 
 /* ============================================================================
+ * JIT Code Emitter Infrastructure
+ * ============================================================================ */
+
+/* Code buffer for JIT emission */
+typedef struct {
+    uint8_t *buffer;        /* Pointer to code buffer */
+    size_t size;            /* Total buffer size */
+    size_t offset;          /* Current write offset */
+    int error;              /* Error flag */
+} CodeBuffer;
+
+/* Global code cache buffer */
+static uint8_t g_code_cache[1024 * 1024];  /* 1MB code cache */
+static size_t g_code_cache_offset = 0;
+
+/**
+ * Initialize code buffer
+ * @param buf Code buffer to initialize
+ * @param buffer_ptr Pre-allocated buffer or NULL for internal cache
+ * @param size Buffer size
+ */
+void code_buffer_init(CodeBuffer *buf, uint8_t *buffer_ptr, size_t size)
+{
+    buf->buffer = buffer_ptr ? buffer_ptr : g_code_cache + g_code_cache_offset;
+    buf->size = size;
+    buf->offset = 0;
+    buf->error = 0;
+}
+
+/**
+ * Emit a single byte
+ * @param buf Code buffer
+ * @param byte Byte to emit
+ */
+void emit_byte(CodeBuffer *buf, uint8_t byte)
+{
+    if (buf->offset >= buf->size) {
+        buf->error = 1;
+        return;
+    }
+    buf->buffer[buf->offset++] = byte;
+}
+
+/**
+ * Emit a 32-bit word
+ * @param buf Code buffer
+ * @param word Word to emit
+ */
+void emit_word32(CodeBuffer *buf, uint32_t word)
+{
+    emit_byte(buf, (word >> 0) & 0xFF);
+    emit_byte(buf, (word >> 8) & 0xFF);
+    emit_byte(buf, (word >> 16) & 0xFF);
+    emit_byte(buf, (word >> 24) & 0xFF);
+}
+
+/**
+ * Emit a 64-bit word
+ * @param buf Code buffer
+ * @param word Word to emit
+ */
+void emit_word64(CodeBuffer *buf, uint64_t word)
+{
+    emit_byte(buf, (word >> 0) & 0xFF);
+    emit_byte(buf, (word >> 8) & 0xFF);
+    emit_byte(buf, (word >> 16) & 0xFF);
+    emit_byte(buf, (word >> 24) & 0xFF);
+    emit_byte(buf, (word >> 32) & 0xFF);
+    emit_byte(buf, (word >> 40) & 0xFF);
+    emit_byte(buf, (word >> 48) & 0xFF);
+    emit_byte(buf, (word >> 56) & 0xFF);
+}
+
+/* x86_64 Register constants */
+#define RAX 0
+#define RCX 1
+#define RDX 2
+#define RBX 3
+#define RSP 4
+#define RBP 5
+#define RSI 6
+#define RDI 7
+#define R8  8
+#define R9  9
+#define R10 10
+#define R11 11
+#define R12 12
+#define R13 13
+#define R14 14
+#define R15 15
+
+/* x86_64 Opcode helpers */
+
+/**
+ * Emit MOV reg64, imm64 (48 B8 + imm64)
+ * @param buf Code buffer
+ * @param reg Destination register (0-15)
+ * @param imm Immediate value
+ */
+void emit_mov_reg_imm64(CodeBuffer *buf, uint8_t reg, uint64_t imm)
+{
+    emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0xB8 + (reg & 7));  /* MOV r64, imm64 */
+    if (reg >= 8) {
+        buf->buffer[buf->offset - 1] |= 0x04;  /* Set REX.B */
+    }
+    emit_word64(buf, imm);
+}
+
+/**
+ * Emit ADD reg64, reg64
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param src Source register
+ */
+void emit_add_reg_reg(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0x01);  /* ADD r/m64, r64 */
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));  /* ModRM */
+    if (dst >= 8) buf->buffer[buf->offset - 2] |= 0x04;  /* REX.B */
+    if (src >= 8) buf->buffer[buf->offset - 2] |= 0x02;  /* REX.X */
+}
+
+/**
+ * Emit SUB reg64, reg64
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param src Source register
+ */
+void emit_sub_reg_reg(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0x29);  /* SUB r/m64, r64 */
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));  /* ModRM */
+    if (dst >= 8) buf->buffer[buf->offset - 2] |= 0x04;  /* REX.B */
+    if (src >= 8) buf->buffer[buf->offset - 2] |= 0x02;  /* REX.X */
+}
+
+/**
+ * Emit RET
+ * @param buf Code buffer
+ */
+void emit_ret(CodeBuffer *buf)
+{
+    emit_byte(buf, 0xC3);
+}
+
+/**
+ * Get current code pointer
+ * @param buf Code buffer
+ * @return Pointer to current code position
+ */
+void *code_buffer_get_ptr(CodeBuffer *buf)
+{
+    return buf->buffer + buf->offset;
+}
+
+/**
+ * Get code size
+ * @param buf Code buffer
+ * @return Current code size
+ */
+size_t code_buffer_get_size(CodeBuffer *buf)
+{
+    return buf->offset;
+}
+
+/**
+ * Emit AND reg64, reg64
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param src Source register
+ */
+void emit_and_reg_reg(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0x21);  /* AND r/m64, r64 */
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));  /* ModRM */
+    if (dst >= 8) buf->buffer[buf->offset - 2] |= 0x04;
+    if (src >= 8) buf->buffer[buf->offset - 2] |= 0x02;
+}
+
+/**
+ * Emit ORR reg64, reg64 (OR in x86)
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param src Source register
+ */
+void emit_orr_reg_reg(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0x09);  /* OR r/m64, r64 */
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));  /* ModRM */
+    if (dst >= 8) buf->buffer[buf->offset - 2] |= 0x04;
+    if (src >= 8) buf->buffer[buf->offset - 2] |= 0x02;
+}
+
+/**
+ * Emit XOR reg64, reg64 (EOR in ARM)
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param src Source register
+ */
+void emit_xor_reg_reg(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0x31);  /* XOR r/m64, r64 */
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));  /* ModRM */
+    if (dst >= 8) buf->buffer[buf->offset - 2] |= 0x04;
+    if (src >= 8) buf->buffer[buf->offset - 2] |= 0x02;
+}
+
+/**
+ * Emit MVN reg64, reg64 (NOT in x86)
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param src Source register
+ */
+void emit_mvn_reg_reg(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0xF7);  /* NOT r/m64 */
+    emit_byte(buf, 0xD0 + (src & 7));  /* ModRM */
+    if (src >= 8) buf->buffer[buf->offset - 2] |= 0x04;
+    /* Copy src to dst first if different */
+    if (dst != src) {
+        emit_byte(buf, 0x48);
+        emit_byte(buf, 0x89);
+        emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+        if (dst >= 8) buf->buffer[buf->offset - 2] |= 0x04;
+        if (src >= 8) buf->buffer[buf->offset - 2] |= 0x02;
+    }
+}
+
+/**
+ * Emit MOV reg64, reg64
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param src Source register
+ */
+void emit_mov_reg_reg(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0x89);  /* MOV r/m64, r64 */
+    emit_byte(buf, 0xC0 + (src & 7) + ((dst & 7) << 3));  /* ModRM */
+    if (dst >= 8) buf->buffer[buf->offset - 2] |= 0x04;
+    if (src >= 8) buf->buffer[buf->offset - 2] |= 0x02;
+}
+
+/**
+ * Emit MUL reg64, reg64
+ * @param buf Code buffer
+ * @param dst Destination register (RAX implied for full multiply)
+ * @param src Source register
+ */
+void emit_mul_reg(CodeBuffer *buf, uint8_t src)
+{
+    emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0xF7);  /* MUL r/m64 */
+    emit_byte(buf, 0xE0 + (src & 7));  /* ModRM */
+    if (src >= 8) buf->buffer[buf->offset - 2] |= 0x04;
+}
+
+/**
+ * Emit DIV reg64, reg64
+ * @param buf Code buffer
+ * @param src Source register
+ */
+void emit_div_reg(CodeBuffer *buf, uint8_t src)
+{
+    emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0xF7);  /* DIV r/m64 */
+    emit_byte(buf, 0xF0 + (src & 7));  /* ModRM */
+    if (src >= 8) buf->buffer[buf->offset - 2] |= 0x04;
+}
+
+/**
+ * Emit CMP reg64, reg64
+ * @param buf Code buffer
+ * @param op1 First operand
+ * @param op2 Second operand
+ */
+void emit_cmp_reg_reg(CodeBuffer *buf, uint8_t op1, uint8_t op2)
+{
+    emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0x39);  /* CMP r/m64, r64 */
+    emit_byte(buf, 0xC0 + (op2 & 7) + ((op1 & 7) << 3));  /* ModRM */
+    if (op1 >= 8) buf->buffer[buf->offset - 2] |= 0x04;
+    if (op2 >= 8) buf->buffer[buf->offset - 2] |= 0x02;
+}
+
+/**
+ * Emit TEST reg64, reg64
+ * @param buf Code buffer
+ * @param op1 First operand
+ * @param op2 Second operand
+ */
+void emit_test_reg_reg(CodeBuffer *buf, uint8_t op1, uint8_t op2)
+{
+    emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0x85);  /* TEST r/m64, r64 */
+    emit_byte(buf, 0xC0 + (op2 & 7) + ((op1 & 7) << 3));  /* ModRM */
+    if (op1 >= 8) buf->buffer[buf->offset - 2] |= 0x04;
+    if (op2 >= 8) buf->buffer[buf->offset - 2] |= 0x02;
+}
+
+/**
+ * Emit JMP rel32
+ * @param buf Code buffer
+ * @param offset Relative offset
+ */
+void emit_jmp_rel32(CodeBuffer *buf, int32_t offset)
+{
+    emit_byte(buf, 0xE9);
+    emit_word32(buf, (uint32_t)offset);
+}
+
+/**
+ * Emit JE rel32 (jump if equal)
+ * @param buf Code buffer
+ * @param offset Relative offset
+ */
+void emit_je_rel32(CodeBuffer *buf, int32_t offset)
+{
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x84);
+    emit_word32(buf, (uint32_t)offset);
+}
+
+/**
+ * Emit JNE rel32 (jump if not equal)
+ * @param buf Code buffer
+ * @param offset Relative offset
+ */
+void emit_jne_rel32(CodeBuffer *buf, int32_t offset)
+{
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x85);
+    emit_word32(buf, (uint32_t)offset);
+}
+
+/**
+ * Emit JL rel32 (jump if less than)
+ * @param buf Code buffer
+ * @param offset Relative offset
+ */
+void emit_jl_rel32(CodeBuffer *buf, int32_t offset)
+{
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x8C);
+    emit_word32(buf, (uint32_t)offset);
+}
+
+/**
+ * Emit JG rel32 (jump if greater than)
+ * @param buf Code buffer
+ * @param offset Relative offset
+ */
+void emit_jg_rel32(CodeBuffer *buf, int32_t offset)
+{
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x8F);
+    emit_word32(buf, (uint32_t)offset);
+}
+
+/**
+ * Emit ADD reg64, imm32
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param imm Immediate value (sign-extended to 64-bit)
+ */
+void emit_add_reg_imm32(CodeBuffer *buf, uint8_t dst, int32_t imm)
+{
+    if (dst >= 8) emit_byte(buf, 0x49);  /* REX.WB */
+    else emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0x81);  /* ADD r/m64, imm32 */
+    emit_byte(buf, 0xC0 + (dst & 7));  /* ModRM */
+    emit_word32(buf, (uint32_t)imm);
+}
+
+/**
+ * Emit SUB reg64, imm32
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param imm Immediate value
+ */
+void emit_sub_reg_imm32(CodeBuffer *buf, uint8_t dst, int32_t imm)
+{
+    if (dst >= 8) emit_byte(buf, 0x49);
+    else emit_byte(buf, 0x48);
+    emit_byte(buf, 0x81);  /* SUB r/m64, imm32 */
+    emit_byte(buf, 0xE8 + (dst & 7));  /* ModRM */
+    emit_word32(buf, (uint32_t)imm);
+}
+
+/**
+ * Emit AND reg64, imm32
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param imm Immediate value
+ */
+void emit_and_reg_imm32(CodeBuffer *buf, uint8_t dst, int32_t imm)
+{
+    if (dst >= 8) emit_byte(buf, 0x49);
+    else emit_byte(buf, 0x48);
+    emit_byte(buf, 0x81);  /* AND r/m64, imm32 */
+    emit_byte(buf, 0xE0 + (dst & 7));  /* ModRM */
+    emit_word32(buf, (uint32_t)imm);
+}
+
+/**
+ * Emit ORR reg64, imm32
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param imm Immediate value
+ */
+void emit_orr_reg_imm32(CodeBuffer *buf, uint8_t dst, int32_t imm)
+{
+    if (dst >= 8) emit_byte(buf, 0x49);
+    else emit_byte(buf, 0x48);
+    emit_byte(buf, 0x81);  /* OR r/m64, imm32 */
+    emit_byte(buf, 0xC8 + (dst & 7));  /* ModRM */
+    emit_word32(buf, (uint32_t)imm);
+}
+
+/**
+ * Emit XOR reg64, imm32
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param imm Immediate value
+ */
+void emit_xor_reg_imm32(CodeBuffer *buf, uint8_t dst, int32_t imm)
+{
+    if (dst >= 8) emit_byte(buf, 0x49);
+    else emit_byte(buf, 0x48);
+    emit_byte(buf, 0x81);  /* XOR r/m64, imm32 */
+    emit_byte(buf, 0xF0 + (dst & 7));  /* ModRM */
+    emit_word32(buf, (uint32_t)imm);
+}
+
+/**
+ * Emit CMP reg64, imm32
+ * @param buf Code buffer
+ * @param op Operand register
+ * @param imm Immediate value
+ */
+void emit_cmp_reg_imm32(CodeBuffer *buf, uint8_t op, int32_t imm)
+{
+    if (op >= 8) emit_byte(buf, 0x49);
+    else emit_byte(buf, 0x48);
+    emit_byte(buf, 0x81);  /* CMP r/m64, imm32 */
+    emit_byte(buf, 0xF8 + (op & 7));  /* ModRM */
+    emit_word32(buf, (uint32_t)imm);
+}
+
+/**
+ * Emit TEST reg64, imm32
+ * @param buf Code buffer
+ * @param op Operand register
+ * @param imm Immediate value
+ */
+void emit_test_reg_imm32(CodeBuffer *buf, uint8_t op, int32_t imm)
+{
+    if (op >= 8) emit_byte(buf, 0x49);
+    else emit_byte(buf, 0x48);
+    emit_byte(buf, 0xF7);  /* TEST r/m64, imm32 */
+    emit_byte(buf, 0xC0 + (op & 7));  /* ModRM */
+    emit_word32(buf, (uint32_t)imm);
+}
+
+/**
+ * Emit LEA reg64, [reg64 + imm32]
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param base Base register
+ * @param imm Immediate offset
+ */
+void emit_lea_reg_disp(CodeBuffer *buf, uint8_t dst, uint8_t base, int32_t imm)
+{
+    if (dst >= 8) emit_byte(buf, 0x4C);  /* REX.WR */
+    else if (base >= 8) emit_byte(buf, 0x44);  /* REX.B */
+    else emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0x8D);  /* LEA r64, [mem] */
+    if (imm == 0 && base != RBP && base != R13) {
+        emit_byte(buf, 0x00 + (dst & 7) + ((base & 7) << 3));  /* ModRM: [base] */
+    } else if (imm >= -128 && imm <= 127) {
+        emit_byte(buf, 0x40 + (dst & 7) + ((base & 7) << 3));  /* ModRM: [base + disp8] */
+        emit_byte(buf, imm & 0xFF);
+    } else {
+        emit_byte(buf, 0x80 + (dst & 7) + ((base & 7) << 3));  /* ModRM: [base + disp32] */
+        emit_word32(buf, (uint32_t)imm);
+    }
+}
+
+/**
+ * Emit MOV [reg64], reg64 (store)
+ * @param buf Code buffer
+ * @param src Source register
+ * @param base Base register for address
+ */
+void emit_mov_mem_reg(CodeBuffer *buf, uint8_t base, uint8_t src)
+{
+    if (src >= 8) emit_byte(buf, 0x4C);  /* REX.WR */
+    else if (base >= 8) emit_byte(buf, 0x44);  /* REX.B */
+    else emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0x89);  /* MOV [r64], r64 */
+    emit_byte(buf, 0x00 + (src & 7) + ((base & 7) << 3));  /* ModRM */
+}
+
+/**
+ * Emit MOV reg64, [reg64] (load)
+ * @param buf Code buffer
+ * @param dst Destination register
+ * @param base Base register for address
+ */
+void emit_mov_reg_mem(CodeBuffer *buf, uint8_t dst, uint8_t base)
+{
+    if (dst >= 8) emit_byte(buf, 0x4C);  /* REX.WR */
+    else if (base >= 8) emit_byte(buf, 0x44);  /* REX.B */
+    else emit_byte(buf, 0x48);  /* REX.W */
+    emit_byte(buf, 0x8B);  /* MOV r64, [r64] */
+    emit_byte(buf, 0x00 + (dst & 7) + ((base & 7) << 3));  /* ModRM */
+}
+
+/**
+ * Emit PUSH reg64
+ * @param buf Code buffer
+ * @param reg Register to push
+ */
+void emit_push_reg(CodeBuffer *buf, uint8_t reg)
+{
+    emit_byte(buf, 0x50 + (reg & 7));  /* PUSH r64 */
+    if (reg >= 8) buf->buffer[buf->offset - 1] |= 0x04;  /* REX.B */
+}
+
+/**
+ * Emit POP reg64
+ * @param buf Code buffer
+ * @param reg Register to pop
+ */
+void emit_pop_reg(CodeBuffer *buf, uint8_t reg)
+{
+    emit_byte(buf, 0x58 + (reg & 7));  /* POP r64 */
+    if (reg >= 8) buf->buffer[buf->offset - 1] |= 0x04;  /* REX.B */
+}
+
+/**
+ * Emit CALL reg64 (indirect call)
+ * @param buf Code buffer
+ * @param reg Register containing target address
+ */
+void emit_call_reg(CodeBuffer *buf, uint8_t reg)
+{
+    emit_byte(buf, 0xFF);  /* CALL r/m64 */
+    emit_byte(buf, 0xD0 + (reg & 7));  /* ModRM */
+    if (reg >= 8) buf->buffer[buf->offset - 1] |= 0x04;  /* REX.B */
+}
+
+/**
+ * Emit CALL rel32
+ * @param buf Code buffer
+ * @param offset Relative offset to target
+ */
+void emit_call_rel32(CodeBuffer *buf, int32_t offset)
+{
+    emit_byte(buf, 0xE8);
+    emit_word32(buf, (uint32_t)offset);
+}
+
+/**
+ * Emit NOP
+ * @param buf Code buffer
+ */
+void emit_nop(CodeBuffer *buf)
+{
+    emit_byte(buf, 0x90);
+}
+
+/**
+ * Emit UD2 (undefined instruction - for debugging)
+ * @param buf Code buffer
+ */
+void emit_ud2(CodeBuffer *buf)
+{
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x0B);
+}
+
+/* ============================================================================
+ * ARM64 Instruction Decoder Helpers
+ * ============================================================================ */
+
+/**
+ * ARM64 instruction encoding masks
+ */
+#define ARM64_MASK_OP30     0xC0000000  /* Top 2 bits */
+#define ARM64_MASK_OPCODE   0xFFE0E000  /* Main opcode */
+#define ARM64_MASK_RD       0x0000001F  /* Destination register */
+#define ARM64_MASK_RN       0x000003E0  /* First operand register */
+#define ARM64_MASK_RM       0x001F0000  /* Second operand register */
+#define ARM64_MASK_IMM12    0x00001FFC  /* 12-bit immediate */
+#define ARM64_MASK_IMM16    0x00FF0000  /* 16-bit immediate (MOVZ/MOVK) */
+#define ARM64_MASK_IMM26    0x03FFFFFF  /* 26-bit immediate (branch) */
+
+/**
+ * Extract opcode class from ARM64 instruction
+ * @param encoding ARM64 instruction encoding
+ * @return Opcode class (0-3)
+ */
+static inline uint32_t arm64_get_opclass(uint32_t encoding)
+{
+    return (encoding >> 30) & 0x3;
+}
+
+/**
+ * Extract destination register from ARM64 instruction
+ * @param encoding ARM64 instruction encoding
+ * @return Register number (0-31)
+ */
+static inline uint8_t arm64_get_rd(uint32_t encoding)
+{
+    return (encoding >> 0) & 0x1F;
+}
+
+/**
+ * Extract first operand register from ARM64 instruction
+ * @param encoding ARM64 instruction encoding
+ * @return Register number (0-31)
+ */
+static inline uint8_t arm64_get_rn(uint32_t encoding)
+{
+    return (encoding >> 5) & 0x1F;
+}
+
+/**
+ * Extract second operand register from ARM64 instruction
+ * @param encoding ARM64 instruction encoding
+ * @return Register number (0-31)
+ */
+static inline uint8_t arm64_get_rm(uint32_t encoding)
+{
+    return (encoding >> 16) & 0x1F;
+}
+
+/**
+ * Extract 12-bit immediate from ARM64 instruction
+ * @param encoding ARM64 instruction encoding
+ * @return 12-bit immediate value
+ */
+static inline uint16_t arm64_get_imm12(uint32_t encoding)
+{
+    return (encoding >> 10) & 0xFFF;
+}
+
+/**
+ * Extract 26-bit branch immediate from ARM64 instruction
+ * @param encoding ARM64 instruction encoding
+ * @return Signed branch offset (already shifted by 2)
+ */
+static inline int32_t arm64_get_imm26(uint32_t encoding)
+{
+    return (int32_t)((encoding & 0x03FFFFFF) << 2);
+}
+
+/**
+ * Check if instruction is ADD (register)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if ADD, 0 otherwise
+ */
+static inline int arm64_is_add(uint32_t encoding)
+{
+    return (encoding & 0xFFE0E000) == 0x0B000000;
+}
+
+/**
+ * Check if instruction is SUB (register)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if SUB, 0 otherwise
+ */
+static inline int arm64_is_sub(uint32_t encoding)
+{
+    return (encoding & 0xFFE0E000) == 0xCB000000;
+}
+
+/**
+ * Check if instruction is B (unconditional branch)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if B, 0 otherwise
+ */
+static inline int arm64_is_b(uint32_t encoding)
+{
+    return (encoding & 0xFC000000) == 0x14000000;
+}
+
+/**
+ * Check if instruction is BL (branch with link)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if BL, 0 otherwise
+ */
+static inline int arm64_is_bl(uint32_t encoding)
+{
+    return (encoding & 0xFC000000) == 0x94000000;
+}
+
+/**
+ * Check if instruction is BR (branch to register)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if BR, 0 otherwise
+ */
+static inline int arm64_is_br(uint32_t encoding)
+{
+    return (encoding & 0xFFFFFC00) == 0xD61F0000;
+}
+
+/**
+ * Check if instruction is LDR (register)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if LDR, 0 otherwise
+ */
+static inline int arm64_is_ldr(uint32_t encoding)
+{
+    return (encoding & 0xFFC00000) == 0xF8400000;
+}
+
+/**
+ * Check if instruction is STR (register)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if STR, 0 otherwise
+ */
+static inline int arm64_is_str(uint32_t encoding)
+{
+    return (encoding & 0xFFC00000) == 0xF8000000;
+}
+
+/**
+ * Check if instruction is ADD (immediate)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if ADD, 0 otherwise
+ */
+static inline int arm64_is_add_imm(uint32_t encoding)
+{
+    return (encoding & 0xFF800000) == 0x91000000;
+}
+
+/**
+ * Check if instruction is SUB (immediate)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if SUB, 0 otherwise
+ */
+static inline int arm64_is_sub_imm(uint32_t encoding)
+{
+    return (encoding & 0xFF800000) == 0xD1000000;
+}
+
+/**
+ * Check if instruction is AND (immediate)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if AND, 0 otherwise
+ */
+static inline int arm64_is_and_imm(uint32_t encoding)
+{
+    return (encoding & 0xFF800000) == 0x12000000;
+}
+
+/**
+ * Check if instruction is MOVZ (move wide with zero)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if MOVZ, 0 otherwise
+ */
+static inline int arm64_is_movz(uint32_t encoding)
+{
+    return (encoding & 0xFF800000) == 0xD2800000;
+}
+
+/**
+ * Check if instruction is MOVK (move wide with keep)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if MOVK, 0 otherwise
+ */
+static inline int arm64_is_movk(uint32_t encoding)
+{
+    return (encoding & 0xFF800000) == 0xF2800000;
+}
+
+/**
+ * Check if instruction is MOVN (move wide with negation)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if MOVN, 0 otherwise
+ */
+static inline int arm64_is_movn(uint32_t encoding)
+{
+    return (encoding & 0xFF800000) == 0x12800000;
+}
+
+/**
+ * Check if instruction is LDP (load pair)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if LDP, 0 otherwise
+ */
+static inline int arm64_is_ldp(uint32_t encoding)
+{
+    return (encoding & 0xFF800000) == 0xA9400000;
+}
+
+/**
+ * Check if instruction is STP (store pair)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if STP, 0 otherwise
+ */
+static inline int arm64_is_stp(uint32_t encoding)
+{
+    return (encoding & 0xFF800000) == 0xA9000000;
+}
+
+/**
+ * Check if instruction is CMP (compare)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if CMP, 0 otherwise
+ */
+static inline int arm64_is_cmp(uint32_t encoding)
+{
+    return (encoding & 0xFFE00000) == 0xEB000000;
+}
+
+/**
+ * Check if instruction is CMN (compare negative)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if CMN, 0 otherwise
+ */
+static inline int arm64_is_cmn(uint32_t encoding)
+{
+    return (encoding & 0xFFE00000) == 0xAB000000;
+}
+
+/**
+ * Check if instruction is TST (test)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if TST, 0 otherwise
+ */
+static inline int arm64_is_tst(uint32_t encoding)
+{
+    return (encoding & 0xFFE00000) == 0xEA000000;
+}
+
+/**
+ * Check if instruction is conditional branch (B.cond)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if B.cond, 0 otherwise
+ */
+static inline int arm64_is_bcond(uint32_t encoding)
+{
+    return (encoding & 0xFF000000) == 0x54000000;
+}
+
+/**
+ * Get condition code from conditional branch
+ * @param encoding ARM64 instruction encoding
+ * @return Condition code (0-15)
+ */
+static inline uint8_t arm64_get_cond(uint32_t encoding)
+{
+    return (encoding >> 0) & 0x0F;
+}
+
+/**
+ * Get shift amount from instruction
+ * @param encoding ARM64 instruction encoding
+ * @return Shift amount (0, 1, 2, or 3 for LSL #0, #1, #2, #3)
+ */
+static inline uint8_t arm64_get_shift(uint32_t encoding)
+{
+    return (encoding >> 22) & 0x3;
+}
+
+/**
+ * Get 16-bit immediate from MOVZ/MOVK/MOVN
+ * @param encoding ARM64 instruction encoding
+ * @return 16-bit immediate value
+ */
+static inline uint16_t arm64_get_imm16(uint32_t encoding)
+{
+    return (encoding >> 5) & 0xFFFF;
+}
+
+/**
+ * Get shift amount for MOVZ/MOVK (0, 1, 2, 3 for LSL #0, #16, #32, #48)
+ * @param encoding ARM64 instruction encoding
+ * @return Shift amount
+ */
+static inline uint8_t arm64_get_hw(uint32_t encoding)
+{
+    return (encoding >> 21) & 0x3;
+}
+
+/* ============================================================================
  * Entry Point and Initialization
  * ============================================================================ */
 
@@ -213,15 +1109,170 @@ void *translate_block(uint64_t guest_pc)
         return cached;
     }
 
-    /* Would perform full translation here:
-     * 1. Disassemble ARM64 instruction
-     * 2. Translate to x86_64 equivalent
-     * 3. Emit x86_64 code to JIT buffer
-     * 4. Insert into translation cache
-     * 5. Return pointer to translated code
-     */
+    /* Initialize code buffer for JIT emission */
+    CodeBuffer code_buf;
+    code_buffer_init(&code_buf, NULL, 65536);  /* 64KB per block max */
 
-    return NULL;  /* Stub */
+    /* Read ARM64 instruction at guest_pc (simplified - reads 4 bytes) */
+    const uint8_t *insn = (const uint8_t *)guest_pc;
+    uint32_t encoding = *(const uint32_t *)insn;
+
+    /* Map ARM64 registers (X0-X30) to x86_64 registers (RAX-R15) */
+    /* Simple mapping: X0->RAX, X1->RCX, X2->RDX, X3->RBX, etc. */
+    static const uint8_t reg_map[32] = {
+        RAX, RCX, RDX, RBX, RSI, RDI, RBP, RSP,
+        R8, R9, R10, R11, R12, R13, R14, R15,
+        RAX, RCX, RDX, RBX, RSI, RDI, RBP, RSP,
+        R8, R9, R10, R11, R12, R13, R14, R15
+    };
+
+    /* Extract fields using helper functions */
+    uint8_t rd = arm64_get_rd(encoding);
+    uint8_t rn = arm64_get_rn(encoding);
+    uint8_t rm = arm64_get_rm(encoding);
+    uint16_t imm12 = arm64_get_imm12(encoding);
+    uint32_t op30 = arm64_get_opclass(encoding);
+
+    /* Map to x86_64 registers */
+    uint8_t x86_rd = reg_map[rd];
+    uint8_t x86_rn = reg_map[rn];
+    uint8_t x86_rm = reg_map[rm];
+
+    /* Decode and translate based on instruction type */
+    if (op30 == 0) {
+        /* Data processing - register */
+        if (arm64_is_add(encoding)) {
+            /* ADD (register): Xd = Xn + Xm */
+            emit_mov_reg_reg(&code_buf, x86_rd, x86_rn);
+            emit_add_reg_reg(&code_buf, x86_rd, x86_rm);
+        } else if (arm64_is_sub(encoding)) {
+            /* SUB (register): Xd = Xn - Xm */
+            emit_mov_reg_reg(&code_buf, x86_rd, x86_rn);
+            emit_sub_reg_reg(&code_buf, x86_rd, x86_rm);
+        } else if ((encoding & 0xFFE0E000) == 0x0A000000) {
+            /* AND (register): Xd = Xn & Xm */
+            emit_mov_reg_reg(&code_buf, x86_rd, x86_rn);
+            emit_and_reg_reg(&code_buf, x86_rd, x86_rm);
+        } else if ((encoding & 0xFFE0E000) == 0x2A000000) {
+            /* ORR (register): Xd = Xn | Xm */
+            emit_mov_reg_reg(&code_buf, x86_rd, x86_rn);
+            emit_orr_reg_reg(&code_buf, x86_rd, x86_rm);
+        } else if ((encoding & 0xFFE0E000) == 0x4A000000) {
+            /* EOR (register): Xd = Xn ^ Xm */
+            emit_mov_reg_reg(&code_buf, x86_rd, x86_rn);
+            emit_xor_reg_reg(&code_buf, x86_rd, x86_rm);
+        } else if ((encoding & 0xFFE0E000) == 0x4A200000) {
+            /* MVN (register): Xd = ~Xm */
+            emit_mvn_reg_reg(&code_buf, x86_rd, x86_rm);
+        } else if ((encoding & 0xFFE0E000) == 0x1B000000) {
+            /* MUL (register): Xd = Xn * Xm (lower 64 bits) */
+            emit_mov_reg_reg(&code_buf, RAX, x86_rn);
+            emit_mul_reg(&code_buf, x86_rm);
+            emit_mov_reg_reg(&code_buf, x86_rd, RAX);
+        } else if ((encoding & 0xFFE0E000) == 0x9AC00000) {
+            /* SDIV (register): Xd = Xn / Xm (signed) */
+            emit_mov_reg_reg(&code_buf, RAX, x86_rn);
+            emit_xor_reg_reg(&code_buf, RDX, RDX);  /* Clear RDX for div */
+            emit_div_reg(&code_buf, x86_rm);
+            emit_mov_reg_reg(&code_buf, x86_rd, RAX);
+        } else {
+            /* Unhandled data processing - emit NOP */
+            emit_byte(&code_buf, 0x90);
+        }
+    } else if (op30 == 1) {
+        /* Data processing - immediate or branch */
+        if (arm64_is_b(encoding)) {
+            /* B (branch): PC += imm26 */
+            int32_t imm26 = arm64_get_imm26(encoding);
+            uint64_t target_pc = guest_pc + imm26;
+            (void)target_pc;
+            /* For now, emit return - full impl would jump to translated target */
+            emit_ret(&code_buf);
+        } else if (arm64_is_bl(encoding)) {
+            /* BL (branch with link): LR = PC+4; PC += imm26 */
+            int32_t imm26 = arm64_get_imm26(encoding);
+            uint64_t target_pc = guest_pc + imm26;
+            (void)target_pc;
+            /* Save return address in LR (X30) */
+            emit_mov_reg_imm64(&code_buf, reg_map[30], guest_pc + 4);
+            emit_ret(&code_buf);
+        } else if (arm64_is_br(encoding)) {
+            /* BR (branch to register): PC = Xm */
+            /* Indirect branch - would need to look up translation */
+            emit_ret(&code_buf);
+        } else if ((encoding & 0x7F000000) == 0x35000000) {
+            /* CBNZ: if (Xn != 0) PC += imm; */
+            uint8_t cond_reg = arm64_get_rn(encoding);
+            /* Compare with zero */
+            emit_mov_reg_reg(&code_buf, RAX, reg_map[cond_reg]);
+            emit_test_reg_reg(&code_buf, RAX, RAX);
+            /* Jump if not equal (non-zero) */
+            emit_jne_rel32(&code_buf, 0);  /* Offset filled in later */
+        } else if ((encoding & 0x7F000000) == 0x34000000) {
+            /* CBZ: if (Xn == 0) PC += imm; */
+            uint8_t cond_reg = arm64_get_rn(encoding);
+            emit_mov_reg_reg(&code_buf, RAX, reg_map[cond_reg]);
+            emit_test_reg_reg(&code_buf, RAX, RAX);
+            emit_je_rel32(&code_buf, 0);
+        } else if ((encoding & 0x7C000000) == 0x10000000) {
+            /* ADR: Xd = PC + imm */
+            emit_mov_reg_imm64(&code_buf, x86_rd, guest_pc + imm12);
+        } else {
+            emit_byte(&code_buf, 0x90);
+        }
+    } else if (op30 == 2) {
+        /* Load/Store */
+        if (arm64_is_ldr(encoding)) {
+            /* LDR (register): Xd = [Xn + Xm] */
+            uint64_t addr = reg_map[rn];
+            emit_mov_reg_reg(&code_buf, RAX, reg_map[rn]);
+            if (rn != rm) {
+                emit_add_reg_reg(&code_buf, RAX, reg_map[rm]);
+            }
+            emit_mov_reg_reg(&code_buf, x86_rd, RAX);  /* Simplified - would need deref */
+        } else if (arm64_is_str(encoding)) {
+            /* STR (register): [Xn + Xm] = Xd */
+            emit_mov_reg_reg(&code_buf, RAX, reg_map[rn]);
+            if (rn != rm) {
+                emit_add_reg_reg(&code_buf, RAX, reg_map[rm]);
+            }
+            /* Store would need proper memory operand */
+            emit_byte(&code_buf, 0x90);
+        } else if ((encoding & 0xFFCF0000) == 0xF8400000) {
+            /* LDR (immediate): Xd = [Xn + imm12] */
+            emit_mov_reg_imm64(&code_buf, RAX, reg_map[rn] + imm12);
+            emit_mov_reg_reg(&code_buf, x86_rd, RAX);
+        } else {
+            emit_byte(&code_buf, 0x90);
+        }
+    } else {
+        /* Floating-point / SIMD (op30 == 3) */
+        /* Unhandled for now - emit NOP */
+        emit_byte(&code_buf, 0x90);
+    }
+
+    /* Emit return */
+    emit_ret(&code_buf);
+
+    /* Check for errors */
+    if (code_buf.error) {
+        return NULL;
+    }
+
+    /* Allocate code cache memory and copy generated code */
+    size_t code_size = code_buffer_get_size(&code_buf);
+    void *code_cache = code_cache_alloc(code_size);
+    if (!code_cache) {
+        return NULL;
+    }
+
+    /* Copy generated code to executable memory */
+    memcpy(code_cache, code_buf.buffer, code_size);
+
+    /* Insert into translation cache */
+    translation_insert(guest_pc, (uint64_t)code_cache, code_size);
+
+    return code_cache;
 }
 
 /**
