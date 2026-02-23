@@ -345,7 +345,7 @@ This project is for **educational and research purposes only**.
 
 - Rosetta 2 is proprietary Apple software
 - This project does not distribute Apple's binaries
-- All code in this repository is original clean-room implementation
+- All code in this repository is written by Claude Code with Qwen 3.5.
 - Do not use this project to circumvent Apple's security measures
 
 ---
