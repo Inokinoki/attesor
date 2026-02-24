@@ -9,6 +9,45 @@
 #include "rosetta_codegen.h"
 
 /* ============================================================================
+ * x86_64 Register Constants
+ * ============================================================================ */
+
+#define X86_RAX     0
+#define X86_RCX     1
+#define X86_RDX     2
+#define X86_RBX     3
+#define X86_RSI     4
+#define X86_RDI     5
+#define X86_RBP     6
+#define X86_RSP     7
+#define X86_R8      8
+#define X86_R9      9
+#define X86_R10     10
+#define X86_R11     11
+#define X86_R12     12
+#define X86_R13     13
+#define X86_R14     14
+#define X86_R15     15
+
+/* Aliases for convenience */
+#define RAX     X86_RAX
+#define RCX     X86_RCX
+#define RDX     X86_RDX
+#define RBX     X86_RBX
+#define RSI     X86_RSI
+#define RDI     X86_RDI
+#define RBP     X86_RBP
+#define RSP     X86_RSP
+#define R8      X86_R8
+#define R9      X86_R9
+#define R10     X86_R10
+#define R11     X86_R11
+#define R12     X86_R12
+#define R13     X86_R13
+#define R14     X86_R14
+#define R15     X86_R15
+
+/* ============================================================================
  * Register Mapping
  * ============================================================================ */
 

@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 /* Global JIT context (for simplicity in this implementation) */
 static jit_context_t g_jit_context;

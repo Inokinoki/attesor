@@ -83,21 +83,9 @@ u32 code_buffer_get_size(code_buffer_t *buf) {
  * x86_64 Register Mapping
  * ============================================================================ */
 
-u8 x86_map_gpr(u8 arm64_reg) {
-    /* Simple mapping: ARM64 X0-X15 -> x86_64 RAX-R15 */
-    static const u8 reg_map[32] = {
-        0, 1, 2, 3, 4, 5, 6, 7,   /* X0-X7 -> RAX-RCX-RDX-RBX-RSI-RDI-RBP-RSP */
-        8, 9, 10, 11, 12, 13, 14, 15, /* X8-X15 -> R8-R15 */
-        0, 1, 2, 3, 4, 5, 6, 7,   /* X16-X23 -> repeat */
-        8, 9, 10, 11, 12, 13, 14, 15  /* X24-X31 -> repeat */
-    };
-    return reg_map[arm64_reg & 0x1F];
-}
-
-u8 x86_map_xmm(u8 arm64_vreg) {
-    /* Wrap around: V0-V15 -> XMM0-XMM15, V16-V31 -> XMM0-XMM15 */
-    return arm64_vreg & 0x0F;
-}
+/* Note: Register mapping functions are now provided by rosetta_translate.c
+ * for modular builds. These functions are kept here for backward compatibility
+ * with code that links against rosetta_codegen.c directly. */
 
 /* ============================================================================
  * General Purpose Register Instructions

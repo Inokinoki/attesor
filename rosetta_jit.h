@@ -329,4 +329,26 @@ bool translation_cache_is_full(jit_context_t *ctx);
 void jit_get_stats(jit_context_t *ctx, u32 *blocks_translated,
                    u32 *cache_hits, u32 *cache_misses);
 
+/* ============================================================================
+ * Global JIT Instance (for backward compatibility)
+ * ============================================================================ */
+
+/**
+ * Get global JIT context
+ * @return Pointer to global JIT context
+ */
+jit_context_t *jit_get_global_context(void);
+
+/**
+ * Initialize global JIT instance
+ * @param cache_size Size of code cache (0 for default)
+ * @return ROSETTA_OK on success
+ */
+int jit_init_global(u32 cache_size);
+
+/**
+ * Cleanup global JIT instance
+ */
+void jit_cleanup_global(void);
+
 #endif /* ROSETTA_JIT_H */
