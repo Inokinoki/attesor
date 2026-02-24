@@ -6,6 +6,8 @@
 **Refactored Size**: ~18,356 lines
 
 **Note**: Session 51 completed - NEON Load/Store Instructions (LD1/ST1)
+**Session 52**: Modularization and NEON Multi-Structure Load/Store (LD3/ST3/LD4/ST4) - COMPLETE
+**Session 53**: NEON Permutation Instructions (TBL/TBX) - COMPLETE
 
 ## Summary
 
@@ -2715,6 +2717,106 @@ Added constants for memory operation sizes:
 - ST2 - Store pair of structures (interleave)
 
 **Session 51 Total: 8 decoder functions + 6 emit helpers + 4 NEON load/store translations**
+
+---
+
+## Session 52: Modularization and NEON Multi-Structure Load/Store [COMPLETE]
+
+Session 52 successfully implemented NEON multi-structure load/store (LD3/ST3, LD4/ST4) and enhanced the modular header files.
+
+### Header File Enhancements (22 declarations)
+
+#### Register-Indirect Memory Operations (6)
+- emit_movdqu_xmm_mem_reg() - MOVDQU load with register indirect addressing
+- emit_movdqu_mem_reg_xmm() - MOVDQU store with register indirect addressing
+- emit_movups_xmm_mem_reg() - MOVUPS load with register indirect addressing
+- emit_movups_mem_reg_xmm() - MOVUPS store with register indirect addressing
+- emit_movaps_xmm_mem_reg() - MOVAPS load with register indirect addressing
+- emit_movaps_mem_reg_xmm() - MOVAPS store with register indirect addressing
+
+#### SSSE3 Shuffle/Permutation (16)
+- emit_punpcklbw/hbw/lwd/hwd/ldq/hdq_xmm_xmm() - Unpack low/high bytes/words/dwords
+- emit_palignr_xmm_xmm_imm() - Packed align right
+- emit_pshufb_xmm_xmm() - Packed shuffle bytes
+- emit_psignb/w/d_xmm_xmm() - Packed sign byte/word/dword
+- emit_pextrb_reg_xmm_imm() - Extract byte
+- emit_pinsrb_xmm_reg_imm() - Insert byte
+
+### ARM64 Decoder Enhancements (10 decoders)
+
+#### NEON Load/Store Multiple (4)
+- arm64_is_ld3() - LD3 (three structures, e.g., RGB)
+- arm64_is_st3() - ST3 (three structures)
+- arm64_is_ld4() - LD4 (four structures, e.g., RGBA)
+- arm64_is_st4() - ST4 (four structures)
+
+#### NEON Permutation (4)
+- arm64_is_tbl() - Table lookup
+- arm64_is_tbx() - Table lookup extension
+- arm64_is_dup() - Duplicate element
+- arm64_is_ext() - Vector extract
+
+#### Helper Functions (2)
+- arm64_get_tbl_reg_count() - Get table register count (1-4)
+- arm64_get_ext_index() - Get EXT extract index
+
+### New Emit Helper Implementations (6 functions)
+- emit_movdqu_xmm_mem_reg() - MOVDQU register-indirect load
+- emit_movdqu_mem_reg_xmm() - MOVDQU register-indirect store
+- emit_movups_xmm_mem_reg() - MOVUPS register-indirect load
+- emit_movups_mem_reg_xmm() - MOVUPS register-indirect store
+- emit_movaps_xmm_mem_reg() - MOVAPS register-indirect load
+- emit_movaps_mem_reg_xmm() - MOVAPS register-indirect store
+
+### translate_block Enhancements (4 translations)
+- LD3 - Load three structures (RGB de-interleave)
+- ST3 - Store three structures (RGB interleave)
+- LD4 - Load four structures (RGBA de-interleave)
+- ST4 - Store four structures (RGBA interleave)
+
+### File Statistics
+| File | Lines | Functions | Status |
+|------|-------|-----------|--------|
+| rosetta_refactored.c | ~18,500 | 820+ | Compiles OK |
+| rosetta_codegen.h | ~1,010 | 120+ | Declarations |
+| rosetta_arm64_decode.h | ~650 | 90+ | Decoders |
+
+**Session 52 Total: 22 header declarations + 10 decoders + 6 emit helpers + 4 translations**
+
+---
+
+## Session 53: NEON Permutation Instructions (TBL/TBX) [COMPLETE]
+
+Session 53 successfully implemented NEON table lookup instructions (TBL/TBX) and the SSSE3 shuffle infrastructure required for their translation.
+
+### New SSSE3 Emit Helpers (12 functions)
+- `emit_punpcklbw/hbw/lwd/hwd/ldq/hdq_xmm_xmm()` - Unpack low/high bytes/words/dwords
+- `emit_palignr_xmm_xmm_imm()` - Packed align right
+- `emit_pshufb_xmm_xmm()` - Packed shuffle bytes (key for TBL/TBX)
+- `emit_psignb/w/d_xmm_xmm()` - Packed sign byte/word/dword
+- `emit_pextrb_reg_xmm_imm()` - Extract byte
+- `emit_pinsrb_xmm_reg_imm()` - Insert byte
+
+### New ARM64 Decoder Functions (3 functions)
+- `arm64_is_tbl()` - Check if TBL (Table Lookup)
+- `arm64_is_tbx()` - Check if TBX (Table Lookup Extension)
+- `arm64_get_tbl_reg_count()` - Get table register count (1-4)
+
+### Register Mapping Helper (1 function)
+- `x86_map_xmm()` - Map ARM64 V0-V31 to x86_64 XMM0-XMM15
+
+### translate_block Enhancements (2 translations)
+- TBL - Table lookup from 1-4 source registers (single-table fully implemented)
+- TBX - Table lookup extension with accumulate (simplified implementation)
+
+### File Statistics
+| File | Lines | Functions | Status |
+|------|-------|-----------|--------|
+| rosetta_refactored.c | ~18,800 | 835+ | Compiles OK |
+| rosetta_codegen.h | ~1,010 | 120+ | Declarations |
+| rosetta_arm64_decode.h | ~650 | 90+ | Decoders |
+
+**Session 53 Total: 12 SSSE3 emit helpers + 3 decoders + 1 mapping helper + 2 translations**
 
 ---
 

@@ -1,0 +1,69 @@
+# Rosetta Binary Translator - Modular Build Makefile
+# ============================================================================
+
+CC = gcc
+CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable
+CFLAGS += -O2
+CFLAGS += -std=c11
+
+# macOS-specific flags
+ifeq ($(shell uname -s),Darwin)
+    CFLAGS += -D_DARWIN_C_SOURCE
+endif
+
+# Source files
+SRCS = rosetta_codegen.c
+SRCS += rosetta_jit.c
+SRCS += rosetta_translate.c
+SRCS += rosetta_refactored.c
+
+# Header files (for dependency tracking)
+HDRS = rosetta_types.h
+HDRS += rosetta_codegen.h
+HDRS += rosetta_jit.h
+HDRS += rosetta_translate.h
+HDRS += rosetta_arm64_translate.h
+HDRS += rosetta_arm64_decode.h
+
+# Object files
+OBJS = $(SRCS:.c=.o)
+
+# Target
+TARGET = rosetta_modular
+
+# Default target
+all: $(TARGET)
+
+# Link
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) -lm
+
+# Compile source files
+%.o: %.c $(HDRS)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Check syntax only (fast verification)
+check:
+	@echo "Checking rosetta_codegen.c..."
+	$(CC) $(CFLAGS) -fsyntax-only rosetta_codegen.c
+	@echo "Checking rosetta_jit.c..."
+	$(CC) $(CFLAGS) -fsyntax-only rosetta_jit.c
+	@echo "Checking rosetta_translate.c..."
+	$(CC) $(CFLAGS) -fsyntax-only rosetta_translate.c
+	@echo "Checking rosetta_refactored.c..."
+	$(CC) $(CFLAGS) -fsyntax-only rosetta_refactored.c
+	@echo "All checks passed!"
+
+# Clean
+clean:
+	rm -f $(OBJS) $(TARGET)
+
+# Debug build
+debug: CFLAGS += -g -DDEBUG
+debug: clean all
+
+# Install (copy to build directory)
+install: $(TARGET)
+	cp $(TARGET) ../build/
+
+.PHONY: all clean check debug install

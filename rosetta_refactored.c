@@ -1860,6 +1860,444 @@ static void emit_movaps_mem_xmm(CodeBuffer *buf, uint32_t addr, uint8_t src)
 }
 
 /* ============================================================================
+ * Session 52: NEON Load/Store Register Indirect Helpers
+ * ============================================================================ */
+
+/**
+ * Emit MOVDQU xmm, [base] (Move Unaligned - register indirect load)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param base Base register for address (0-15)
+ */
+static void emit_movdqu_xmm_mem_reg(CodeBuffer *buf, uint8_t dst, uint8_t base)
+{
+    /* MOVDQU: F3 0F 6F /r */
+    /* ModR/M: mod=00, reg=dst, rm=base */
+    emit_byte(buf, 0xF3);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x6F);
+    emit_byte(buf, 0x00 + (dst & 7) + ((base & 7) << 3));
+    /* REX prefix for extended registers */
+    if (dst >= 8 || base >= 8) {
+        uint8_t rex = 0x40;
+        if (dst >= 8) rex |= 0x04;  /* REX.R */
+        if (base >= 8) rex |= 0x01; /* REX.B */
+        /* Insert REX before opcode */
+        buf->buffer[2] = rex;
+        buf->buffer[3] = 0x6F;
+        buf->buffer[4] = 0x00 + (dst & 7) + ((base & 7) << 3);
+    }
+}
+
+/**
+ * Emit MOVDQU [base], xmm (Move Unaligned - register indirect store)
+ * @param buf Code buffer
+ * @param base Base register for address (0-15)
+ * @param src Source XMM register (0-15)
+ */
+static void emit_movdqu_mem_reg_xmm(CodeBuffer *buf, uint8_t base, uint8_t src)
+{
+    /* MOVDQU: F3 0F 7F /r */
+    /* ModR/M: mod=00, reg=src, rm=base */
+    emit_byte(buf, 0xF3);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x7F);
+    emit_byte(buf, 0x00 + (src & 7) + ((base & 7) << 3));
+}
+
+/**
+ * Emit MOVUPS xmm, [base] (Move Unaligned FP - register indirect load)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param base Base register for address (0-15)
+ */
+static void emit_movups_xmm_mem_reg(CodeBuffer *buf, uint8_t dst, uint8_t base)
+{
+    /* MOVUPS: 0F 10 /r */
+    /* ModR/M: mod=00, reg=dst, rm=base */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;  /* REX.R */
+    if (base >= 8) rex |= 0x01; /* REX.B */
+
+    if (dst >= 8 || base >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x10);
+    emit_byte(buf, 0x00 + (dst & 7) + ((base & 7) << 3));
+}
+
+/**
+ * Emit MOVUPS [base], xmm (Move Unaligned FP - register indirect store)
+ * @param buf Code buffer
+ * @param base Base register for address (0-15)
+ * @param src Source XMM register (0-15)
+ */
+static void emit_movups_mem_reg_xmm(CodeBuffer *buf, uint8_t base, uint8_t src)
+{
+    /* MOVUPS: 0F 11 /r */
+    /* ModR/M: mod=00, reg=src, rm=base */
+    uint8_t rex = 0x40;
+    if (src >= 8) rex |= 0x04;  /* REX.R */
+    if (base >= 8) rex |= 0x01; /* REX.B */
+
+    if (src >= 8 || base >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x11);
+    emit_byte(buf, 0x00 + (src & 7) + ((base & 7) << 3));
+}
+
+/**
+ * Emit MOVAPS xmm, [base] (Move Aligned FP - register indirect load)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param base Base register for address (0-15)
+ */
+static void emit_movaps_xmm_mem_reg(CodeBuffer *buf, uint8_t dst, uint8_t base)
+{
+    /* MOVAPS: 0F 28 /r */
+    /* ModR/M: mod=00, reg=dst, rm=base */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;  /* REX.R */
+    if (base >= 8) rex |= 0x01; /* REX.B */
+
+    if (dst >= 8 || base >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x28);
+    emit_byte(buf, 0x00 + (dst & 7) + ((base & 7) << 3));
+}
+
+/**
+ * Emit MOVAPS [base], xmm (Move Aligned FP - register indirect store)
+ * @param buf Code buffer
+ * @param base Base register for address (0-15)
+ * @param src Source XMM register (0-15)
+ */
+static void emit_movaps_mem_reg_xmm(CodeBuffer *buf, uint8_t base, uint8_t src)
+{
+    /* MOVAPS: 0F 29 /r */
+    /* ModR/M: mod=00, reg=src, rm=base */
+    uint8_t rex = 0x40;
+    if (src >= 8) rex |= 0x04;  /* REX.R */
+    if (base >= 8) rex |= 0x01; /* REX.B */
+
+    if (src >= 8 || base >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x29);
+    emit_byte(buf, 0x00 + (src & 7) + ((base & 7) << 3));
+}
+
+/* ============================================================================
+ * Session 53: SSSE3 Shuffle/Permutation Emit Helpers
+ * ============================================================================ */
+
+/**
+ * Emit PUNPCKLBW xmm1, xmm2 (Unpack Low Bytes)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param src Source XMM register (0-15)
+ */
+static void emit_punpcklbw_xmm_xmm(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    /* PUNPCKLBW: 66 0F 60 /r */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;  /* REX.R */
+    if (src >= 8) rex |= 0x01;  /* REX.B */
+
+    if (dst >= 8 || src >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x66);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x60);
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+}
+
+/**
+ * Emit PUNPCKHBW xmm1, xmm2 (Unpack High Bytes)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param src Source XMM register (0-15)
+ */
+static void emit_punpckhbw_xmm_xmm(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    /* PUNPCKHBW: 66 0F 68 /r */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;
+    if (src >= 8) rex |= 0x01;
+
+    if (dst >= 8 || src >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x66);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x68);
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+}
+
+/**
+ * Emit PUNPCKLWD xmm1, xmm2 (Unpack Low Words)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param src Source XMM register (0-15)
+ */
+static void emit_punpcklwd_xmm_xmm(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    /* PUNPCKLWD: 66 0F 61 /r */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;
+    if (src >= 8) rex |= 0x01;
+
+    if (dst >= 8 || src >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x66);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x61);
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+}
+
+/**
+ * Emit PUNPCKHWD xmm1, xmm2 (Unpack High Words)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param src Source XMM register (0-15)
+ */
+static void emit_punpckhwd_xmm_xmm(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    /* PUNPCKHWD: 66 0F 69 /r */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;
+    if (src >= 8) rex |= 0x01;
+
+    if (dst >= 8 || src >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x66);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x69);
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+}
+
+/**
+ * Emit PUNPCKLDQ xmm1, xmm2 (Unpack Low Doublewords)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param src Source XMM register (0-15)
+ */
+static void emit_punpckldq_xmm_xmm(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    /* PUNPCKLDQ: 66 0F 62 /r */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;
+    if (src >= 8) rex |= 0x01;
+
+    if (dst >= 8 || src >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x66);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x62);
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+}
+
+/**
+ * Emit PUNPCKHDQ xmm1, xmm2 (Unpack High Doublewords)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param src Source XMM register (0-15)
+ */
+static void emit_punpckhdq_xmm_xmm(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    /* PUNPCKHDQ: 66 0F 6A /r */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;
+    if (src >= 8) rex |= 0x01;
+
+    if (dst >= 8 || src >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x66);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x6A);
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+}
+
+/**
+ * Emit PALIGNR xmm1, xmm2, imm8 (Packed Align Right)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param src Source XMM register (0-15)
+ * @param imm Align immediate (0-31)
+ */
+static void emit_palignr_xmm_xmm_imm(CodeBuffer *buf, uint8_t dst, uint8_t src, uint8_t imm)
+{
+    /* PALIGNR: 66 0F 3A 0F /r ib */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;
+    if (src >= 8) rex |= 0x01;
+
+    if (dst >= 8 || src >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x66);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x3A);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+    emit_byte(buf, imm);
+}
+
+/**
+ * Emit PSHUFB xmm1, xmm2 (Packed Shuffle Bytes)
+ * Key instruction for NEON TBL/TBX implementation
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param src Source XMM register (control vector, 0-15)
+ */
+static void emit_pshufb_xmm_xmm(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    /* PSHUFB: 66 0F 38 00 /r */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;
+    if (src >= 8) rex |= 0x01;
+
+    if (dst >= 8 || src >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x66);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x38);
+    emit_byte(buf, 0x00);
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+}
+
+/**
+ * Emit PSIGNB xmm1, xmm2 (Packed Sign Byte)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param src Source XMM register (0-15)
+ */
+static void emit_psignb_xmm_xmm(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    /* PSIGNB: 66 0F 38 08 /r */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;
+    if (src >= 8) rex |= 0x01;
+
+    if (dst >= 8 || src >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x66);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x38);
+    emit_byte(buf, 0x08);
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+}
+
+/**
+ * Emit PSIGNW xmm1, xmm2 (Packed Sign Word)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param src Source XMM register (0-15)
+ */
+static void emit_psignw_xmm_xmm(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    /* PSIGNW: 66 0F 38 09 /r */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;
+    if (src >= 8) rex |= 0x01;
+
+    if (dst >= 8 || src >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x66);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x38);
+    emit_byte(buf, 0x09);
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+}
+
+/**
+ * Emit PSIGND xmm1, xmm2 (Packed Sign Doubleword)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param src Source XMM register (0-15)
+ */
+static void emit_psignd_xmm_xmm(CodeBuffer *buf, uint8_t dst, uint8_t src)
+{
+    /* PSIGND: 66 0F 38 0A /r */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;
+    if (src >= 8) rex |= 0x01;
+
+    if (dst >= 8 || src >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x66);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x38);
+    emit_byte(buf, 0x0A);
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+}
+
+/**
+ * Emit PEXTRB r32, xmm, imm8 (Extract Byte)
+ * @param buf Code buffer
+ * @param dst Destination GPR (0-15)
+ * @param src Source XMM register (0-15)
+ * @param imm Index (0-15)
+ */
+static void emit_pextrb_reg_xmm_imm(CodeBuffer *buf, uint8_t dst, uint8_t src, uint8_t imm)
+{
+    /* PEXTRB: 66 0F 3A 14 /r ib */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;  /* REX.R */
+    if (src >= 8) rex |= 0x01;  /* REX.B */
+
+    if (dst >= 8 || src >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x66);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x3A);
+    emit_byte(buf, 0x14);
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+    emit_byte(buf, imm);
+}
+
+/**
+ * Emit PINSRB xmm, r32, imm8 (Insert Byte)
+ * @param buf Code buffer
+ * @param dst Destination XMM register (0-15)
+ * @param src Source GPR (0-15)
+ * @param imm Index (0-15)
+ */
+static void emit_pinsrb_xmm_reg_imm(CodeBuffer *buf, uint8_t dst, uint8_t src, uint8_t imm)
+{
+    /* PINSRB: 66 0F 3A 20 /r ib */
+    uint8_t rex = 0x40;
+    if (dst >= 8) rex |= 0x04;  /* REX.R */
+    if (src >= 8) rex |= 0x01;  /* REX.B */
+
+    if (dst >= 8 || src >= 8) {
+        emit_byte(buf, rex);
+    }
+    emit_byte(buf, 0x66);
+    emit_byte(buf, 0x0F);
+    emit_byte(buf, 0x3A);
+    emit_byte(buf, 0x20);
+    emit_byte(buf, 0xC0 + (dst & 7) + ((src & 7) << 3));
+    emit_byte(buf, imm);
+}
+
+/* ============================================================================
  * Session 48: FP Helper Functions with Mask Loading
  * ============================================================================ */
 
@@ -3533,6 +3971,98 @@ static inline int arm64_is_st2(uint32_t encoding)
 }
 
 /**
+ * Check if instruction is LD3 (three structures)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if LD3, 0 otherwise
+ */
+static inline int arm64_is_ld3(uint32_t encoding)
+{
+    /* LD3 (three): 00110100011mmmmm011101dddddddd */
+    return (encoding & 0xFF20FC00) == 0x0C600000;
+}
+
+/**
+ * Check if instruction is ST3 (three structures)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if ST3, 0 otherwise
+ */
+static inline int arm64_is_st3(uint32_t encoding)
+{
+    /* ST3 (three): 00110100011mmmmm001101dddddddd */
+    return (encoding & 0xFF20FC00) == 0x08600000;
+}
+
+/**
+ * Check if instruction is LD4 (four structures)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if LD4, 0 otherwise
+ */
+static inline int arm64_is_ld4(uint32_t encoding)
+{
+    /* LD4 (four): 00110100100mmmmm011101dddddddd */
+    return (encoding & 0xFF20FC00) == 0x0C700000;
+}
+
+/**
+ * Check if instruction is ST4 (four structures)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if ST4, 0 otherwise
+ */
+static inline int arm64_is_st4(uint32_t encoding)
+{
+    /* ST4 (four): 00110100100mmmmm001101dddddddd */
+    return (encoding & 0xFF20FC00) == 0x08700000;
+}
+
+/**
+ * Check if instruction is TBL (Table Lookup)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if TBL, 0 otherwise
+ */
+static inline int arm64_is_tbl(uint32_t encoding)
+{
+    /* TBL: 01001110000mmmmm000000dddddddd
+     * Encoding: 0x4E000000 with mask 0xFE20FC00
+     */
+    return (encoding & 0xFE20FC00) == 0x0C000000;
+}
+
+/**
+ * Check if instruction is TBX (Table Lookup Extension)
+ * @param encoding ARM64 instruction encoding
+ * @return 1 if TBX, 0 otherwise
+ */
+static inline int arm64_is_tbx(uint32_t encoding)
+{
+    /* TBX: 01001110001mmmmm000000dddddddd
+     * Encoding: 0x4E200000 with mask 0xFE20FC00
+     */
+    return (encoding & 0xFE20FC00) == 0x0C200000;
+}
+
+/**
+ * Get table lookup register count
+ * @param encoding ARM64 instruction encoding
+ * @return Number of table registers (1-4)
+ */
+static inline uint8_t arm64_get_tbl_reg_count(uint32_t encoding)
+{
+    /* Register count is in bits 10-11 */
+    uint8_t count = ((encoding >> 10) & 0x03);
+    return count + 1;  /* 1-4 registers */
+}
+
+/**
+ * Map ARM64 vector register (V0-V31) to x86_64 XMM register (XMM0-XMM15)
+ * @param vreg ARM64 vector register number (0-31)
+ * @return x86_64 XMM register number (0-15)
+ */
+static inline uint8_t x86_map_xmm(uint8_t vreg)
+{
+    return vreg & 0x0F;  /* Wrap around: V0-V15 -> XMM0-XMM15, V16-V31 -> XMM0-XMM15 */
+}
+
+/**
  * Get NEON load/store register count
  * @param encoding ARM64 instruction encoding
  * @return Number of registers (1-4)
@@ -4180,6 +4710,155 @@ void *translate_block(uint64_t guest_pc)
             emit_byte(&code_buf, 0x0F);
             emit_byte(&code_buf, 0x11);
             emit_byte(&code_buf, 0x00 + ((xmm_vd + 1) & 7) + ((x86_rn & 7) << 3));
+        } else if (arm64_is_ld3(encoding)) {
+            /* LD3 (three structures): Load three structures to Vd, Vd+1, Vd+2 from [Xn] */
+            /* LD3 de-interleaves three consecutive structures (e.g., RGB data) */
+            /* For now, emit three simple loads without de-interleaving */
+            uint8_t vn = arm64_get_vn(encoding);
+            uint8_t x86_rn = reg_map[vn];
+            /* Load first structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x10);
+            emit_byte(&code_buf, 0x00 + (xmm_vd & 7) + ((x86_rn & 7) << 3));
+            /* Load second structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x10);
+            emit_byte(&code_buf, 0x00 + ((xmm_vd + 1) & 7) + ((x86_rn & 7) << 3));
+            /* Load third structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x10);
+            emit_byte(&code_buf, 0x00 + ((xmm_vd + 2) & 7) + ((x86_rn & 7) << 3));
+        } else if (arm64_is_st3(encoding)) {
+            /* ST3 (three structures): Store three structures from Vd, Vd+1, Vd+2 to [Xn] */
+            /* ST3 interleaves three consecutive structures (e.g., RGB data) */
+            uint8_t vn = arm64_get_vn(encoding);
+            uint8_t x86_rn = reg_map[vn];
+            /* Store first structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x11);
+            emit_byte(&code_buf, 0x00 + (xmm_vd & 7) + ((x86_rn & 7) << 3));
+            /* Store second structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x11);
+            emit_byte(&code_buf, 0x00 + ((xmm_vd + 1) & 7) + ((x86_rn & 7) << 3));
+            /* Store third structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x11);
+            emit_byte(&code_buf, 0x00 + ((xmm_vd + 2) & 7) + ((x86_rn & 7) << 3));
+        } else if (arm64_is_ld4(encoding)) {
+            /* LD4 (four structures): Load four structures to Vd, Vd+1, Vd+2, Vd+3 from [Xn] */
+            /* LD4 de-interleaves four consecutive structures (e.g., RGBA data) */
+            /* For now, emit four simple loads without de-interleaving */
+            uint8_t vn = arm64_get_vn(encoding);
+            uint8_t x86_rn = reg_map[vn];
+            /* Load first structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x10);
+            emit_byte(&code_buf, 0x00 + (xmm_vd & 7) + ((x86_rn & 7) << 3));
+            /* Load second structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x10);
+            emit_byte(&code_buf, 0x00 + ((xmm_vd + 1) & 7) + ((x86_rn & 7) << 3));
+            /* Load third structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x10);
+            emit_byte(&code_buf, 0x00 + ((xmm_vd + 2) & 7) + ((x86_rn & 7) << 3));
+            /* Load fourth structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x10);
+            emit_byte(&code_buf, 0x00 + ((xmm_vd + 3) & 7) + ((x86_rn & 7) << 3));
+        } else if (arm64_is_st4(encoding)) {
+            /* ST4 (four structures): Store four structures from Vd..Vd+3 to [Xn] */
+            /* ST4 interleaves four consecutive structures (e.g., RGBA data) */
+            uint8_t vn = arm64_get_vn(encoding);
+            uint8_t x86_rn = reg_map[vn];
+            /* Store first structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x11);
+            emit_byte(&code_buf, 0x00 + (xmm_vd & 7) + ((x86_rn & 7) << 3));
+            /* Store second structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x11);
+            emit_byte(&code_buf, 0x00 + ((xmm_vd + 1) & 7) + ((x86_rn & 7) << 3));
+            /* Store third structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x11);
+            emit_byte(&code_buf, 0x00 + ((xmm_vd + 2) & 7) + ((x86_rn & 7) << 3));
+            /* Store fourth structure */
+            emit_byte(&code_buf, 0x0F);
+            emit_byte(&code_buf, 0x11);
+            emit_byte(&code_buf, 0x00 + ((xmm_vd + 3) & 7) + ((x86_rn & 7) << 3));
+        } else if (arm64_is_tbl(encoding)) {
+            /* TBL (Table Lookup): Perform table lookup from 1-4 source registers
+             * Vd = lookup(Vn[0..k], Vm) where Vm contains byte indices
+             * For now, emit PSHUFB-based implementation
+             * TBL uses the control vector (Vm) to select bytes from table registers (Vn)
+             */
+            uint8_t vd = arm64_get_vd(encoding);
+            uint8_t vn = arm64_get_vn(encoding);
+            uint8_t vm = arm64_get_vm(encoding);
+            uint8_t num_tables = arm64_get_tbl_reg_count(encoding);
+            uint8_t xmm_vd = x86_map_xmm(vd);
+            uint8_t xmm_vn = x86_map_xmm(vn);
+            uint8_t xmm_vm = x86_map_xmm(vm);
+
+            /* TBL implementation using PSHUFB:
+             * PSHUFB performs a similar byte shuffle operation.
+             * ARM64 TBL: dst[i] = (control[i] >= table_size) ? 0 : table[control[i]]
+             * x86 PSHUFB: dst[i] = (control[i] & 0x80) ? 0 : table[control[i] & 0xF]
+             *
+             * For a single table (16 bytes), PSHUFB maps directly.
+             * For multiple tables, we need to concatenate tables first.
+             */
+            if (num_tables == 1) {
+                /* Single table: direct PSHUFB mapping */
+                /* Vd = PSHUFB(Vn, Vm) */
+                emit_pshufb_xmm_xmm(&code_buf, xmm_vd, xmm_vm);
+            } else {
+                /* Multiple tables (2-4):
+                 * Need to:
+                 * 1. Load all table registers
+                 * 2. Adjust indices in control vector based on which table
+                 * 3. Perform PSHUFB for each table
+                 * 4. Combine results
+                 *
+                 * For now, emit a simplified version that handles the first table only.
+                 * Full implementation would require more complex index manipulation.
+                 */
+                /* Simplified: just load first table entry for now */
+                emit_pshufb_xmm_xmm(&code_buf, xmm_vd, xmm_vm);
+                /* TODO: Full multi-table TBL implementation */
+            }
+        } else if (arm64_is_tbx(encoding)) {
+            /* TBX (Table Lookup Extension): Perform table lookup and accumulate
+             * Vd = (control >= table_size) ? Vd : table[control]
+             * TBX preserves the original Vd value for out-of-range indices
+             */
+            uint8_t vd = arm64_get_vd(encoding);
+            uint8_t vn = arm64_get_vn(encoding);
+            uint8_t vm = arm64_get_vm(encoding);
+            uint8_t num_tables = arm64_get_tbl_reg_count(encoding);
+            uint8_t xmm_vd = x86_map_xmm(vd);
+            uint8_t xmm_vn = x86_map_xmm(vn);
+            uint8_t xmm_vm = x86_map_xmm(vm);
+
+            /* TBX implementation:
+             * 1. Perform PSHUFB lookup into temp register
+             * 2. Create mask for valid indices (control < table_size)
+             * 3. Blend result with original Vd based on mask
+             *
+             * For now, emit simplified PSHUFB without the accumulate behavior.
+             * Full implementation would require VBLENDVB or similar.
+             */
+            if (num_tables == 1) {
+                /* Single table: PSHUFB with accumulate */
+                /* For simplicity, just do PSHUFB (loses accumulate behavior) */
+                emit_pshufb_xmm_xmm(&code_buf, xmm_vd, xmm_vm);
+                /* TODO: Full TBX with proper accumulate using VBLENDVB */
+            } else {
+                /* Multi-table: simplified */
+                emit_pshufb_xmm_xmm(&code_buf, xmm_vd, xmm_vm);
+            }
         } else if (arm64_is_svc(encoding)) {
             /* SVC (supervisor call) - trigger syscall */
             emit_nop(&code_buf);  /* Placeholder for syscall handling */
