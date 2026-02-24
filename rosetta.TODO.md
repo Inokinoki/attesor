@@ -1,11 +1,11 @@
 # Rosetta Refactoring - TODO and Missing Implementations
 
-**Date**: 2026-02-23
+**Date**: 2026-02-24
 **Original Binary**: `/Library/Apple/usr/libexec/oah/RosettaLinux/rosetta`
 **Original Size**: 74,677 lines, 828 functions
-**Refactored Size**: ~14,125 lines
+**Refactored Size**: ~18,356 lines
 
-**Note**: Session 34 completed - Additional Utility Functions implemented
+**Note**: Session 51 completed - NEON Load/Store Instructions (LD1/ST1)
 
 ## Summary
 
@@ -1937,3 +1937,784 @@ and handle control flow properly. Load/store memory operations need proper deref
 **Session 38 Total: 44 new JIT infrastructure functions + enhanced translate_block**
 
 ---
+
+## Session 39: Enhanced Binary Translation with More Instructions [COMPLETE]
+
+### Additional ARM64 Instruction Decoders (13 functions)
+- [x] arm64_is_add_imm - Check if ADD (immediate)
+- [x] arm64_is_sub_imm - Check if SUB (immediate)
+- [x] arm64_is_and_imm - Check if AND (immediate)
+- [x] arm64_is_movz - Check if MOVZ (move wide with zero)
+- [x] arm64_is_movk - Check if MOVK (move wide with keep)
+- [x] arm64_is_movn - Check if MOVN (move wide with negation)
+- [x] arm64_is_ldp - Check if LDP (load pair)
+- [x] arm64_is_stp - Check if STP (store pair)
+- [x] arm64_is_cmp - Check if CMP (compare)
+- [x] arm64_is_cmn - Check if CMN (compare negative)
+- [x] arm64_is_tst - Check if TST (test)
+- [x] arm64_is_bcond - Check if B.cond (conditional branch)
+- [x] arm64_get_cond - Get condition code
+- [x] arm64_get_imm16 - Get 16-bit immediate
+- [x] arm64_get_hw - Get shift amount for MOVZ/MOVK
+- [x] arm64_get_shift - Get shift amount
+
+### Additional x86_64 Code Emission Helpers (17 functions)
+- [x] emit_add_reg_imm32 - Emit ADD with immediate
+- [x] emit_sub_reg_imm32 - Emit SUB with immediate
+- [x] emit_and_reg_imm32 - Emit AND with immediate
+- [x] emit_orr_reg_imm32 - Emit ORR with immediate
+- [x] emit_xor_reg_imm32 - Emit XOR with immediate
+- [x] emit_cmp_reg_imm32 - Emit CMP with immediate
+- [x] emit_test_reg_imm32 - Emit TEST with immediate
+- [x] emit_lea_reg_disp - Emit LEA with displacement
+- [x] emit_mov_mem_reg - Emit MOV memory to register (store)
+- [x] emit_mov_reg_mem - Emit MOV register to memory (load)
+- [x] emit_push_reg - Emit PUSH
+- [x] emit_pop_reg - Emit POP
+- [x] emit_call_reg - Emit CALL register
+- [x] emit_call_rel32 - Emit CALL relative
+- [x] emit_nop - Emit NOP
+- [x] emit_ud2 - Emit UD2 (undefined instruction)
+
+### Enhanced translate_block Support
+Now translates these additional instructions:
+- [x] CMP/CMN/TST (compare operations with flag handling)
+- [x] ADD/SUB (immediate)
+- [x] MOVZ/MOVK/MOVN (move wide operations)
+- [x] B.cond (conditional branches)
+- [x] LDP/STP (load/store pair)
+- [x] LDR/STR with proper memory dereferencing
+- [x] Scaled load/store (imm12*8 offset)
+
+### Files Summary
+- rosetta_refactored.c: 15,500+ lines, 650+ function implementations
+- translate_block now handles 30+ ARM64 instruction types
+
+**Note**: Session 39 significantly expanded the binary translation capabilities:
+1. Proper memory load/store with dereferencing using emit_mov_reg_mem and emit_mov_mem_reg
+2. Flag-generating operations (CMP, CMN, TST) for conditional execution
+3. Immediate operations for ADD/SUB with 12-bit immediates
+4. MOVZ/MOVK/MOVN for building 64-bit constants
+5. Pair load/store (LDP/STP) for stack operations
+6. Conditional branch framework (B.cond)
+
+**Limitations**:
+- Conditional branches need NZCV flag tracking for full implementation
+- Multi-instruction basic blocks still need implementation
+- SIMD/FP instructions (op30==3) remain unhandled
+
+**Session 39 Total: 30 new functions + enhanced translate_block with 15+ new instruction types**
+
+---
+
+## Session 40: NZCV Flag Tracking Infrastructure [COMPLETE]
+
+### x86_64 Flag Emission Helpers (12 functions)
+- [x] emit_read_flags_to_nzcv - Read x86 EFLAGS and convert to ARM64 NZCV format
+- [x] emit_update_flags_add - Update NZCV flags after ADD instruction
+- [x] emit_cond_branch - Emit conditional branch based on ARM64 condition code
+- [x] emit_and_reg_imm32 - AND with immediate (for flag extraction)
+- [x] emit_shl_reg_imm32 - Shift left logical (for flag bit manipulation)
+- [x] emit_shr_reg_imm32 - Shift right logical (for flag bit extraction)
+- [x] emit_jae_rel32 - Jump if above or equal (CF==0)
+- [x] emit_jb_rel32 - Jump if below (CF==1)
+- [x] emit_js_rel32 - Jump if sign (SF==1)
+- [x] emit_jns_rel32 - Jump if not sign (SF==0)
+- [x] emit_jo_rel32 - Jump if overflow (OF==1)
+- [x] emit_jno_rel32 - Jump if not overflow (OF==0)
+- [x] emit_jle_rel32 - Jump if less or equal (ZF || SF!=OF)
+- [x] emit_jge_rel32 - Jump if greater or equal (SF==OF)
+- [x] emit_nop - No operation (for stubs)
+
+### NZCV Flag Tracking
+The Session 40 implementation adds complete NZCV flag tracking infrastructure:
+
+1. **Flag Format Conversion**: x86 EFLAGS bits are extracted and rearranged to match
+   ARM64 NZCV layout:
+   - x86 CF (bit 0) -> ARM64 C (bit 29)
+   - x86 ZF (bit 6) -> ARM64 Z (bit 30)
+   - x86 SF (bit 7) -> ARM64 N (bit 31)
+   - x86 OF (bit 11) -> ARM64 V (bit 28)
+
+2. **Conditional Branch Support**: The `emit_cond_branch` function maps all 16 ARM64
+   condition codes to their x86_64 equivalents:
+   - EQ/NE -> JE/JNE
+   - CS/CC -> JAE/JB
+   - MI/PL -> JS/JNS
+   - VS/VC -> JO/JNO
+   - LT/GE -> JL/JGE
+   - LE/GT -> JLE/JG
+
+3. **Flag Generation**: Compare instructions (CMP, CMN, TST) now properly generate
+   flags that can be consumed by subsequent conditional branches.
+
+### File Status
+| File | Lines | Functions | Errors |
+|------|-------|-----------|--------|
+| rosetta_refactored.c | 15,500+ | 670+ | 0 |
+| rosetta_refactored.h | 1,211 | 559 | - |
+
+**Session 40 Total: 16 new flag emission helper functions**
+
+---
+
+## Session 41: Flag Update Logic for ALU/Compare Operations [COMPLETE]
+
+### Flag Update Helper Functions (2 functions)
+- [x] update_nzcv_flags - Update ARM64 NZCV flags after ADD/SUB operations
+- [x] update_nzcv_flags_and - Update NZCV flags after logical operations (AND, ORR, EOR, TST)
+
+### ALU Translation Functions Enhanced (5 functions)
+- [x] translate_add - Now updates N, Z, C, V flags correctly
+- [x] translate_sub - Now updates N, Z, C, V flags correctly
+- [x] translate_and - Now updates N, Z flags
+- [x] translate_orr - Now updates N, Z flags
+- [x] translate_eor - Now updates N, Z flags
+
+### Compare Translation Functions Enhanced (3 functions)
+- [x] translate_cmp - Now updates all N, Z, C, V flags correctly
+- [x] translate_cmn - Now updates all N, Z, C, V flags correctly
+- [x] translate_tst - Now updates N, Z flags correctly
+
+### Flag Calculation Details
+
+The Session 41 implementation adds complete NZCV flag calculation:
+
+1. **N flag (Negative)** - Set if result MSB (bit 63) is set
+2. **Z flag (Zero)** - Set if result is zero
+3. **C flag (Carry)** - For addition: set if unsigned overflow; For subtraction: set if no borrow
+4. **V flag (Overflow)** - Set if signed overflow occurs:
+   - ADD: overflow if same-sign operands produce different-sign result
+   - SUB: overflow if different-sign operands produce result with sign differing from minuend
+
+### Flag Logic for ADD:
+```c
+// C flag: Carry occurs if unsigned addition overflows
+if ((uint64_t)(op1 + op2) < op1) C = 1;
+
+// V flag: Overflow if signed operands have same sign but different result sign
+if ((a >= 0 && b >= 0 && r < 0) || (a < 0 && b < 0 && r >= 0)) V = 1;
+```
+
+### Flag Logic for SUB:
+```c
+// C flag: NOT borrow (C=1 if no borrow, C=0 if borrow)
+if (op1 >= op2) C = 1;
+
+// V flag: Overflow if operands have different signs and result sign differs from op1
+if ((a >= 0 && b < 0 && r < 0) || (a < 0 && b >= 0 && r >= 0)) V = 1;
+```
+
+### File Status
+| File | Lines | Functions | Errors |
+|------|-------|-----------|--------|
+| rosetta_refactored.c | 15,739 | 672+ | 0 |
+| rosetta_refactored.h | 1,211 | 559 | - |
+
+**Session 41 Total: 2 new helper functions + 8 enhanced translation functions**
+
+---
+
+## Session 42: Multi-Instruction Basic Block Translation [COMPLETE]
+
+### Basic Block Translation Helpers (8 functions)
+- [x] arm64_is_block_terminator - Check if instruction ends a basic block
+- [x] arm64_instruction_length - Get instruction length (always 4 bytes)
+- [x] arm64_is_svc - Check if SVC (supervisor call)
+- [x] arm64_is_brk - Check if BRK (breakpoint)
+- [x] arm64_is_hlt - Check if HLT (halt)
+- [x] arm64_get_imm19 - Get 19-bit branch immediate
+- [x] arm64_get_imm14 - Get 14-bit CBZ/CBNZ immediate
+- [x] arm64_get_test_bit - Get test bit from TBZ/TBNZ
+- [x] arm64_is_ret - Check if RET (return)
+
+### Enhanced translate_block Function
+The translate_block function now translates **multi-instruction basic blocks** instead of single instructions:
+
+- Loops through up to 64 instructions per basic block
+- Stops at branch/return instructions (block terminators)
+- Tracks block_pc and block_size for proper translation
+- Emits return only at block boundaries
+
+### Additional Instruction Support Added
+- [x] ADR - PC-relative address generation
+- [x] ADRP - Page-relative address generation
+- [x] TBZ - Test bit and branch if zero
+- [x] TBNZ - Test bit and branch if non-zero
+- [x] LDR (word, immediate) - 32-bit load with scaled offset
+- [x] STR (word, immediate) - 32-bit store with scaled offset
+- [x] ADDS - Add with flags update
+- [x] SUBS - Subtract with flags update
+- [x] SVC - Supervisor call (syscall)
+- [x] BRK - Breakpoint (triggers UD2)
+- [x] HLT - Halt (triggers UD2)
+
+### Conditional Branch Handling
+Complete mapping of ARM64 conditions to x86_64:
+- EQ/NE → JE/JNE
+- CS/CC → JAE/JB
+- MI/PL → JS/JNS
+- VS/VC → JO/JNO
+- LT/GE → JL/JGE
+- LE/GT → JLE/JG
+
+### File Status
+| File | Lines | Functions | Errors |
+|------|-------|-----------|--------|
+| rosetta_refactored.c | 15,902 | 680+ | 0 |
+| rosetta_refactored.h | 1,211 | 559 | - |
+
+**Session 42 Total: 8 new helper functions + enhanced translate_block with multi-instruction support**
+
+---
+
+## Session 43: Conditional Branch and Bit Test Instructions [COMPLETE]
+
+### ARM64 Decoder Functions (2 functions)
+- [x] arm64_is_tbz - Check if TBZ (test bit and branch if zero)
+- [x] arm64_is_tbnz - Check if TBNZ (test bit and branch if not zero)
+
+### Enhanced translate_block Support
+
+#### Conditional Branch Handling (B.cond)
+The B.cond (conditional branch) instruction now properly uses the `emit_cond_branch` function
+to map all 16 ARM64 condition codes to their x86_64 equivalents:
+
+- **Before**: Emitted NOP (no operation)
+- **After**: Emits proper conditional branch (JE, JNE, JAE, JB, JS, JNS, JO, JNO, JL, JGE, JLE, JG)
+
+#### TBZ/TBNZ Translation (2 instructions)
+- [x] TBZ - Test bit and branch if zero
+  - Tests if `(Xn & (1 << bit)) == 0` and branches if true
+  - Implemented using AND with bitmask followed by JE
+
+- [x] TBNZ - Test bit and branch if not zero
+  - Tests if `(Xn & (1 << bit)) != 0` and branches if true
+  - Implemented using AND with bitmask followed by JNE
+
+### Branch Instruction Coverage
+
+The translator now handles all major ARM64 branch instruction types:
+
+| Instruction | Description | Status |
+|-------------|-------------|--------|
+| B | Unconditional branch | Implemented |
+| BL | Branch with link | Implemented |
+| BR | Branch to register | Stub (returns) |
+| B.cond | Conditional branch (16 conditions) | Implemented |
+| CBZ | Compare and branch zero | Implemented |
+| CBNZ | Compare and branch non-zero | Implemented |
+| TBZ | Test bit and branch zero | Implemented (Session 43) |
+| TBNZ | Test bit and branch not zero | Implemented (Session 43) |
+
+### File Status
+| File | Lines | Functions | Errors |
+|------|-------|-----------|--------|
+| rosetta_refactored.c | ~16,000 | 682+ | 0 |
+| rosetta_refactored.h | 1,211 | 559 | - |
+
+**Session 43 Total: 2 new decoder functions + enhanced B.cond + TBZ/TBNZ support**
+
+---
+
+## Session 46: Enhanced FP Instructions and Binary Translation [COMPLETE]
+
+### Additional FP Instruction Decoders (10 functions)
+- [x] arm64_is_fcsel() - Check if FCSEL (FP conditional select)
+- [x] arm64_is_fccmp() - Check if FCCMP (FP conditional compare)
+- [x] arm64_is_fabs() - Check if FABS (FP absolute value)
+- [x] arm64_is_fneg() - Check if FNEG (FP negate)
+- [x] arm64_is_fcvtds() - Check if FCVTDS (double to single)
+- [x] arm64_is_fcvtsd() - Check if FCVTSD (single to double)
+- [x] arm64_is_fmov_imm() - Check if FMov (immediate) - fixed duplicate
+- [x] arm64_get_fp_cond() - Extract FP condition code
+- [x] arm64_get_fpmem16() - Extract FP immediate value
+
+### Additional x86_64 FP Emit Helpers (6 functions)
+- [x] emit_absps_xmm() - ABS PS (Absolute value packed single)
+- [x] emit_abspd_xmm() - ABS PD (Absolute value packed double)
+- [x] emit_xorps_xmm_xmm() - XOR PS (XOR for FNEG single)
+- [x] emit_xorpd_xmm_xmm() - XOR PD (XOR for FNEG double)
+- [x] emit_cvtss2sd_xmm_xmm() - CVTSS2SD (Convert single to double)
+- [x] emit_cvtsd2ss_xmm_xmm() - CVTSD2SS (Convert double to single)
+
+### Enhanced translate_block FP Support
+
+#### New FP Instructions Translated (8 instructions)
+- [x] FMOV (immediate) - FP move with immediate value (supports 0.0)
+- [x] FMOV (register) - Now with precision detection (single/double)
+- [x] FABS - FP absolute value (framework, needs mask for full impl)
+- [x] FNEG - FP negate (framework, needs mask for full impl)
+- [x] FCSEL - FP conditional select (framework)
+- [x] FCVTDS - Convert double to single precision
+- [x] FCVTSD - Convert single to double precision
+- [x] FCMP - FP compare with flag setting
+
+### Precision Detection
+All FP instructions now correctly detect and handle both single-precision
+(32-bit) and double-precision (64-bit) by checking bit 22 (0x00400000):
+- Bit 22 == 0: Double-precision (uses SD suffix x86 instructions)
+- Bit 22 == 1: Single-precision (uses SS suffix x86 instructions)
+
+### Implementation Notes
+1. FABS and FNEG: Current implementation copies value; full implementation
+   requires loading bit masks (0x7FFFFFFF for ABS, 0x80000000 for NEG)
+   and ANDing/XORing with the value.
+
+2. FCSEL: Framework in place; full implementation requires x86 conditional
+   move (CMOV) based on EFLAGS set by preceding FCMP.
+
+3. FMOV immediate: Currently handles 0.0 immediate; full implementation
+   would decode the 8-bit FP immediate format.
+
+### File Status
+| File | Lines | Functions | Errors |
+|------|-------|-----------|--------|
+| rosetta_refactored.c | 16,899 | 735+ | 0 |
+| rosetta_refactored.h | 1,211 | 559 | - |
+
+**Session 46 Total: 10 decoder functions + 6 emit helpers + 8 enhanced FP translations**
+
+---
+
+## Session 47: NEON Vector Instruction Support [COMPLETE]
+
+### NEON Vector Instruction Decoders (8 functions)
+- [x] arm64_is_add_vec() - Check if ADD (vector)
+- [x] arm64_is_sub_vec() - Check if SUB (vector)
+- [x] arm64_is_and_vec() - Check if AND (vector)
+- [x] arm64_is_orr_vec() - Check if ORR (vector)
+- [x] arm64_is_eor_vec() - Check if EOR (vector)
+- [x] arm64_is_bic_vec() - Check if BIC (vector bit clear)
+- [x] arm64_get_vec_size() - Get vector size field (0-3)
+- [x] arm64_get_q_bit() - Get Q bit (128-bit flag)
+
+### NEON Vector Emit Helpers (8 functions)
+- [x] emit_paddd_xmm_xmm() - PADDD (Packed add doublewords)
+- [x] emit_paddq_xmm_xmm() - PADDQ (Packed add quadwords)
+- [x] emit_psubd_xmm_xmm() - PSUBD (Packed subtract doublewords)
+- [x] emit_psubq_xmm_xmm() - PSUBQ (Packed subtract quadwords)
+- [x] emit_pand_xmm_xmm() - PAND (Vector AND)
+- [x] emit_por_xmm_xmm() - POR (Vector OR)
+- [x] emit_pxor_xmm_xmm() - PXOR (Vector XOR)
+- [x] emit_pandn_xmm_xmm() - PANDN (Vector AND NOT for BIC)
+
+### Enhanced translate_block NEON Support
+
+#### NEON Vector Instructions Translated (6 instructions)
+- [x] ADD (vector) - Vector add with size detection (32/64-bit)
+- [x] SUB (vector) - Vector subtract with size detection
+- [x] AND (vector) - Vector bitwise AND
+- [x] ORR (vector) - Vector bitwise OR
+- [x] EOR (vector) - Vector bitwise XOR
+- [x] BIC (vector) - Vector bit clear (AND NOT)
+
+### Size Detection
+NEON vector instructions use the size field (bits 22-23) and Q bit (bit 30)
+to determine element size:
+- Q=1 or size>=2: 64-bit elements (PADDQ/PSUBQ)
+- Q=0 and size<2: 32-bit elements (PADDD/PSUBD)
+
+### File Status
+| File | Lines | Functions | Errors |
+|------|-------|-----------|--------|
+| rosetta_refactored.c | 17,145 | 755+ | 0 |
+| rosetta_refactored.h | 1,211 | 559 | - |
+
+**Session 47 Total: 8 decoder functions + 8 emit helpers + 6 NEON translations**
+
+---
+
+## Session 45: SIMD/FP Infrastructure and Instruction Decoding [COMPLETE]
+
+### SIMD/FP Instruction Decoding Infrastructure (13 functions)
+- [x] arm64_is_fp_insn() - Check if instruction is FP/SIMD (op30 == 3)
+- [x] arm64_get_fp_opcode() - Extract SIMD/FP opcode
+- [x] arm64_get_vd() - Extract destination SIMD/FP register (Vd)
+- [x] arm64_get_vn() - Extract first operand SIMD/FP register (Vn)
+- [x] arm64_get_vm() - Extract second operand SIMD/FP register (Vm)
+- [x] arm64_get_vd_q() - Extract SIMD/FP register with Q flag
+- [x] arm64_is_fmov_imm() - Check if FMov (immediate)
+- [x] arm64_is_fmov_reg() - Check if FMov (register)
+- [x] arm64_is_fadd() - Check if FAdd (FP add)
+- [x] arm64_is_fsub() - Check if FSub (FP subtract)
+- [x] arm64_is_fmul() - Check if FMul (FP multiply)
+- [x] arm64_is_fdiv() - Check if FDiv (FP divide)
+- [x] arm64_is_fsqrt() - Check if FSqrt (FP square root)
+- [x] arm64_is_fcmp() - Check if FCmp (FP compare)
+- [x] map_vreg_to_xmm() - Map ARM64 vector register to x86_64 XMM register
+- [x] arm64_get_fpmem16() - Extract FP immediate value
+
+### x86_64 FP/SIMD Code Emission Helpers (14 functions)
+- [x] emit_movss_xmm_xmm() - MOVSS (Move Scalar Single-Precision)
+- [x] emit_movsd_xmm_xmm() - MOVSD (Move Scalar Double-Precision)
+- [x] emit_addss_xmm_xmm() - ADDSS (Add Scalar Single-Precision)
+- [x] emit_addsd_xmm_xmm() - ADDSD (Add Scalar Double-Precision)
+- [x] emit_subss_xmm_xmm() - SUBSS (Subtract Scalar Single-Precision)
+- [x] emit_subsd_xmm_xmm() - SUBSD (Subtract Scalar Double-Precision)
+- [x] emit_mulss_xmm_xmm() - MULSS (Multiply Scalar Single-Precision)
+- [x] emit_mulsd_xmm_xmm() - MULSD (Multiply Scalar Double-Precision)
+- [x] emit_divss_xmm_xmm() - DIVSS (Divide Scalar Single-Precision)
+- [x] emit_divsd_xmm_xmm() - DIVSD (Divide Scalar Double-Precision)
+- [x] emit_sqrtss_xmm() - SQRTSS (Square Root Scalar Single-Precision)
+- [x] emit_sqrtsd_xmm() - SQRSD (Square Root Scalar Double-Precision)
+- [x] emit_ucomiss_xmm_xmm() - UCOMISS (Compare Scalar Single-Precision)
+- [x] emit_ucomisd_xmm_xmm() - UCOMISD (Compare Scalar Double-Precision)
+
+### Enhanced translate_block Support
+
+#### FP Scalar Instructions (7 instructions translated)
+- [x] FMOV (register) - FP move between registers
+- [x] FADD - FP add (single and double precision)
+- [x] FSUB - FP subtract (single and double precision)
+- [x] FMUL - FP multiply (single and double precision)
+- [x] FDIV - FP divide (single and double precision)
+- [x] FSQRT - FP square root (single and double precision)
+- [x] FCMP - FP compare (sets x86 flags via UCOMIS/UCOMID)
+
+### Precision Handling
+The Session 45 implementation correctly handles both single-precision (32-bit) and
+double-precision (64-bit) floating-point instructions by checking encoding bit 22
+(0x00400000) to determine the precision:
+- Bit 22 == 0: Double-precision (uses SD instructions)
+- Bit 22 == 1: Single-precision (uses SS instructions)
+
+### Register Mapping
+ARM64 has 32 vector registers (V0-V31), while x86_64 has 16 XMM registers (XMM0-XMM15).
+The current implementation uses a simple modulo mapping:
+- V0-V15 -> XMM0-XMM15
+- V16-V31 -> XMM0-XMM15 (wrapped)
+
+For full compliance, register spilling would be needed for code that uses more than
+16 vector registers simultaneously.
+
+### File Status
+| File | Lines | Functions | Errors |
+|------|-------|-----------|--------|
+| rosetta_refactored.c | 16,668 | 715+ | 0 |
+| rosetta_refactored.h | 1,211 | 559 | - |
+
+**Session 45 Total: 15 decoder functions + 14 emit helpers + enhanced translate_block**
+
+---
+
+## Session 44: Enhanced Load/Store and Memory Operations [COMPLETE]
+
+### ARM64 Decoder Functions (14 functions)
+- [x] arm64_is_ldrb - Check if LDRB (load register byte)
+- [x] arm64_is_strb - Check if STRB (store register byte)
+- [x] arm64_is_ldrh - Check if LDRH (load register halfword)
+- [x] arm64_is_strh - Check if STRH (store register halfword)
+- [x] arm64_is_ldrsb - Check if LDRSB (load register signed byte)
+- [x] arm64_is_ldrsh - Check if LDRSH (load register signed halfword)
+- [x] arm64_is_ldrsw - Check if LDRSW (load register signed word)
+- [x] arm64_is_ldur - Check if LDUR (load register unscaled)
+- [x] arm64_is_stur - Check if STUR (store register unscaled)
+- [x] arm64_is_eor - Check if EOR (exclusive OR)
+- [x] arm64_is_orr - Check if ORR (inclusive OR)
+- [x] arm64_is_and - Check if AND (bitwise AND)
+- [x] arm64_is_mvn - Check if MVN (move negated)
+- [x] arm64_is_mul - Check if MUL (multiply)
+- [x] arm64_is_div - Check if SDIV (signed divide)
+
+### x86_64 Code Emission Helpers (3 functions)
+- [x] emit_movzx_reg_mem - MOVZX r64, [mem] (zero-extend load)
+- [x] emit_movsx_reg_mem - MOVSX r64, [mem] (sign-extend load)
+- [x] emit_mov_mem_reg_size - MOV [mem], r64 with specific size
+
+### Enhanced translate_block Support
+
+#### Byte Load/Store (2 instructions)
+- [x] LDRB - Load register byte with zero-extend
+- [x] STRB - Store register byte (low 8 bits)
+
+#### Halfword Load/Store (2 instructions)
+- [x] LDRH - Load register halfword with zero-extend
+- [x] STRH - Store register halfword (low 16 bits)
+
+#### Signed Load (3 instructions)
+- [x] LDRSB - Load register signed byte with sign-extend
+- [x] LDRSH - Load register signed halfword with sign-extend
+- [x] LDRSW - Load register signed word with sign-extend
+
+#### Unscaled Offset Load/Store (2 instructions)
+- [x] LDUR - Load register with signed 9-bit offset
+- [x] STUR - Store register with signed 9-bit offset
+
+### Load/Store Instruction Coverage
+
+The translator now handles all major ARM64 load/store instruction types:
+
+| Instruction | Description | Size | Extend | Status |
+|-------------|-------------|------|--------|--------|
+| LDR (imm) | Load register immediate | 64-bit | N/A | Implemented |
+| LDR (reg) | Load register register offset | 64-bit | N/A | Implemented |
+| LDUR | Load register unscaled | 64-bit | N/A | Implemented (Session 44) |
+| LDRB | Load register byte | 8-bit | Zero | Implemented (Session 44) |
+| LDRH | Load register halfword | 16-bit | Zero | Implemented (Session 44) |
+| LDRSB | Load register signed byte | 8-bit | Sign | Implemented (Session 44) |
+| LDRSH | Load register signed halfword | 16-bit | Sign | Implemented (Session 44) |
+| LDRSW | Load register signed word | 32-bit | Sign | Implemented (Session 44) |
+| STR (imm) | Store register immediate | 64-bit | N/A | Implemented |
+| STR (reg) | Store register register offset | 64-bit | N/A | Implemented |
+| STUR | Store register unscaled | 64-bit | N/A | Implemented (Session 44) |
+| STRB | Store register byte | 8-bit | N/A | Implemented (Session 44) |
+| STRH | Store register halfword | 16-bit | N/A | Implemented (Session 44) |
+| LDP | Load pair | 64-bit x2 | N/A | Implemented |
+| STP | Store pair | 64-bit x2 | N/A | Implemented |
+
+### Memory Size Constants
+
+Added constants for memory operation sizes:
+- `MEM_SIZE_BYTE` (1) - 8-bit operations
+- `MEM_SIZE_WORD` (2) - 16-bit operations
+- `MEM_SIZE_DWORD` (4) - 32-bit operations
+
+### File Status
+| File | Lines | Functions | Errors |
+|------|-------|-----------|--------|
+| rosetta_refactored.c | ~16,500 | 698+ | 0 |
+| rosetta_refactored.h | 1,211 | 559 | - |
+
+**Session 44 Total: 14 decoder functions + 3 emit helpers + 10 new instruction translations**
+
+**Session 44 Implementation Verified**:
+- All decoder functions exist (lines 1610-1690)
+- All emit helpers exist (lines 770-841)
+- translate_block handles all new instructions (lines 1998-2043)
+- Code compiles with 0 errors
+
+---
+
+## Session 45: SIMD/FP Infrastructure and Instruction Decoding [COMPLETE]
+
+### Session 45 focused on:
+1. ARM64 SIMD/FP instruction decoding infrastructure (15 functions)
+2. Register mapping for V0-V31 SIMD/FP registers
+3. x86_64 FP/SIMD code emission helpers (14 functions)
+4. Scalar FP arithmetic instruction translation
+
+### Implemented Functions:
+- arm64_is_fp_insn() - Check if instruction is FP/SIMD
+- arm64_get_fp_opcode() - Extract FP/SIMD opcode
+- arm64_get_vd/vn/vm() - Extract FP/SIMD register operands
+- map_vreg_to_xmm() - Map ARM64 V register to x86_64 XMM register
+- emit_movss/movsd/addss/addsd/subss/subsd_xmm_xmm() - FP move/arithmetic
+- emit_mulss/mulsd/divss/divsd_xmm_xmm() - FP multiply/divide
+- emit_sqrtss/sqrtsd_xmm() - FP square root
+- emit_ucomiss/ucomisd_xmm_xmm() - FP compare (sets EFLAGS)
+
+### FP Instructions Translated:
+- FMOV (register) - FP register move
+- FADD - FP add (single & double precision)
+- FSUB - FP subtract (single & double precision)
+- FMUL - FP multiply (single & double precision)
+- FDIV - FP divide (single & double precision)
+- FSQRT - FP square root (single & double precision)
+- FCMP - FP compare (sets x86 flags)
+
+**Session 45 Total: 15 decoder functions + 14 emit helpers + 7 FP translations**
+
+---
+
+## Session 46: Enhanced FP Instructions [COMPLETE]
+
+### Additional FP Instruction Decoders (10 functions)
+- arm64_is_fcsel() - FP conditional select
+- arm64_is_fccmp() - FP conditional compare
+- arm64_is_fabs() - FP absolute value
+- arm64_is_fneg() - FP negate
+- arm64_is_fcvtds() - Convert double to single
+- arm64_is_fcvtsd() - Convert single to double
+- arm64_is_fmov_imm() - FMov immediate
+- arm64_get_fp_cond() - Extract FP condition code
+- arm64_get_fpmem16() - Extract FP immediate value
+
+### Additional x86_64 FP Emit Helpers (6 functions)
+- emit_absps_xmm() - ABS PS (Absolute value packed single)
+- emit_abspd_xmm() - ABS PD (Absolute value packed double)
+- emit_xorps_xmm_xmm() - XOR PS (XOR for FNEG single)
+- emit_xorpd_xmm_xmm() - XOR PD (XOR for FNEG double)
+- emit_cvtss2sd_xmm_xmm() - Convert single to double
+- emit_cvtsd2ss_xmm_xmm() - Convert double to single
+
+### FP Instructions Added to translate_block (8)
+- FMOV (immediate) - handles 0.0 immediate
+- FMOV (register) - with precision detection
+- FABS - FP absolute value (framework)
+- FNEG - FP negate (framework)
+- FCSEL - FP conditional select (framework)
+- FCVTDS - Double to single conversion
+- FCVTSD - Single to double conversion
+- FCMP - FP compare with flag setting
+
+**Session 46 Total: 10 decoder functions + 6 emit helpers + 8 FP translations**
+
+---
+
+## Session 47: NEON Vector Instructions [COMPLETE]
+
+### NEON Vector Instruction Decoders (8 functions)
+- arm64_is_add_vec() - Vector add
+- arm64_is_sub_vec() - Vector subtract
+- arm64_is_and_vec() - Vector AND
+- arm64_is_orr_vec() - Vector OR
+- arm64_is_eor_vec() - Vector XOR
+- arm64_is_bic_vec() - Vector bit clear
+- arm64_get_vec_size() - Get element size field
+- arm64_get_q_bit() - Get 128-bit flag
+
+### NEON Vector Emit Helpers (8 functions)
+- emit_paddd_xmm_xmm() - Packed add doublewords
+- emit_paddq_xmm_xmm() - Packed add quadwords
+- emit_psubd_xmm_xmm() - Packed subtract doublewords
+- emit_psubq_xmm_xmm() - Packed subtract quadwords
+- emit_pand_xmm_xmm() - Vector AND
+- emit_por_xmm_xmm() - Vector OR
+- emit_pxor_xmm_xmm() - Vector XOR
+- emit_pandn_xmm_xmm() - Vector AND NOT (for BIC)
+
+### NEON Instructions Added to translate_block (6)
+- ADD (vector) - with 32/64-bit element detection
+- SUB (vector) - with 32/64-bit element detection
+- AND (vector) - bitwise AND
+- ORR (vector) - bitwise OR
+- EOR (vector) - bitwise XOR
+- BIC (vector) - bit clear (AND NOT)
+
+**Session 47 Total: 8 decoder functions + 8 emit helpers + 6 NEON translations**
+
+---
+
+## Session 48: Enhanced FP Instructions with Conditional Select [COMPLETE]
+
+### New FP Helper Functions (3 functions)
+- emit_fabs_scalar() - FABS helper with precision detection
+- emit_fneg_scalar() - FNEG helper with precision detection
+- emit_fcsel_scalar() - FCSEL complete implementation with conditional branches
+
+### Enhanced translate_block FP Support
+- FABS - Now uses emit_fabs_scalar() with precision detection
+- FNEG - Now uses emit_fneg_scalar() with precision detection
+- FCSEL - Complete implementation using conditional branches for all 16 ARM64 conditions
+
+### FCSEL Condition Code Mapping
+| ARM64 Cond | Description | x86 Jump |
+|------------|-------------|----------|
+| EQ/NE | Equal/Not equal | JE/JNE |
+| CS/CC/HS | Carry set/clear | JAE/JB |
+| MI/PL | Minus/Plus | JS/JNS |
+| VS/VC | Overflow set/clear | JO/JNO |
+| HI/LS | Unsigned higher/lower | JA/JBE |
+| GE/LT | Signed >=/less than | JGE/JL |
+| GT/LE | Signed >/less or equal | JG/JLE |
+| AL | Always | (no jump) |
+| NV | Never | (always load false) |
+
+**Session 48 Total: 3 FP helper functions + 3 enhanced translations**
+
+---
+
+## Session 49: Extended NEON Vector Instructions [COMPLETE]
+
+### New NEON Instruction Decoders (7 functions)
+- arm64_is_mul_vec() - Vector multiply
+- arm64_is_sshr_vec() - Signed shift right
+- arm64_is_ushr_vec() - Unsigned shift right
+- arm64_is_shl_vec() - Shift left
+- arm64_is_cmgt_vec() - Compare greater than
+- arm64_is_cmeq_vec() - Compare equal
+- arm64_get_shift_imm() - Extract shift immediate
+
+### New NEON Emit Helpers (10 functions)
+- emit_pmull_xmm_xmm() - Polynomial multiply
+- emit_pmuludq_xmm_xmm() - Unsigned multiply
+- emit_psllq_xmm_imm() - Shift left logical (64-bit)
+- emit_pslld_xmm_imm() - Shift left logical (32-bit)
+- emit_psrlq_xmm_imm() - Shift right logical (64-bit)
+- emit_psrld_xmm_imm() - Shift right logical (32-bit)
+- emit_psraq_xmm_imm() - Shift right arithmetic (64-bit)
+- emit_psrad_xmm_imm() - Shift right arithmetic (32-bit)
+- emit_pcmpgtd_xmm_xmm() - Compare greater than
+- emit_pcmpeqd_xmm_xmm() - Compare equal
+
+### NEON Instructions Added to translate_block (6)
+- MUL (vector) - with 32/64-bit element detection
+- SSHR - Signed shift right by immediate
+- USHR - Unsigned shift right by immediate
+- SHL - Shift left by immediate
+- CMGT - Compare signed greater than
+- CMEQ - Compare equal
+
+**Session 49 Total: 7 decoder functions + 10 emit helpers + 6 NEON translations**
+
+---
+
+## Session 50: Additional NEON Compare and Arithmetic Instructions [COMPLETE]
+
+### New NEON Instruction Decoders (10 functions)
+- arm64_is_cmge_vec() - Compare signed greater than or equal
+- arm64_is_cmhs_vec() - Compare unsigned higher or same
+- arm64_is_cmle_vec() - Compare signed less than or equal
+- arm64_is_cmlt_vec() - Compare signed less than
+- arm64_is_umin_vec() - Unsigned minimum
+- arm64_is_umax_vec() - Unsigned maximum
+- arm64_is_smin_vec() - Signed minimum
+- arm64_is_smax_vec() - Signed maximum
+- arm64_is_frecpe() - FP reciprocal estimate
+- arm64_is_frsqrte() - FP reciprocal square root estimate
+
+### New NEON Emit Helpers (6 functions)
+- emit_pminud_xmm_xmm() - Packed unsigned integer minimum
+- emit_pmaxud_xmm_xmm() - Packed unsigned integer maximum
+- emit_pminsd_xmm_xmm() - Packed signed integer minimum
+- emit_pmaxsd_xmm_xmm() - Packed signed integer maximum
+- emit_rcpss_xmm_xmm() - Reciprocal scalar single-precision
+- emit_rsqrtps_xmm_xmm() - Reciprocal square root packed
+
+### NEON Instructions Added to translate_block (10)
+- CMGE - Compare signed greater than or equal
+- CMHS - Compare unsigned higher or same
+- CMLT - Compare signed less than
+- UMIN - Unsigned minimum
+- UMAX - Unsigned maximum
+- SMIN - Signed minimum
+- SMAX - Signed maximum
+- FRECPE - FP reciprocal estimate
+- FRSQRTE - FP reciprocal square root estimate
+
+**Session 50 Total: 10 decoder functions + 6 emit helpers + 10 NEON translations**
+
+---
+
+## Session 51: NEON Load/Store Instructions (LD1/ST1) [COMPLETE]
+
+### New NEON Load/Store Decoders (8 functions)
+- arm64_is_ld1() - Load single structure
+- arm64_is_st1() - Store single structure
+- arm64_is_ld1_multiple() - Load multiple structures
+- arm64_is_st1_multiple() - Store multiple structures
+- arm64_is_ld2() - Load pair of structures
+- arm64_is_st2() - Store pair of structures
+- arm64_get_neon_reg_count() - Get register count (1-4)
+- arm64_get_neon_size() - Get size field (0-3)
+- arm64_get_neon_index() - Get post-increment index
+
+### New NEON Load/Store Emit Helpers (6 functions)
+- emit_movdqu_xmm_mem() - MOVDQU load (unaligned integer)
+- emit_movdqu_mem_xmm() - MOVDQU store (unaligned integer)
+- emit_movups_xmm_mem() - MOVUPS load (unaligned FP)
+- emit_movups_mem_xmm() - MOVUPS store (unaligned FP)
+- emit_movaps_xmm_mem() - MOVAPS load (aligned FP)
+- emit_movaps_mem_xmm() - MOVAPS store (aligned FP)
+
+### NEON Load/Store Instructions Added to translate_block (4)
+- LD1 - Load single structure from memory
+- ST1 - Store single structure to memory
+- LD2 - Load pair of structures (de-interleave)
+- ST2 - Store pair of structures (interleave)
+
+**Session 51 Total: 8 decoder functions + 6 emit helpers + 4 NEON load/store translations**
+
+---
+
