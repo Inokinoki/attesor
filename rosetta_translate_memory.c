@@ -13,7 +13,7 @@
  * Memory Translation Functions
  * ============================================================================ */
 
-void translate_memory_mov(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_mov(code_buffer_t *code_buf, const x86_insn_t *insn,
                           uint8_t arm_rd, uint8_t arm_rm)
 {
     if (x86_is_mov_imm64(insn)) {
@@ -35,7 +35,7 @@ void translate_memory_mov(CodeBuffer *code_buf, const x86_insn_t *insn,
     }
 }
 
-void translate_memory_movzx(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_movzx(code_buffer_t *code_buf, const x86_insn_t *insn,
                             uint8_t arm_rd, uint8_t arm_rm)
 {
     /* MOVZX: zero-extend r8/m8 or r16/m16 to r64
@@ -52,7 +52,7 @@ void translate_memory_movzx(CodeBuffer *code_buf, const x86_insn_t *insn,
     }
 }
 
-void translate_memory_movsx(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_movsx(code_buffer_t *code_buf, const x86_insn_t *insn,
                             uint8_t arm_rd, uint8_t arm_rm)
 {
     /* MOVSX: sign-extend r8/m8 or r16/m16 to r64
@@ -69,7 +69,7 @@ void translate_memory_movsx(CodeBuffer *code_buf, const x86_insn_t *insn,
     }
 }
 
-void translate_memory_movsxd(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_movsxd(code_buffer_t *code_buf, const x86_insn_t *insn,
                              uint8_t arm_rd, uint8_t arm_rm)
 {
     (void)insn;
@@ -80,7 +80,7 @@ void translate_memory_movsxd(CodeBuffer *code_buf, const x86_insn_t *insn,
     emit_arm64_insn(code_buf, 0x93407C00 | ((arm_rd & 0x1F) << 0) | ((arm_rm & 0x1F) << 5));
 }
 
-void translate_memory_lea(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_lea(code_buffer_t *code_buf, const x86_insn_t *insn,
                           uint8_t arm_rd)
 {
     /* LEA: Load Effective Address
@@ -126,7 +126,7 @@ void translate_memory_lea(CodeBuffer *code_buf, const x86_insn_t *insn,
     }
 }
 
-void translate_memory_push(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_push(code_buffer_t *code_buf, const x86_insn_t *insn,
                            uint8_t arm_rd)
 {
     (void)insn;
@@ -137,7 +137,7 @@ void translate_memory_push(CodeBuffer *code_buf, const x86_insn_t *insn,
     emit_push_reg(code_buf, arm_rd);
 }
 
-void translate_memory_pop(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_pop(code_buffer_t *code_buf, const x86_insn_t *insn,
                           uint8_t arm_rd)
 {
     (void)insn;
@@ -148,7 +148,7 @@ void translate_memory_pop(CodeBuffer *code_buf, const x86_insn_t *insn,
     emit_pop_reg(code_buf, arm_rd);
 }
 
-void translate_memory_cmp(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_cmp(code_buffer_t *code_buf, const x86_insn_t *insn,
                           uint8_t arm_rd, uint8_t arm_rm)
 {
     /* CMP: compare and set flags (does SUBS without storing result) */
@@ -181,7 +181,7 @@ void translate_memory_cmp(CodeBuffer *code_buf, const x86_insn_t *insn,
     }
 }
 
-void translate_memory_test(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_test(code_buffer_t *code_buf, const x86_insn_t *insn,
                            uint8_t arm_rd, uint8_t arm_rm)
 {
     /* TEST: AND without storing result, just sets flags */

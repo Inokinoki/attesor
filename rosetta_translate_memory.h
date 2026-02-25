@@ -11,8 +11,7 @@
 
 #include "rosetta_types.h"
 #include "rosetta_x86_decode.h"
-#include "rosetta_arm64_emit.h"
-#include <stdint.h>
+#include "rosetta_codegen.h"
 
 /* ============================================================================
  * Memory Translation Functions
@@ -25,7 +24,7 @@
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_memory_mov(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_mov(code_buffer_t *code_buf, const x86_insn_t *insn,
                           uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -35,7 +34,7 @@ void translate_memory_mov(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_memory_movzx(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_movzx(code_buffer_t *code_buf, const x86_insn_t *insn,
                             uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -45,7 +44,7 @@ void translate_memory_movzx(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_memory_movsx(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_movsx(code_buffer_t *code_buf, const x86_insn_t *insn,
                             uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -55,7 +54,7 @@ void translate_memory_movsx(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_memory_movsxd(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_movsxd(code_buffer_t *code_buf, const x86_insn_t *insn,
                              uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -64,7 +63,7 @@ void translate_memory_movsxd(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param insn Decoded x86 instruction
  * @param arm_rd Destination ARM register
  */
-void translate_memory_lea(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_lea(code_buffer_t *code_buf, const x86_insn_t *insn,
                           uint8_t arm_rd);
 
 /**
@@ -73,7 +72,7 @@ void translate_memory_lea(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param insn Decoded x86 instruction
  * @param arm_rd Source ARM register
  */
-void translate_memory_push(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_push(code_buffer_t *code_buf, const x86_insn_t *insn,
                            uint8_t arm_rd);
 
 /**
@@ -82,7 +81,7 @@ void translate_memory_push(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param insn Decoded x86 instruction
  * @param arm_rd Destination ARM register
  */
-void translate_memory_pop(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_pop(code_buffer_t *code_buf, const x86_insn_t *insn,
                           uint8_t arm_rd);
 
 /**
@@ -92,7 +91,7 @@ void translate_memory_pop(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd First operand ARM register
  * @param arm_rm Second operand ARM register
  */
-void translate_memory_cmp(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_cmp(code_buffer_t *code_buf, const x86_insn_t *insn,
                           uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -102,7 +101,7 @@ void translate_memory_cmp(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd First operand ARM register
  * @param arm_rm Second operand ARM register
  */
-void translate_memory_test(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_memory_test(code_buffer_t *code_buf, const x86_insn_t *insn,
                            uint8_t arm_rd, uint8_t arm_rm);
 
 #endif /* ROSETTA_TRANSLATE_MEMORY_H */

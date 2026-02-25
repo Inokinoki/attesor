@@ -11,7 +11,7 @@
 
 #include "rosetta_types.h"
 #include "rosetta_x86_decode.h"
-#include "rosetta_arm64_emit.h"
+#include "rosetta_codegen.h"
 #include <stdint.h>
 
 /* ============================================================================
@@ -25,7 +25,7 @@
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_bit_bsf(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_bsf(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -35,7 +35,7 @@ void translate_bit_bsf(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_bit_bsr(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_bsr(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -45,7 +45,7 @@ void translate_bit_bsr(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_bit_popcnt(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_popcnt(code_buffer_t *code_buf, const x86_insn_t *insn,
                           uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -55,7 +55,7 @@ void translate_bit_popcnt(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_bit_bt(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_bt(code_buffer_t *code_buf, const x86_insn_t *insn,
                       uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -65,7 +65,7 @@ void translate_bit_bt(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_bit_bts(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_bts(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -75,7 +75,7 @@ void translate_bit_bts(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_bit_btr(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_btr(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -85,7 +85,7 @@ void translate_bit_btr(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_bit_btc(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_btc(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm);
 
 #endif /* ROSETTA_TRANSLATE_BIT_H */

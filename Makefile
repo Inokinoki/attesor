@@ -20,7 +20,10 @@ ifeq ($(shell uname -s), Linux)
     CFLAGS += -D_LINUX_C_SOURCE
 endif
 
-# Source files for modular build
+# ============================================================================
+# Source files for modular build - Original modular structure
+# ============================================================================
+
 # Core library - x86_64 decoding and codegen
 CORE_SRCS = \
     rosetta_utils.c \
@@ -52,11 +55,31 @@ SYSTEM_SRCS = \
     rosetta_simd_mem.c \
     rosetta_syscalls.c
 
-# Note: rosetta_arm64_emit.c is excluded - it was incomplete and conflicted
-#       with rosetta_codegen.c. The ARM64 emission is handled by the
-#       translation modules which generate x86_64 code.
+# ============================================================================
+# Refactored modular structure (rosetta_refactored.c split into modules)
+# ============================================================================
 
-MODULAR_SRCS = $(CORE_SRCS) $(TRANSLATE_SRCS) $(SYSTEM_SRCS)
+# JIT code emitter
+REFACTORED_CORE_SRCS = \
+    rosetta_jit_emit.c
+
+# Translation modules
+REFACTORED_TRANS_SRCS = \
+    rosetta_trans_alu.c \
+    rosetta_trans_mem.c \
+    rosetta_trans_branch.c \
+    rosetta_trans_bit.c \
+    rosetta_trans_string.c \
+    rosetta_trans_special.c
+
+# Floating point and NEON translation
+REFACTORED_FP_SRCS = \
+    rosetta_fp_translate.c
+
+REFACTORED_SRCS = $(REFACTORED_CORE_SRCS) $(REFACTORED_TRANS_SRCS) $(REFACTORED_FP_SRCS)
+
+# All source files
+MODULAR_SRCS = $(CORE_SRCS) $(TRANSLATE_SRCS) $(SYSTEM_SRCS) $(REFACTORED_SRCS)
 
 # Object files
 MODULAR_OBJS = $(MODULAR_SRCS:.c=.o)
@@ -89,7 +112,16 @@ HEADERS = \
     rosetta_vector.h \
     rosetta_syscalls.h \
     rosetta_utils.h \
-    rosetta_function_map.h
+    rosetta_function_map.h \
+    rosetta_refactored_types.h \
+    rosetta_jit_emit.h \
+    rosetta_trans_alu.h \
+    rosetta_trans_mem.h \
+    rosetta_trans_branch.h \
+    rosetta_trans_bit.h \
+    rosetta_trans_string.h \
+    rosetta_trans_special.h \
+    rosetta_fp_translate.h
 
 # Main targets
 all: librosetta.a test_jit test_translate

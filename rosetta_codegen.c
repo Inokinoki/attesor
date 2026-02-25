@@ -262,16 +262,15 @@ void emit_mvn_reg_reg(code_buffer_t *buf, u8 dst, u8 src) {
     emit_byte(buf, 0xD0 + (dst & 7));
 }
 
-void emit_mul_reg(code_buffer_t *buf, u8 dst, u8 src) {
-    /* IMUL dst, src: 48 0F AF C0 + src*8 + dst */
-    u8 rex = 0x48;
-    if (dst >= 8) rex |= 0x04;
-    if (src >= 8) rex |= 0x01;
-
-    emit_byte(buf, rex);
-    emit_byte(buf, 0x0F);
-    emit_byte(buf, 0xAF);
-    emit_byte(buf, 0xC0 + (src & 7) + ((dst & 7) << 3));
+void emit_mul_reg(code_buffer_t *buf, u8 dst, u8 src1, u8 src2) {
+    /* ARM64: dst = src1 * src2 using MADD with XZR */
+    /* MADD Xd, Xn, Xm, XZR */
+    u32 insn = 0x1B000000;
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(src1 & 31) << 5;
+    insn |= (u32)(src2 & 31) << 16;
+    insn |= (u32)(31 & 31) << 10;  /* XZR */
+    emit_arm64_insn(buf, insn);
 }
 
 void emit_div_reg(code_buffer_t *buf, u8 src) {
@@ -1381,4 +1380,353 @@ void emit_pinsrb_xmm_reg_imm(code_buffer_t *buf, u8 dst, u8 src, u8 imm) {
     emit_byte(buf, 0xC0 + (src & 7) + ((dst & 7) << 3));
     emit_byte(buf, imm);
 }
+
+/* ============================================================================
+ * ARM64 Instruction Emitters (for Rosetta 2 translation)
+ * ============================================================================
+ * These functions emit ARM64 instructions. Rosetta 2 translates x86_64 -> ARM64,
+ * so we need ARM64 emission capabilities.
+ * ============================================================================ */
+
+/* ARM64 register zero constant */
+#define ARM64_XZR  31  /* Zero register */
+#define ARM64_WZR  31  /* Zero register (32-bit) */
+#define ARM64_SP   31  /* Stack pointer (when used as SP) */
+
+/* ARM64 instruction emit helper */
+void emit_arm64_insn(code_buffer_t *buf, u32 insn)
+{
+    emit_byte(buf, (insn >> 0) & 0xFF);
+    emit_byte(buf, (insn >> 8) & 0xFF);
+    emit_byte(buf, (insn >> 16) & 0xFF);
+    emit_byte(buf, (insn >> 24) & 0xFF);
+}
+
+/* LDR (register): Load register */
+void emit_ldr_reg(code_buffer_t *buf, u8 dst, u8 base, u8 offset)
+{
+    (void)offset;  /* Simplified - no offset for now */
+    /* LDR Xd, [Xn] : 11011100 00000000 00000000 00ffffff */
+    u32 insn = 0xF9400000;
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(base & 31) << 5;
+    emit_arm64_insn(buf, insn);
+}
+
+/* MOVZ: Move with zero immediate */
+void emit_movz(code_buffer_t *buf, u8 dst, u16 imm, u8 shift)
+{
+    /* MOVZ Xd, #imm, LSL #shift : 11010010 10000000 iiiiiiii iiiiiii */
+    u32 insn = 0xD2800000;
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(imm & 0xFFFF) << 5;
+    insn |= (u32)(shift & 3) << 21;
+    emit_arm64_insn(buf, insn);
+}
+
+/* MOVK: Move with keep immediate */
+void emit_movk(code_buffer_t *buf, u8 dst, u16 imm, u8 shift)
+{
+    /* MOVK Xd, #imm, LSL #shift : 11110100 10000000 iiiiiiii iiiiiii */
+    u32 insn = 0xF2800000;
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(imm & 0xFFFF) << 5;
+    insn |= (u32)(shift & 3) << 21;
+    emit_arm64_insn(buf, insn);
+}
+
+/* MOVN: Move with negate immediate */
+void emit_movn(code_buffer_t *buf, u8 dst, u16 imm, u8 shift)
+{
+    /* MOVN Xd, #imm, LSL #shift : 10010010 10000000 iiiiiiii iiiiiii */
+    u32 insn = 0x92800000;
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(imm & 0xFFFF) << 5;
+    insn |= (u32)(shift & 3) << 21;
+    emit_arm64_insn(buf, insn);
+}
+
+/* CMP (register): Compare two registers */
+void emit_cmp_reg(code_buffer_t *buf, u8 op1, u8 op2)
+{
+    /* SUBS XZR, Xn, Xm : 11101011 00000000 00000000 00ffffff */
+    /* This is encoded as SUBS with destination = XZR (31) */
+    u32 insn = 0xEB00001F;
+    insn |= (u32)(op1 & 31) << 5;
+    insn |= (u32)(op2 & 31) << 16;
+    emit_arm64_insn(buf, insn);
+}
+
+/* UBFM: Unsigned bit field move (used for MOVZX, shifts) */
+void emit_mov_extend(code_buffer_t *buf, u8 dst, u8 src, int is_signed, int is_16bit)
+{
+    if (is_signed) {
+        if (is_16bit) {
+            /* SBFM Xd, Xn, #0, #15 : 10011001 00000000 00001111 iiiiiii */
+            u32 insn = 0x93407C00;
+            insn |= (u32)(dst & 31) << 0;
+            insn |= (u32)(src & 31) << 5;
+            emit_arm64_insn(buf, insn);
+        } else {
+            /* SBFM Xd, Xn, #0, #31 : 32-bit sign extend */
+            u32 insn = 0x9340FC00;
+            insn |= (u32)(dst & 31) << 0;
+            insn |= (u32)(src & 31) << 5;
+            emit_arm64_insn(buf, insn);
+        }
+    } else {
+        if (is_16bit) {
+            /* UBFM Xd, Xn, #0, #15 : 11010011 00000000 00001111 iiiiiii */
+            u32 insn = 0xD340FC00;
+            insn |= (u32)(dst & 31) << 0;
+            insn |= (u32)(src & 31) << 5;
+            emit_arm64_insn(buf, insn);
+        } else {
+            /* UBFM Xd, Xn, #0, #31 : 32-bit zero */
+            u32 insn = 0x53007C00;
+            insn |= (u32)(dst & 31) << 0;
+            insn |= (u32)(src & 31) << 5;
+            emit_arm64_insn(buf, insn);
+        }
+    }
+}
+
+/* MOV (register): Move register - ORR with zero register */
+void emit_mov_reg(code_buffer_t *buf, u8 dst, u8 src)
+{
+    /* MOV Xd, Xm is ORR Xd, XZR, Xm */
+    u32 insn = 0xAA000000;  /* ORR (shifted) */
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(31 & 31) << 5;   /* XZR */
+    insn |= (u32)(src & 31) << 16;
+    emit_arm64_insn(buf, insn);
+}
+
+/* TST (register): Test register (ANDS with zero destination) */
+void emit_tst_reg(code_buffer_t *buf, u8 op1, u8 op2)
+{
+    /* TST Xn, Xm is ANDS XZR, Xn, Xm */
+    u32 insn = 0xEA00001F;  /* ANDS with XZR destination */
+    insn |= (u32)(op1 & 31) << 5;
+    insn |= (u32)(op2 & 31) << 16;
+    emit_arm64_insn(buf, insn);
+}
+
+/* B: Unconditional branch (relative) */
+void emit_b(code_buffer_t *buf, int32_t imm26)
+{
+    /* B imm26 : 000001ii iiiiiiii iiiiiiii iiiiiiii */
+    u32 insn = 0x14000000;
+    insn |= (u32)(imm26 & 0x03FFFFFF);
+    emit_arm64_insn(buf, insn);
+}
+
+/* BL: Branch with link (relative) */
+void emit_bl(code_buffer_t *buf, int32_t imm26)
+{
+    /* BL imm26 : 100001ii iiiiiiii iiiiiiii iiiiiiii */
+    u32 insn = 0x94000000;
+    insn |= (u32)(imm26 & 0x03FFFFFF);
+    emit_arm64_insn(buf, insn);
+}
+
+/* B.cond: Conditional branch (relative) */
+void emit_bcond(code_buffer_t *buf, u8 cond, int32_t imm19)
+{
+    /* B.cond imm19 : 0101010i iiiiiiii iiiiiiii 000cond */
+    u32 insn = 0x54000000;
+    insn |= (u32)((imm19 & 0x7FFFF) << 5);
+    insn |= (u32)(cond & 0x0F);
+    emit_arm64_insn(buf, insn);
+}
+
+/* CSEL: Conditional select */
+void emit_csel_reg_reg_cond(code_buffer_t *buf, u8 dst, u8 src1, u8 src2, u8 cond)
+{
+    /* CSEL Xd, Xn, Xm, cond : 11010101 00000000 000000mm mmm0nnnn ddddcc */
+    u32 insn = 0x1A800000;
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(src1 & 31) << 5;
+    insn |= (u32)(src2 & 31) << 16;
+    insn |= (u32)(cond & 0x0F) << 12;
+    emit_arm64_insn(buf, insn);
+}
+
+/* SETCC: Set register based on condition */
+void emit_setcc_reg_cond(code_buffer_t *buf, u8 dst, u8 cond)
+{
+    /* CSET Xd, cond is CSEL Xd, XZR, XZR, !cond */
+    /* Inverted condition for CSET */
+    u32 insn = 0x1A9F07E0;  /* CSET template */
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)((cond ^ 1) & 0x0F) << 12;
+    emit_arm64_insn(buf, insn);
+}
+
+/* ============================================================================
+ * ARM64 Bit Manipulation Instructions (stub implementations)
+ * ============================================================================ */
+
+/* BSF: Bit scan forward - find first set bit */
+void emit_bsf_reg(code_buffer_t *buf, u8 dst, u8 src)
+{
+    (void)dst; (void)src;
+    /* TODO: Implement ARM64 RBIT + CLZ sequence for BSF */
+    emit_nop(buf);  /* Stub */
+}
+
+/* BSR: Bit scan reverse - find last set bit */
+void emit_bsr_reg(code_buffer_t *buf, u8 dst, u8 src)
+{
+    (void)dst; (void)src;
+    /* TODO: Implement ARM64 CLZ for BSR */
+    emit_nop(buf);  /* Stub */
+}
+
+/* POPCNT: Population count */
+void emit_popcnt_reg(code_buffer_t *buf, u8 dst, u8 src)
+{
+    /* CNT Vd.16B, Vn.16B then ADDV */
+    /* Simplified: use ARM64 CNT instruction */
+    u32 insn = 0x4E20B800;  /* CNT Vd.16B, Vn.16B */
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(src & 31) << 5;
+    emit_arm64_insn(buf, insn);
+}
+
+/* BT: Bit test */
+void emit_bt_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
+{
+    (void)dst; (void)src; (void)bit;
+    /* TODO: Implement ARM64 UBFX + TST for bit test */
+    emit_nop(buf);  /* Stub */
+}
+
+/* BTS: Bit test and set */
+void emit_bts_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
+{
+    (void)dst; (void)src; (void)bit;
+    /* TODO: Implement ARM64 ORR with shifted bit */
+    emit_nop(buf);  /* Stub */
+}
+
+/* BTR: Bit test and reset */
+void emit_btr_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
+{
+    (void)dst; (void)src; (void)bit;
+    /* TODO: Implement ARM64 BIC with shifted bit */
+    emit_nop(buf);  /* Stub */
+}
+
+/* BTC: Bit test and complement */
+void emit_btc_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
+{
+    (void)dst; (void)src; (void)bit;
+    /* TODO: Implement ARM64 EOR with shifted bit */
+    emit_nop(buf);  /* Stub */
+}
+
+/* ============================================================================
+ * ARM64 String Instructions (stub implementations)
+ * ============================================================================ */
+
+/* MOVS: Move string */
+void emit_movs(code_buffer_t *buf, int is_64bit)
+{
+    (void)is_64bit;
+    /* TODO: Implement ARM64 LD1/ST1 pair for MOVS */
+    emit_nop(buf);  /* Stub */
+}
+
+/* STOS: Store string */
+void emit_stos(code_buffer_t *buf, int size)
+{
+    (void)size;
+    /* TODO: Implement ARM64 STR for STOS */
+    emit_nop(buf);  /* Stub */
+}
+
+/* LODS: Load string */
+void emit_lods(code_buffer_t *buf, int size)
+{
+    (void)size;
+    /* TODO: Implement ARM64 LDR for LODS */
+    emit_nop(buf);  /* Stub */
+}
+
+/* CMPS: Compare string */
+void emit_cmps(code_buffer_t *buf, int size)
+{
+    (void)size;
+    /* TODO: Implement ARM64 LDR + CMP for CMPS */
+    emit_nop(buf);  /* Stub */
+}
+
+/* SCAS: Scan string */
+void emit_scas(code_buffer_t *buf, int size)
+{
+    (void)size;
+    /* TODO: Implement ARM64 LDR + CMP for SCAS */
+    emit_nop(buf);  /* Stub */
+}
+
+/* ============================================================================
+ * ARM64 Special Instructions (stub implementations)
+ * ============================================================================ */
+
+/* CPUID: CPU identification */
+void emit_cpuid(code_buffer_t *buf)
+{
+    /* TODO: Implement ARM64 MRS for CPUID */
+    emit_nop(buf);  /* Stub */
+}
+
+/* RDTSC: Read time-stamp counter */
+void emit_rdtsc(code_buffer_t *buf)
+{
+    /* TODO: Implement ARM64 CNTVCT_EL0 for timestamp */
+    emit_nop(buf);  /* Stub */
+}
+
+/* SHLD: Shift left double */
+void emit_shld(code_buffer_t *buf, u8 dst, u8 src, u8 shift)
+{
+    (void)dst; (void)src; (void)shift;
+    /* TODO: Implement ARM64 ORR + shifted for SHLD */
+    emit_nop(buf);  /* Stub */
+}
+
+/* SHRD: Shift right double */
+void emit_shrd(code_buffer_t *buf, u8 dst, u8 src, u8 shift)
+{
+    (void)dst; (void)src; (void)shift;
+    /* TODO: Implement ARM64 ORR + shifted for SHRD */
+    emit_nop(buf);  /* Stub */
+}
+
+/* CQO: Convert quadword to octword (sign-extend RAX to RDX:RAX) */
+void emit_cqo(code_buffer_t *buf)
+{
+    /* SAR RDX, RAX, #63 */
+    u32 insn = 0x9340FC00;  /* SBFM (sign extend) */
+    insn |= (u32)(2 & 31) << 0;   /* RDX */
+    insn |= (u32)(0 & 31) << 5;   /* RAX */
+    emit_arm64_insn(buf, insn);
+}
+
+/* CLI: Clear interrupt flag */
+void emit_cli(code_buffer_t *buf)
+{
+    /* TODO: Implement ARM64 MSR DAIFSET */
+    emit_nop(buf);  /* Stub */
+}
+
+/* STI: Set interrupt flag */
+void emit_sti(code_buffer_t *buf)
+{
+    /* TODO: Implement ARM64 MSR DAIFCLR */
+    emit_nop(buf);  /* Stub */
+}
+
+/* End of rosetta_codegen.c */
 

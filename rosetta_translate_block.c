@@ -9,7 +9,7 @@
 #include "rosetta_translate_block.h"
 #include "rosetta_translate_dispatch.h"
 #include "rosetta_cache.h"
-#include "rosetta_arm64_emit.h"
+#include "rosetta_codegen.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -44,7 +44,7 @@ TranslationResult translate_block(uint64_t guest_pc)
     }
 
     /* Initialize code buffer for JIT emission */
-    CodeBuffer code_buf;
+    code_buffer_t code_buf;
     code_buffer_init(&code_buf, NULL, MAX_BLOCK_CODE_SIZE);
 
     /* Translate instructions in the basic block */

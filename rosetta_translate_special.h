@@ -11,7 +11,7 @@
 
 #include "rosetta_types.h"
 #include "rosetta_x86_decode.h"
-#include "rosetta_arm64_emit.h"
+#include "rosetta_codegen.h"
 #include <stdint.h>
 
 /* ============================================================================
@@ -23,14 +23,14 @@
  * @param code_buf Code buffer for emission
  * @param insn Decoded x86 instruction
  */
-void translate_special_cpuid(CodeBuffer *code_buf, const x86_insn_t *insn);
+void translate_special_cpuid(code_buffer_t *code_buf, const x86_insn_t *insn);
 
 /**
  * Translate RDTSC (read timestamp counter)
  * @param code_buf Code buffer for emission
  * @param insn Decoded x86 instruction
  */
-void translate_special_rdtsc(CodeBuffer *code_buf, const x86_insn_t *insn);
+void translate_special_rdtsc(code_buffer_t *code_buf, const x86_insn_t *insn);
 
 /**
  * Translate SHLD (double precision shift left)
@@ -39,7 +39,7 @@ void translate_special_rdtsc(CodeBuffer *code_buf, const x86_insn_t *insn);
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_special_shld(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_special_shld(code_buffer_t *code_buf, const x86_insn_t *insn,
                             uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -49,7 +49,7 @@ void translate_special_shld(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_special_shrd(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_special_shrd(code_buffer_t *code_buf, const x86_insn_t *insn,
                             uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -57,27 +57,27 @@ void translate_special_shrd(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param code_buf Code buffer for emission
  * @param insn Decoded x86 instruction
  */
-void translate_special_cqo(CodeBuffer *code_buf, const x86_insn_t *insn);
+void translate_special_cqo(code_buffer_t *code_buf, const x86_insn_t *insn);
 
 /**
  * Translate CLI (clear interrupt flag)
  * @param code_buf Code buffer for emission
  * @param insn Decoded x86 instruction
  */
-void translate_special_cli(CodeBuffer *code_buf, const x86_insn_t *insn);
+void translate_special_cli(code_buffer_t *code_buf, const x86_insn_t *insn);
 
 /**
  * Translate STI (set interrupt flag)
  * @param code_buf Code buffer for emission
  * @param insn Decoded x86 instruction
  */
-void translate_special_sti(CodeBuffer *code_buf, const x86_insn_t *insn);
+void translate_special_sti(code_buffer_t *code_buf, const x86_insn_t *insn);
 
 /**
  * Translate NOP (no operation)
  * @param code_buf Code buffer for emission
  * @param insn Decoded x86 instruction
  */
-void translate_special_nop(CodeBuffer *code_buf, const x86_insn_t *insn);
+void translate_special_nop(code_buffer_t *code_buf, const x86_insn_t *insn);
 
 #endif /* ROSETTA_TRANSLATE_SPECIAL_H */

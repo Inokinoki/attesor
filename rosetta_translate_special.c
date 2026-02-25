@@ -13,21 +13,21 @@
  * Special Instruction Translation Functions
  * ============================================================================ */
 
-void translate_special_cpuid(CodeBuffer *code_buf, const x86_insn_t *insn)
+void translate_special_cpuid(code_buffer_t *code_buf, const x86_insn_t *insn)
 {
     (void)insn;
     /* CPUID: CPU identification */
     emit_cpuid(code_buf);
 }
 
-void translate_special_rdtsc(CodeBuffer *code_buf, const x86_insn_t *insn)
+void translate_special_rdtsc(code_buffer_t *code_buf, const x86_insn_t *insn)
 {
     (void)insn;
     /* RDTSC: read timestamp counter */
     emit_rdtsc(code_buf);
 }
 
-void translate_special_shld(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_special_shld(code_buffer_t *code_buf, const x86_insn_t *insn,
                             uint8_t arm_rd, uint8_t arm_rm)
 {
     /* SHLD: double precision shift left */
@@ -35,7 +35,7 @@ void translate_special_shld(CodeBuffer *code_buf, const x86_insn_t *insn,
     emit_shld(code_buf, arm_rd, arm_rm, shift);
 }
 
-void translate_special_shrd(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_special_shrd(code_buffer_t *code_buf, const x86_insn_t *insn,
                             uint8_t arm_rd, uint8_t arm_rm)
 {
     /* SHRD: double precision shift right */
@@ -43,28 +43,28 @@ void translate_special_shrd(CodeBuffer *code_buf, const x86_insn_t *insn,
     emit_shrd(code_buf, arm_rd, arm_rm, shift);
 }
 
-void translate_special_cqo(CodeBuffer *code_buf, const x86_insn_t *insn)
+void translate_special_cqo(code_buffer_t *code_buf, const x86_insn_t *insn)
 {
     (void)insn;
     /* CWD/CDQ/CQO: sign extend RAX to RDX:RAX */
     emit_cqo(code_buf);
 }
 
-void translate_special_cli(CodeBuffer *code_buf, const x86_insn_t *insn)
+void translate_special_cli(code_buffer_t *code_buf, const x86_insn_t *insn)
 {
     (void)insn;
     /* CLI: clear interrupt flag */
     emit_cli(code_buf);
 }
 
-void translate_special_sti(CodeBuffer *code_buf, const x86_insn_t *insn)
+void translate_special_sti(code_buffer_t *code_buf, const x86_insn_t *insn)
 {
     (void)insn;
     /* STI: set interrupt flag */
     emit_sti(code_buf);
 }
 
-void translate_special_nop(CodeBuffer *code_buf, const x86_insn_t *insn)
+void translate_special_nop(code_buffer_t *code_buf, const x86_insn_t *insn)
 {
     (void)insn;
     /* NOP: no operation */

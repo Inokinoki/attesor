@@ -11,7 +11,7 @@
 
 #include "rosetta_types.h"
 #include "rosetta_x86_decode.h"
-#include "rosetta_arm64_emit.h"
+#include "rosetta_codegen.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -67,7 +67,7 @@ InsnCategory dispatch_classify_insn(const x86_insn_t *insn);
  * @param block_pc Current block PC
  * @return Translation result
  */
-TranslateResult dispatch_translate_insn(CodeBuffer *code_buf,
+TranslateResult dispatch_translate_insn(code_buffer_t *code_buf,
                                         const x86_insn_t *insn,
                                         uint8_t arm_rd,
                                         uint8_t arm_rm,

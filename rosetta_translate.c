@@ -132,7 +132,7 @@ void translate_mul_reg(code_buffer_t *buf, u8 rd, u8 rn, u8 rm)
 
     /* x86 IMUL uses RAX:RDX for full result */
     emit_mov_reg_reg(buf, RAX, x86_rn);
-    emit_mul_reg(buf, x86_rd, x86_rm);  /* RAX = RAX * rm */
+    emit_mul_reg(buf, RAX, RAX, x86_rm);  /* RAX = RAX * rm */
     emit_mov_reg_reg(buf, x86_rd, RAX);
 }
 

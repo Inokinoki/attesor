@@ -88,7 +88,7 @@ const char *dispatch_category_name(InsnCategory category)
  * Instruction Translation Dispatch
  * ============================================================================ */
 
-TranslateResult dispatch_translate_insn(CodeBuffer *code_buf,
+TranslateResult dispatch_translate_insn(code_buffer_t *code_buf,
                                         const x86_insn_t *insn,
                                         uint8_t arm_rd,
                                         uint8_t arm_rm,

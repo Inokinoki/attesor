@@ -13,7 +13,7 @@
  * Branch Translation Functions
  * ============================================================================ */
 
-int translate_branch_jcc(CodeBuffer *code_buf, const x86_insn_t *insn,
+int translate_branch_jcc(code_buffer_t *code_buf, const x86_insn_t *insn,
                          uint64_t block_pc)
 {
     (void)block_pc;
@@ -32,7 +32,7 @@ int translate_branch_jcc(CodeBuffer *code_buf, const x86_insn_t *insn,
     return 1;  /* Block ends */
 }
 
-int translate_branch_jmp(CodeBuffer *code_buf, const x86_insn_t *insn,
+int translate_branch_jmp(code_buffer_t *code_buf, const x86_insn_t *insn,
                          uint64_t block_pc)
 {
     (void)block_pc;
@@ -46,7 +46,7 @@ int translate_branch_jmp(CodeBuffer *code_buf, const x86_insn_t *insn,
     return 1;  /* Block ends */
 }
 
-int translate_branch_call(CodeBuffer *code_buf, const x86_insn_t *insn,
+int translate_branch_call(code_buffer_t *code_buf, const x86_insn_t *insn,
                           uint64_t block_pc)
 {
     /* CALL: save return address and branch
@@ -70,7 +70,7 @@ int translate_branch_call(CodeBuffer *code_buf, const x86_insn_t *insn,
     return 1;  /* Block ends */
 }
 
-int translate_branch_ret(CodeBuffer *code_buf)
+int translate_branch_ret(code_buffer_t *code_buf)
 {
     /* RET: return to caller
      * x86: C3 (near), C2 (with stack adjust)
@@ -80,7 +80,7 @@ int translate_branch_ret(CodeBuffer *code_buf)
     return 1;  /* Block ends */
 }
 
-void translate_branch_cmov(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_branch_cmov(code_buffer_t *code_buf, const x86_insn_t *insn,
                            uint8_t arm_rd, uint8_t arm_rm)
 {
     /* CMOVcc: conditional move
@@ -98,7 +98,7 @@ void translate_branch_cmov(CodeBuffer *code_buf, const x86_insn_t *insn,
     emit_csel_reg_reg_cond(code_buf, arm_rd, arm_rm, arm_rd, cond);
 }
 
-void translate_branch_setcc(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_branch_setcc(code_buffer_t *code_buf, const x86_insn_t *insn,
                             uint8_t arm_rd)
 {
     /* SETcc: set byte to 1 if condition true, else 0
@@ -111,7 +111,7 @@ void translate_branch_setcc(CodeBuffer *code_buf, const x86_insn_t *insn,
     emit_setcc_reg_cond(code_buf, arm_rd, cond);
 }
 
-void translate_branch_xchg(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_branch_xchg(code_buffer_t *code_buf, const x86_insn_t *insn,
                            uint8_t arm_rd, uint8_t arm_rm)
 {
     (void)insn;

@@ -11,7 +11,7 @@
 
 #include "rosetta_types.h"
 #include "rosetta_x86_decode.h"
-#include "rosetta_arm64_emit.h"
+#include "rosetta_codegen.h"
 #include <stdint.h>
 
 /* ARM64 register constants */
@@ -29,7 +29,7 @@
  * @param block_pc Current block PC (for offset calculation)
  * @return 1 if block ends, 0 otherwise
  */
-int translate_branch_jcc(CodeBuffer *code_buf, const x86_insn_t *insn,
+int translate_branch_jcc(code_buffer_t *code_buf, const x86_insn_t *insn,
                          uint64_t block_pc);
 
 /**
@@ -39,7 +39,7 @@ int translate_branch_jcc(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param block_pc Current block PC (for offset calculation)
  * @return 1 if block ends, 0 otherwise
  */
-int translate_branch_jmp(CodeBuffer *code_buf, const x86_insn_t *insn,
+int translate_branch_jmp(code_buffer_t *code_buf, const x86_insn_t *insn,
                          uint64_t block_pc);
 
 /**
@@ -49,7 +49,7 @@ int translate_branch_jmp(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param block_pc Current block PC (for offset calculation)
  * @return 1 if block ends, 0 otherwise
  */
-int translate_branch_call(CodeBuffer *code_buf, const x86_insn_t *insn,
+int translate_branch_call(code_buffer_t *code_buf, const x86_insn_t *insn,
                           uint64_t block_pc);
 
 /**
@@ -57,7 +57,7 @@ int translate_branch_call(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param code_buf Code buffer for emission
  * @return 1 if block ends, 0 otherwise
  */
-int translate_branch_ret(CodeBuffer *code_buf);
+int translate_branch_ret(code_buffer_t *code_buf);
 
 /**
  * Translate conditional move (CMOVcc)
@@ -66,7 +66,7 @@ int translate_branch_ret(CodeBuffer *code_buf);
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_branch_cmov(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_branch_cmov(code_buffer_t *code_buf, const x86_insn_t *insn,
                            uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -75,7 +75,7 @@ void translate_branch_cmov(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param insn Decoded x86 instruction
  * @param arm_rd Destination ARM register
  */
-void translate_branch_setcc(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_branch_setcc(code_buffer_t *code_buf, const x86_insn_t *insn,
                             uint8_t arm_rd);
 
 /**
@@ -85,7 +85,7 @@ void translate_branch_setcc(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd First ARM register
  * @param arm_rm Second ARM register
  */
-void translate_branch_xchg(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_branch_xchg(code_buffer_t *code_buf, const x86_insn_t *insn,
                            uint8_t arm_rd, uint8_t arm_rm);
 
 #endif /* ROSETTA_TRANSLATE_BRANCH_H */

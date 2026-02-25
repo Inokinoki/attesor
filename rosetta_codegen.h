@@ -211,7 +211,7 @@ void emit_mvn_reg_reg(code_buffer_t *buf, u8 dst, u8 src);
  * @param dst Destination register (also first operand)
  * @param src Source register
  */
-void emit_mul_reg(code_buffer_t *buf, u8 dst, u8 src);
+void emit_mul_reg(code_buffer_t *buf, u8 dst, u8 src1, u8 src2);
 
 /**
  * Emit DIV reg64, reg64
@@ -1004,5 +1004,70 @@ void emit_pextrb_reg_xmm_imm(code_buffer_t *buf, u8 dst, u8 src, u8 imm);
  * @param imm Index
  */
 void emit_pinsrb_xmm_reg_imm(code_buffer_t *buf, u8 dst, u8 src, u8 imm);
+
+/* ============================================================================
+ * ARM64 Instruction Emitters (for Rosetta 2 translation)
+ * ============================================================================ */
+
+/* ARM64 register constants */
+#define XZR  31  /* ARM64 zero register */
+#define WZR  31  /* ARM64 zero register (32-bit) */
+
+/* ARM64 load/store */
+void emit_ldr_reg(code_buffer_t *buf, u8 dst, u8 base, u8 offset);
+
+/* ARM64 raw instruction emission */
+void emit_arm64_insn(code_buffer_t *buf, u32 insn);
+
+/* ARM64 move with immediate */
+void emit_movz(code_buffer_t *buf, u8 dst, u16 imm, u8 shift);
+void emit_movk(code_buffer_t *buf, u8 dst, u16 imm, u8 shift);
+void emit_movn(code_buffer_t *buf, u8 dst, u16 imm, u8 shift);
+
+/* ARM64 compare */
+void emit_cmp_reg(code_buffer_t *buf, u8 op1, u8 op2);
+
+/* ARM64 move with extend (MOVZX/MOVSX) */
+void emit_mov_extend(code_buffer_t *buf, u8 dst, u8 src, int is_signed, int is_16bit);
+
+/* ARM64 move register */
+void emit_mov_reg(code_buffer_t *buf, u8 dst, u8 src);
+
+/* ARM64 test register */
+void emit_tst_reg(code_buffer_t *buf, u8 op1, u8 op2);
+
+/* ARM64 branch instructions */
+void emit_b(code_buffer_t *buf, int32_t imm26);
+void emit_bl(code_buffer_t *buf, int32_t imm26);
+void emit_bcond(code_buffer_t *buf, u8 cond, int32_t imm19);
+
+/* ARM64 conditional select */
+void emit_csel_reg_reg_cond(code_buffer_t *buf, u8 dst, u8 src1, u8 src2, u8 cond);
+void emit_setcc_reg_cond(code_buffer_t *buf, u8 dst, u8 cond);
+
+/* ARM64 bit manipulation */
+void emit_bsf_reg(code_buffer_t *buf, u8 dst, u8 src);
+void emit_bsr_reg(code_buffer_t *buf, u8 dst, u8 src);
+void emit_popcnt_reg(code_buffer_t *buf, u8 dst, u8 src);
+void emit_bt_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit);
+void emit_bts_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit);
+void emit_btr_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit);
+void emit_btc_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit);
+
+/* ARM64 string instructions */
+void emit_movs(code_buffer_t *buf, int is_64bit);
+void emit_stos(code_buffer_t *buf, int size);
+void emit_lods(code_buffer_t *buf, int size);
+void emit_cmps(code_buffer_t *buf, int size);
+void emit_scas(code_buffer_t *buf, int size);
+
+/* ARM64 special instructions */
+void emit_cpuid(code_buffer_t *buf);
+void emit_rdtsc(code_buffer_t *buf);
+void emit_shld(code_buffer_t *buf, u8 dst, u8 src, u8 shift);
+void emit_shrd(code_buffer_t *buf, u8 dst, u8 src, u8 shift);
+void emit_cqo(code_buffer_t *buf);
+void emit_cli(code_buffer_t *buf);
+void emit_sti(code_buffer_t *buf);
 
 #endif /* ROSETTA_CODEGEN_H */

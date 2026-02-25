@@ -11,7 +11,7 @@
 
 #include "rosetta_types.h"
 #include "rosetta_x86_decode.h"
-#include "rosetta_arm64_emit.h"
+#include "rosetta_codegen.h"
 #include <stdint.h>
 #include <stddef.h>
 

@@ -13,7 +13,7 @@
  * Bit Manipulation Translation Functions
  * ============================================================================ */
 
-void translate_bit_bsf(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_bsf(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm)
 {
     (void)insn;
@@ -21,7 +21,7 @@ void translate_bit_bsf(CodeBuffer *code_buf, const x86_insn_t *insn,
     emit_bsf_reg(code_buf, arm_rd, arm_rm);
 }
 
-void translate_bit_bsr(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_bsr(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm)
 {
     (void)insn;
@@ -29,7 +29,7 @@ void translate_bit_bsr(CodeBuffer *code_buf, const x86_insn_t *insn,
     emit_bsr_reg(code_buf, arm_rd, arm_rm);
 }
 
-void translate_bit_popcnt(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_popcnt(code_buffer_t *code_buf, const x86_insn_t *insn,
                           uint8_t arm_rd, uint8_t arm_rm)
 {
     (void)insn;
@@ -37,7 +37,7 @@ void translate_bit_popcnt(CodeBuffer *code_buf, const x86_insn_t *insn,
     emit_popcnt_reg(code_buf, arm_rd, arm_rm);
 }
 
-void translate_bit_bt(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_bt(code_buffer_t *code_buf, const x86_insn_t *insn,
                       uint8_t arm_rd, uint8_t arm_rm)
 {
     /* BT: bit test - test bit and return value */
@@ -45,7 +45,7 @@ void translate_bit_bt(CodeBuffer *code_buf, const x86_insn_t *insn,
     emit_bt_reg(code_buf, arm_rd, arm_rm, bit);
 }
 
-void translate_bit_bts(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_bts(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm)
 {
     /* BTS: bit test and set */
@@ -53,7 +53,7 @@ void translate_bit_bts(CodeBuffer *code_buf, const x86_insn_t *insn,
     emit_bts_reg(code_buf, arm_rd, arm_rm, bit);
 }
 
-void translate_bit_btr(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_btr(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm)
 {
     /* BTR: bit test and reset */
@@ -61,7 +61,7 @@ void translate_bit_btr(CodeBuffer *code_buf, const x86_insn_t *insn,
     emit_btr_reg(code_buf, arm_rd, arm_rm, bit);
 }
 
-void translate_bit_btc(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_bit_btc(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm)
 {
     /* BTC: bit test and complement */

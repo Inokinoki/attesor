@@ -11,12 +11,13 @@
 
 #include "rosetta_types.h"
 #include "rosetta_x86_decode.h"
-#include "rosetta_arm64_emit.h"
-#include <stdint.h>
+#include "rosetta_codegen.h"
 
 /* ARM64 register constants */
 #define X0  0
 #define XZR 31
+
+/* Use code_buffer_t from rosetta_types.h */
 
 /* ============================================================================
  * ALU Translation Functions
@@ -29,7 +30,7 @@
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_alu_add(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_alu_add(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -39,7 +40,7 @@ void translate_alu_add(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_alu_sub(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_alu_sub(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -49,7 +50,7 @@ void translate_alu_sub(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_alu_and(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_alu_and(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -59,7 +60,7 @@ void translate_alu_and(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_alu_or(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_alu_or(code_buffer_t *code_buf, const x86_insn_t *insn,
                       uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -69,7 +70,7 @@ void translate_alu_or(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_alu_xor(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_alu_xor(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -78,7 +79,7 @@ void translate_alu_xor(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param insn Decoded x86 instruction
  * @param arm_rm Source ARM register
  */
-void translate_alu_mul(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_alu_mul(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rm);
 
 /**
@@ -87,7 +88,7 @@ void translate_alu_mul(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param insn Decoded x86 instruction
  * @param arm_rm Source ARM register
  */
-void translate_alu_div(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_alu_div(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rm);
 
 /**
@@ -96,7 +97,7 @@ void translate_alu_div(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param insn Decoded x86 instruction
  * @param arm_rd Destination ARM register
  */
-void translate_alu_inc(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_alu_inc(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd);
 
 /**
@@ -105,7 +106,7 @@ void translate_alu_inc(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param insn Decoded x86 instruction
  * @param arm_rd Destination ARM register
  */
-void translate_alu_dec(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_alu_dec(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd);
 
 /**
@@ -115,7 +116,7 @@ void translate_alu_dec(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_alu_neg(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_alu_neg(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -125,7 +126,7 @@ void translate_alu_neg(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_alu_not(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_alu_not(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm);
 
 /**
@@ -135,7 +136,7 @@ void translate_alu_not(CodeBuffer *code_buf, const x86_insn_t *insn,
  * @param arm_rd Destination ARM register
  * @param arm_rm Source ARM register
  */
-void translate_alu_shift(CodeBuffer *code_buf, const x86_insn_t *insn,
+void translate_alu_shift(code_buffer_t *code_buf, const x86_insn_t *insn,
                          uint8_t arm_rd, uint8_t arm_rm);
 
 #endif /* ROSETTA_TRANSLATE_ALU_H */
