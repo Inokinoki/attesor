@@ -82,27 +82,6 @@ char *rosetta_strncpy(char *dest, const char *src, size_t n)
     return orig_dest;
 }
 
-/**
- * rosetta_strdup - Duplicate string
- *
- * @param s String to duplicate
- * @return Pointer to newly allocated duplicate, or NULL on failure
- */
-char *rosetta_strdup(const char *s)
-{
-    size_t len;
-    char *dup;
-
-    if (!s) return NULL;
-
-    len = rosetta_strlen(s);
-    dup = (char *)rosetta_malloc(len + 1);
-    if (dup) {
-        rosetta_memcpy(dup, s, len + 1);
-    }
-    return dup;
-}
-
 /* ============================================================================
  * String Concatenation Operations
  * ============================================================================ */

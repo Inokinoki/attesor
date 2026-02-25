@@ -5,11 +5,14 @@
  * memory mapping, protection, and address translation.
  */
 
+#define _DARWIN_C_SOURCE  /* For posix_memalign on macOS */
+
 #include "rosetta_types.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <stdlib.h>
 
 /* ============================================================================
  * Guest Memory State

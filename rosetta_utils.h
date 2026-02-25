@@ -24,7 +24,6 @@ size_t rosetta_strnlen(const char *s, size_t maxlen);
 
 char *rosetta_strcpy(char *dest, const char *src);
 char *rosetta_strncpy(char *dest, const char *src, size_t n);
-char *rosetta_strdup(const char *s);
 
 /* ============================================================================
  * String Concatenation Operations

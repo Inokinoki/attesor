@@ -5,7 +5,7 @@
  * emulation and manipulation.
  */
 
-#include "rosetta_types.h"
+#include "rosetta_refactored.h"
 #include <stdint.h>
 
 /* ============================================================================
