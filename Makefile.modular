@@ -11,11 +11,33 @@ ifeq ($(shell uname -s),Darwin)
     CFLAGS += -D_DARWIN_C_SOURCE
 endif
 
-# Source files
+# Source files - Core translation modules
 SRCS = rosetta_codegen.c
 SRCS += rosetta_jit.c
 SRCS += rosetta_translate.c
 SRCS += rosetta_refactored.c
+SRCS += rosetta_x86_decode.c
+SRCS += rosetta_arm64_emit.c
+SRCS += rosetta_translate_alu.c
+SRCS += rosetta_translate_memory.c
+SRCS += rosetta_translate_branch.c
+SRCS += rosetta_translate_bit.c
+SRCS += rosetta_translate_string.c
+SRCS += rosetta_translate_special.c
+SRCS += rosetta_syscalls.c
+SRCS += rosetta_cache.c
+SRCS += rosetta_context.c
+SRCS += rosetta_simd.c
+SRCS += rosetta_translate_dispatch.c
+SRCS += rosetta_translate_block.c
+
+# Source files - New modular components
+SRCS += rosetta_simd_mem.c
+SRCS += rosetta_hash.c
+SRCS += rosetta_transcache.c
+SRCS += rosetta_vector.c
+SRCS += rosetta_memmgmt.c
+SRCS += rosetta_utils.c
 
 # Header files (for dependency tracking)
 HDRS = rosetta_types.h
@@ -24,19 +46,48 @@ HDRS += rosetta_jit.h
 HDRS += rosetta_translate.h
 HDRS += rosetta_arm64_translate.h
 HDRS += rosetta_arm64_decode.h
+HDRS += rosetta_x86_decode.h
+HDRS += rosetta_arm64_emit.h
+HDRS += rosetta_translate_alu.h
+HDRS += rosetta_translate_memory.h
+HDRS += rosetta_translate_branch.h
+HDRS += rosetta_translate_bit.h
+HDRS += rosetta_translate_string.h
+HDRS += rosetta_translate_special.h
+HDRS += rosetta_cache.h
+HDRS += rosetta_context.h
+HDRS += rosetta_simd.h
+HDRS += rosetta_translate_dispatch.h
+HDRS += rosetta_translate_block.h
+HDRS += rosetta_syscalls.h
+
+# New modular headers
+HDRS += rosetta_refactored.h
+HDRS += rosetta_simd_mem.h
+HDRS += rosetta_hash.h
+HDRS += rosetta_transcache.h
+HDRS += rosetta_vector.h
+HDRS += rosetta_memmgmt.h
+HDRS += rosetta_utils.h
 
 # Object files
 OBJS = $(SRCS:.c=.o)
 
-# Target
+# Static library
+LIB = librosetta.a
+AR = ar
+
+# Target (demo executable - requires main)
 TARGET = rosetta_modular
 
 # Default target
-all: $(TARGET)
+all: $(LIB)
 
-# Link
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS) -lm
+# Create static library
+$(LIB): $(OBJS)
+	$(AR) rcs $@ $(OBJS)
+	@echo "Built static library $(LIB)"
+	@echo "Link with: gcc -o myprog myprog.c -L. -lrosetta -lm"
 
 # Compile source files
 %.o: %.c $(HDRS)
@@ -54,10 +105,6 @@ check:
 	$(CC) $(CFLAGS) -fsyntax-only rosetta_refactored.c
 	@echo "All checks passed!"
 
-# Clean
-clean:
-	rm -f $(OBJS) $(TARGET)
-
 # Debug build
 debug: CFLAGS += -g -DDEBUG
 debug: clean all
@@ -66,4 +113,22 @@ debug: clean all
 install: $(TARGET)
 	cp $(TARGET) ../build/
 
-.PHONY: all clean check debug install
+# Test targets
+test: test_jit test_translate
+	@echo "Running JIT unit tests..."
+	./test_jit
+	@echo ""
+	@echo "Running Translation unit tests..."
+	./test_translate
+
+test_jit: test_jit.c rosetta_jit.c rosetta_codegen.c $(HDRS)
+	$(CC) $(CFLAGS) -o test_jit test_jit.c rosetta_jit.c rosetta_codegen.c -lm
+
+test_translate: test_translate.c rosetta_translate.c rosetta_codegen.c $(HDRS)
+	$(CC) $(CFLAGS) -o test_translate test_translate.c rosetta_translate.c rosetta_codegen.c -lm
+
+# Clean
+clean:
+	rm -f $(OBJS) $(TARGET) $(LIB) test_jit test_translate
+
+.PHONY: all clean check debug install test test_jit test_translate

@@ -13,6 +13,11 @@
 #include <stddef.h>
 #include <signal.h>
 
+/* Include modular components (optional - for documentation) */
+/* #include "rosetta_types.h" */
+/* #include "rosetta_x86_decode.h" */
+/* #include "rosetta_arm64_emit.h" */
+
 /* Noreturn attribute */
 #define noreturn _Noreturn
 

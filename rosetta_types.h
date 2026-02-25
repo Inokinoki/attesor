@@ -202,6 +202,9 @@ typedef struct thread_state {
     size_t guest_size;              /* Guest memory size */
 } thread_state_t;
 
+/* Alias for ThreadState (used in syscall module) */
+typedef thread_state_t ThreadState;
+
 /* ============================================================================
  * Memory Protection Flags
  * ============================================================================ */
