@@ -248,7 +248,7 @@ This repository contains reverse-engineered implementations of functions from th
 ```
 Rosetta2/
 ├── README.md                      # This file
-├── rosetta_decomp.c               # Original decompilation (74,677 lines)
+├── rosetta_decomp.c               # Original decompilation (74,677 lines, ~2.3MB)
 ├── rosettad_decomp.c              # Daemon decompilation
 ├── rosetta_refactored.c           # Refactored implementations
 ├── rosetta_refactored.h           # Type definitions and declarations
@@ -259,6 +259,53 @@ Rosetta2/
 ├── REFACTORING_COMPLETE.md        # Refactoring completion summary
 └── SESSION_*.md                   # Session-by-session progress logs
 ```
+
+---
+
+## Decompiled Source File Analysis
+
+The original decompiled file `rosetta_decomp.c` contains string literals that reveal the original source code structure. These file names appear in assertion/error messages throughout the binary. **The refactored code is not following and will not maintain such structure.**
+
+### Header Files (.h)
+- `Register.h`
+- `TaggedPointer.h`
+- `RedBlackTree.h`
+- `TransactionalList.h`
+- `Translator.h`
+- `AssemblerBuffer.h`
+- `BuilderBase.h`
+- `IrBuilder_x86.h`
+
+### C++ Source Files (.cpp)
+- `Repatch.cpp`
+- `Decoder.cpp`
+- `Fixup.cpp`
+- `AssemblerHelpers.cpp`
+- `Operand.cpp`
+- `Opcode.cpp`
+- `BasicBlock.cpp`
+- `ThreadContextFcntl.cpp`
+- `InitStack.cpp`
+- `Thread.cpp`
+- `ThreadContext.cpp`
+- `ThreadContextRuntimeSignals.cpp`
+- `ThreadContextVm.cpp`
+- `VMAllocationTracker.cpp`
+- `Vdso.cpp`
+- `ProcMapsParser.cpp`
+- `ThreadContextSignals.cpp`
+- `ThreadContextSyscalls.cpp`
+- `TranslationCacheAot.cpp`
+- `TranslationCacheJit.cpp`
+- `TranslationCache.cpp`
+- `Translator.cpp`
+- `RuntimeLibraryBridgeInternal.cpp`
+- `TwoLevelOffsetMap.cpp`
+- `DeltaCodedOffsetMap.cpp`
+
+### C++ Header Files (.hpp)
+- `AssemblerBase.hpp`
+- `TranslatorBase.hpp`
 
 ---
 
