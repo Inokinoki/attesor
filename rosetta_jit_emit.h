@@ -93,6 +93,56 @@ size_t code_buffer_get_size(CodeBuffer *buf);
  */
 void emit_byte(CodeBuffer *buf, uint8_t byte);
 
+/* Alias for emit_byte - used by translation modules */
+#define jit_emit_byte(b) emit_byte(NULL, (b))
+
+/* Map ARM64 register to x86_64 register - simple identity mapping for now */
+static inline uint8_t map_arm64_to_x86_gpr(uint8_t arm64_reg)
+{
+    /* Simple mapping: ARM64 X0-X7 -> x86_64 RAX-RCX (simplified) */
+    static const uint8_t reg_map[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+    return (arm64_reg < 16) ? reg_map[arm64_reg] : 0;
+}
+
+/* JIT emit helpers - inline x86_64 code emission */
+static inline void jit_emit_mov_reg_imm(uint8_t reg, uint64_t imm)
+{
+    /* MOV r64, imm64: 48 B8 iw rd - simplified */
+    (void)reg;
+    (void)imm;
+    /* Placeholder - actual implementation would emit x86_64 MOV */
+}
+
+static inline void jit_emit_mov_reg_mem64(uint8_t reg, uint64_t addr)
+{
+    /* MOV r64, [imm64]: 48 8B /0 - simplified */
+    (void)reg;
+    (void)addr;
+    /* Placeholder - actual implementation would emit x86_64 MOV */
+}
+
+static inline void jit_emit_mem64_mov_reg(uint64_t addr, uint8_t reg)
+{
+    /* MOV [imm64], r64: 48 89 /0 - simplified */
+    (void)addr;
+    (void)reg;
+    /* Placeholder - actual implementation would emit x86_64 MOV */
+}
+
+static inline void jit_emit_stmxcsr(uint8_t reg)
+{
+    /* STMXCSR [reg]: F3 0F AE /3 */
+    (void)reg;
+    /* Placeholder */
+}
+
+static inline void jit_emit_ldmxcsr(uint8_t reg)
+{
+    /* LDMXCSR [reg]: F3 0F AE /2 */
+    (void)reg;
+    /* Placeholder */
+}
+
 /**
  * Emit a 32-bit word
  * @param buf Code buffer
@@ -534,5 +584,112 @@ void emit_csel_reg_reg_cond(CodeBuffer *buf, uint8_t dst, uint8_t src1, uint8_t 
  * Emit SETCC - Set register based on condition
  */
 void emit_setcc_reg_cond(CodeBuffer *buf, uint8_t dst, uint8_t cond);
+
+/* ============================================================================
+ * ARM64 Instruction Emitters - Bit Manipulation
+ * ============================================================================ */
+
+/**
+ * Emit BSF register (bit scan forward)
+ */
+void emit_bsf_reg(CodeBuffer *buf, uint8_t dst, uint8_t src);
+
+/**
+ * Emit BSR register (bit scan reverse)
+ */
+void emit_bsr_reg(CodeBuffer *buf, uint8_t dst, uint8_t src);
+
+/**
+ * Emit POPCNT register (population count)
+ */
+void emit_popcnt_reg(CodeBuffer *buf, uint8_t dst, uint8_t src);
+
+/**
+ * Emit BT register (bit test)
+ */
+void emit_bt_reg(CodeBuffer *buf, uint8_t dst, uint8_t src, uint8_t bit_reg);
+
+/**
+ * Emit BTS register (bit test and set)
+ */
+void emit_bts_reg(CodeBuffer *buf, uint8_t dst, uint8_t src, uint8_t bit);
+
+/**
+ * Emit BTR register (bit test and reset)
+ */
+void emit_btr_reg(CodeBuffer *buf, uint8_t dst, uint8_t src, uint8_t bit);
+
+/**
+ * Emit BTC register (bit test and complement)
+ */
+void emit_btc_reg(CodeBuffer *buf, uint8_t dst, uint8_t src, uint8_t bit);
+
+/* ============================================================================
+ * ARM64 Instruction Emitters - String Operations
+ * ============================================================================ */
+
+/**
+ * Emit MOVS (string move)
+ */
+void emit_movs(CodeBuffer *buf, int is_64bit);
+
+/**
+ * Emit STOS (string store)
+ */
+void emit_stos(CodeBuffer *buf, int size);
+
+/**
+ * Emit LODS (string load)
+ */
+void emit_lods(CodeBuffer *buf, int size);
+
+/**
+ * Emit CMPS (string compare)
+ */
+void emit_cmps(CodeBuffer *buf, int size);
+
+/**
+ * Emit SCAS (string scan)
+ */
+void emit_scas(CodeBuffer *buf, int size);
+
+/* ============================================================================
+ * ARM64 Instruction Emitters - Special Instructions
+ * ============================================================================ */
+
+/**
+ * Emit SHLD (double precision shift left)
+ */
+void emit_shld(CodeBuffer *buf, uint8_t dst, uint8_t src, uint8_t shift);
+
+/**
+ * Emit SHRD (double precision shift right)
+ */
+void emit_shrd(CodeBuffer *buf, uint8_t dst, uint8_t src, uint8_t shift);
+
+/**
+ * Emit CQO (sign extend RAX to RDX:RAX)
+ */
+void emit_cqo(CodeBuffer *buf);
+
+/**
+ * Emit CLI (clear interrupt flag)
+ */
+void emit_cli(CodeBuffer *buf);
+
+/**
+ * Emit STI (set interrupt flag)
+ */
+void emit_sti(CodeBuffer *buf);
+
+/**
+ * Emit CPUID (stub)
+ */
+void emit_cpuid(CodeBuffer *buf);
+
+/**
+ * Emit RDTSC (read timestamp counter)
+ */
+void emit_rdtsc(CodeBuffer *buf);
 
 #endif /* ROSETTA_JIT_EMIT_H */

@@ -61,7 +61,9 @@ SYSTEM_SRCS = \
 
 # JIT code emitter
 REFACTORED_CORE_SRCS = \
-    rosetta_jit_emit.c
+    rosetta_jit_emit.c \
+    rosetta_jit_emit_simd.c \
+    rosetta_arm64_emit.c
 
 # Translation modules
 REFACTORED_TRANS_SRCS = \
@@ -74,11 +76,75 @@ REFACTORED_TRANS_SRCS = \
 
 # Floating point and NEON translation
 REFACTORED_FP_SRCS = \
-    rosetta_fp_translate.c
+    rosetta_fp_translate.c \
+    rosetta_fp_helpers.c
 
-REFACTORED_SRCS = $(REFACTORED_CORE_SRCS) $(REFACTORED_TRANS_SRCS) $(REFACTORED_FP_SRCS)
+# NEON/SIMD translation (new modular components)
+REFACTORED_NEON_SRCS = \
+    rosetta_trans_neon.c
 
-# All source files
+# System instruction translation (new modular components)
+REFACTORED_SYSTEM_SRCS = \
+    rosetta_trans_system.c
+
+# Cryptographic extensions (new modular components)
+REFACTORED_CRYPTO_SRCS = \
+    rosetta_crypto.c
+
+# SIMD string utilities (new modular components)
+REFACTORED_STRING_SIMD_SRCS = \
+    rosetta_string_simd.c
+
+# Syscall implementation (new modular components)
+REFACTORED_SYSCALLS_IMPL_SRCS = \
+    rosetta_syscalls_impl.c
+
+# Memory utilities (new modular components)
+REFACTORED_MEMORY_UTILS_SRCS = \
+    rosetta_memory_utils.c
+
+# String utilities (new modular components)
+REFACTORED_STRING_UTILS_SRCS = \
+    rosetta_string_utils.c
+
+# Translation helpers (new modular components)
+REFACTORED_TRANS_HELPERS_SRCS = \
+    rosetta_trans_helpers.c
+
+# Translation implementation modules (full functional translation)
+REFACTORED_TRANS_IMPL_SRCS = \
+    rosetta_translate_alu_impl.c \
+    rosetta_translate_memory_impl.c \
+    rosetta_translate_branch_impl.c \
+    rosetta_translate_special_impl.c
+
+# Translation dispatch module
+REFACTORED_TRANS_DISPATCH_SRCS = \
+    rosetta_trans_dispatch.c
+
+# SIMD memory helpers module
+REFACTORED_SIMD_MEM_HELPERS_SRCS = \
+    rosetta_simd_mem_helpers.c
+
+# New JIT core module (header only - functions in rosetta_codegen.c)
+REFACTORED_JIT_CORE_SRCS =
+
+# New x86 instruction decoding module
+REFACTORED_X86_INSNS_SRCS = \
+    rosetta_x86_insns.c
+
+# Refactored utilities (from rosetta_refactored.c)
+REFACTORED_UTIL_SRCS = \
+    rosetta_refactored_vector.c \
+    rosetta_refactored_helpers.c
+
+# Runtime and entry point
+REFACTORED_RUNTIME_SRCS = \
+    rosetta_runtime.c
+
+REFACTORED_SRCS = $(REFACTORED_CORE_SRCS) $(REFACTORED_TRANS_SRCS) $(REFACTORED_FP_SRCS) $(REFACTORED_NEON_SRCS) $(REFACTORED_SYSTEM_SRCS) $(REFACTORED_CRYPTO_SRCS) $(REFACTORED_STRING_SIMD_SRCS) $(REFACTORED_SYSCALLS_IMPL_SRCS) $(REFACTORED_MEMORY_UTILS_SRCS) $(REFACTORED_STRING_UTILS_SRCS) $(REFACTORED_TRANS_HELPERS_SRCS) $(REFACTORED_TRANS_IMPL_SRCS) $(REFACTORED_TRANS_DISPATCH_SRCS) $(REFACTORED_SIMD_MEM_HELPERS_SRCS) $(REFACTORED_JIT_CORE_SRCS) $(REFACTORED_X86_INSNS_SRCS) $(REFACTORED_UTIL_SRCS) $(REFACTORED_RUNTIME_SRCS)
+
+# All source files (include REFACTORED_SRCS which contains NEON, System, Crypto, String SIMD modules)
 MODULAR_SRCS = $(CORE_SRCS) $(TRANSLATE_SRCS) $(SYSTEM_SRCS) $(REFACTORED_SRCS)
 
 # Object files
@@ -91,6 +157,7 @@ HEADERS = \
     rosetta_x86_decode.h \
     rosetta_arm64_decode.h \
     rosetta_arm64_emit.h \
+    rosetta_jit_emit.h \
     rosetta_codegen.h \
     rosetta_translate.h \
     rosetta_translate_alu.h \
@@ -114,14 +181,38 @@ HEADERS = \
     rosetta_utils.h \
     rosetta_function_map.h \
     rosetta_refactored_types.h \
+    rosetta_refactored_vector.h \
+    rosetta_refactored_helpers.h \
     rosetta_jit_emit.h \
+    rosetta_jit_emit_simd.h \
     rosetta_trans_alu.h \
     rosetta_trans_mem.h \
     rosetta_trans_branch.h \
     rosetta_trans_bit.h \
     rosetta_trans_string.h \
     rosetta_trans_special.h \
-    rosetta_fp_translate.h
+    rosetta_fp_translate.h \
+    rosetta_fp_helpers.h \
+    rosetta_runtime.h \
+    rosetta_x86_predicates.h \
+    rosetta_arm64_decode_helpers.h \
+    rosetta_x86_insn.h \
+    rosetta_trans_neon.h \
+    rosetta_trans_system.h \
+    rosetta_syscalls_impl.h \
+    rosetta_crypto.h \
+    rosetta_string_simd.h \
+    rosetta_memory_utils.h \
+    rosetta_string_utils.h \
+    rosetta_trans_helpers.h \
+    rosetta_translate_alu_impl.h \
+    rosetta_translate_memory_impl.h \
+    rosetta_translate_branch_impl.h \
+    rosetta_translate_special_impl.h \
+    rosetta_jit_core.h \
+    rosetta_x86_insns.h \
+    rosetta_arm64_insns.h \
+    rosetta_trans_dispatch.h
 
 # Main targets
 all: librosetta.a test_jit test_translate

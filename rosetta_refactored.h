@@ -13,11 +13,6 @@
 #include <stddef.h>
 #include <signal.h>
 
-/* Include modular components (optional - for documentation) */
-/* #include "rosetta_types.h" */
-/* #include "rosetta_x86_decode.h" */
-/* #include "rosetta_arm64_emit.h" */
-
 /* Noreturn attribute */
 #define noreturn _Noreturn
 
@@ -36,11 +31,14 @@ typedef uint64_t  ulonglong;
  * ARM64 Register Context Structures
  * ============================================================================ */
 
-/* Vector register (128-bit NEON/FP register) */
+/* Vector register (128-bit NEON/FP register) - only define if not already defined */
+#ifndef VECTOR128_DEFINED
 typedef struct {
     uint64_t lo;
     uint64_t hi;
 } Vector128;
+#define VECTOR128_DEFINED
+#endif
 
 /* ARM64 Floating Point Context */
 typedef struct {
@@ -89,7 +87,8 @@ typedef struct {
     uint32_t refcount;
 } TranslationCacheEntry;
 
-/* Guest-Host Mapping */
+/* Guest-Host Mapping - only if rosetta_types.h not included */
+#ifndef ROSETTA_TYPES_H
 typedef struct {
     uint64_t guest_base;
     uint64_t host_base;
@@ -107,6 +106,7 @@ typedef struct {
     uint64_t      syscall_nr;
     int64_t       syscall_result;
 } ThreadState;
+#endif
 
 /* ============================================================================
  * Function Pointer Types
@@ -311,7 +311,6 @@ int syscall_arch_prctl(ThreadState *state);
 void *memory_map_guest(uint64_t guest, uint64_t size);
 int memory_unmap_guest(uint64_t guest, uint64_t size);
 int memory_protect_guest(uint64_t guest, uint64_t size, int32_t prot);
-void *memory_translate_addr(uint64_t guest);
 int memory_init(void);
 void memory_cleanup(void);
 void *memory_map_guest_with_prot(uint64_t guest, uint64_t size, int32_t prot);

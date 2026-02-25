@@ -96,16 +96,7 @@ void translate_memory_lea(code_buffer_t *code_buf, const x86_insn_t *insn,
      * - base + index*scale + disp
      */
 
-    if (insn->has_modrm) {
-        uint8_t base = 16;  /* Temp register for base */
-        uint8_t index = 17; /* Temp register for index */
-
-        /* Check if we have a base register in modrm */
-        if (insn->mod == 1 || insn->mod == 2 || (insn->mod == 0 && insn->rm != 5)) {
-            /* Has base register - would need to decode x86 reg to ARM reg */
-            /* For simplicity, just load the displacement */
-        }
-    }
+    (void)insn;  /* TODO: Use insn->modrm to compute full effective address */
 
     /* Load displacement */
     if (insn->disp_size > 0) {
