@@ -2,3 +2,11 @@ rosetta
 rosettad
 
 ghidra_projects
+
+# Compiled files
+*.o
+librosetta.a
+
+# Intermediate Markdown files except README.md
+*.md
+!README.md
