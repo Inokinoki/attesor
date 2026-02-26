@@ -245,26 +245,189 @@ This repository contains reverse-engineered implementations of functions from th
 
 ## File Structure
 
+### Core Files
+
 ```
 Rosetta2/
 ├── README.md                      # This file
-├── rosetta_decomp.c               # Original decompilation (74,677 lines, ~2.3MB)
-├── rosettad_decomp.c              # Daemon decompilation
-├── rosetta_refactored.c           # Refactored implementations
-├── rosetta_refactored.h           # Type definitions and declarations
-├── rosetta_refactored_complete.c  # Complete refactored code
-├── rosetta_refactored_complete.h  # Complete header with implementations
-├── rosetta_function_map.h         # Function name mapping table
+├── rosetta_decomp.c               # Original decompilation (74,677 lines)
+├── rosettad_decomp.c              # Daemon decompilation (44,064 lines)
+├── rosetta_refactored.c           # Refactored implementations (19,302 lines)
+├── rosetta_refactored.h           # Main header (1,215 lines)
+├── rosetta_refactored_complete.c  # Single-file implementation (2,686 lines)
+├── rosetta_function_map.h         # Function name mapping (828 functions)
 ├── rosettad_refactored.c          # Daemon-side refactoring
-├── REFACTORING_COMPLETE.md        # Refactoring completion summary
-└── SESSION_*.md                   # Session-by-session progress logs
+└── SESSION_*.md                   # Session logs (30+ sessions)
+```
+
+### Modular Translation Infrastructure (Session 61+)
+
+The translation infrastructure has been fully modularized into categorized components:
+
+```
+├── rosetta_types.h                # Base type definitions
+├── rosetta_x86_decode.h/.c        # x86 decoder
+├── rosetta_arm64_emit.h/.c        # ARM64 emitter
+├── rosetta_translate_alu.h/.c     # ALU translations
+├── rosetta_translate_memory.h/.c  # Memory translations
+├── rosetta_translate_branch.h/.c  # Branch translations
+├── rosetta_translate_bit.h/.c     # Bit manipulation
+├── rosetta_translate_string.h/.c  # String operations
+├── rosetta_translate_special.h/.c # Special instructions
+├── rosetta_translate_block.h/.c   # Block translation coordinator
+├── rosetta_translate_dispatch.h/.c # Instruction dispatch
+├── rosetta_trans_dispatch.h/.c    # Main dispatch layer
+├── rosetta_trans_alu.h/.c         # ALU emulation layer
+├── rosetta_trans_mem.h/.c         # Memory emulation layer
+├── rosetta_trans_branch.h/.c      # Branch emulation layer
+├── rosetta_trans_bit.h/.c         # Bit emulation layer
+├── rosetta_trans_string.h/.c      # String emulation layer
+├── rosetta_trans_special.h/.c     # Special instruction emulation
+├── rosetta_trans_system.h/.c      # System instruction emulation
+├── rosetta_trans_neon.h/.c        # NEON emulation layer
+└── Makefile.modular               # Modular build system
+```
+
+### Functional Modules
+
+Core infrastructure and support modules:
+
+```
+├── rosetta_jit.h/.c               # JIT compilation infrastructure
+├── rosetta_codegen.h/.c           # Code generation primitives
+├── rosetta_cache.h/.c             # Translation cache (AOT/JIT)
+├── rosetta_transcache.h/.c        # Translation cache management
+├── rosetta_context.h/.c           # CPU context management
+├── rosetta_runtime.h/.c           # Runtime support
+├── rosetta_hash.h/.c              # Address hashing
+├── rosetta_memmgmt.h/.c           # Memory management
+├── rosetta_memory_utils.h/.c      # Memory utilities
+├── rosetta_utils.h/.c             # Utility functions
+├── rosetta_string_utils.h/.c      # String utilities
+├── rosetta_trans_helpers.h/.c     # Translation helpers
+├── rosetta_refactored_helpers.h/.c # Refactoring helpers
+└── rosetta_refactored_types.h     # Refactored type definitions
+```
+
+### SIMD/Vector Modules
+
+SIMD and vector operation modules:
+
+```
+├── rosetta_simd.h/.c              # SIMD operations
+├── rosetta_simd_mem.h/.c          # SIMD memory operations
+├── rosetta_simd_mem_helpers.h/.c  # SIMD memory helpers
+├── rosetta_vector.h/.c            # Vector operations
+├── rosetta_refactored_vector.h/.c # Refactored vector ops
+├── rosetta_jit_emit.h/.c          # JIT emission
+├── rosetta_jit_emit_simd.h/.c     # SIMD JIT emission
+├── rosetta_fp_translate.h/.c      # FP translation
+├── rosetta_fp_helpers.h/.c        # FP helpers
+├── rosetta_trans_neon.c           # NEON translation
+└── rosetta_string_simd.c          # SIMD string operations
+```
+
+### Syscall Modules
+
+Guest syscall handling and translation:
+
+```
+├── rosetta_syscalls.h/.c          # Syscall translation core
+├── rosetta_syscalls_impl.h/.c     # Syscall implementations
+└── rosetta_crypto.h/.c            # Crypto instructions (AES, SHA, CRC32)
+```
+
+### Additional Modules
+
+Additional translation and support modules:
+
+```
+├── rosetta_translate.h/.c         # Translation core
+├── rosetta_translate_alu_impl.h/.c     # ALU implementation details
+├── rosetta_translate_memory_impl.h/.c  # Memory implementation details
+├── rosetta_translate_branch_impl.h/.c  # Branch implementation details
+├── rosetta_translate_special_impl.h/.c # Special implementation details
+└── rosetta_arm64_insns.h          # ARM64 instruction definitions
+```
+
+### Test Files
+
+```
+├── test_jit.c                     # JIT unit tests (737 lines)
+└── test_translate.c               # Translation tests (1,059 lines)
+```
+
+**Total: 50+ source files, ~150,000+ lines of code**
+
+---
+
+## Build System
+
+### Prerequisites
+
+- GCC or Clang with C11 support
+- macOS or Linux (POSIX-compatible system)
+
+### Building the Library
+
+```bash
+# Build static library using modular Makefile
+make -f Makefile.modular all
+
+# This creates librosetta.a static library
+```
+
+### Building Individual Components
+
+```bash
+# Compile core modules
+gcc -c -I. -std=c11 rosetta_types.h
+gcc -c -I. -std=c11 rosetta_codegen.c
+gcc -c -I. -std=c11 rosetta_jit.c
+gcc -c -I. -std=c11 rosetta_x86_decode.c
+gcc -c -I. -std=c11 rosetta_arm64_emit.c
+
+# Compile translation modules
+gcc -c -I. -std=c11 rosetta_translate_alu.c
+gcc -c -I. -std=c11 rosetta_translate_memory.c
+gcc -c -I. -std=c11 rosetta_translate_branch.c
+gcc -c -I. -std=c11 rosetta_translate_block.c
+gcc -c -I. -std=c11 rosetta_translate_dispatch.c
+
+# Compile support modules
+gcc -c -I. -std=c11 rosetta_cache.c
+gcc -c -I. -std=c11 rosetta_context.c
+gcc -c -I. -std=c11 rosetta_syscalls.c
+gcc -c -I. -std=c11 rosetta_runtime.c
+```
+
+### Running Tests
+
+```bash
+# Build and run JIT tests
+make -f Makefile.modular test_jit
+
+# Build and run translation tests
+make -f Makefile.modular test_translate
+```
+
+### Using as a Library
+
+```bash
+# Link against the static library
+gcc -o my_app my_app.c -L. -lrosetta
+
+# Or compile with source files directly
+gcc -I. -o my_app my_app.c rosetta_*.c
 ```
 
 ---
 
 ## Decompiled Source File Analysis
 
-The original decompiled file `rosetta_decomp.c` contains string literals that reveal the original source code structure. These file names appear in assertion/error messages throughout the binary. **The refactored code is not following and will not maintain such structure.**
+The original decompiled file `rosetta_decomp.c` contains string literals that reveal the original source code structure. These file names appear in assertion/error messages throughout the binary.
+
+**Note:** The refactored code uses a different, more modular structure than the original.
 
 ### Header Files (.h)
 - `Register.h`
@@ -309,39 +472,6 @@ The original decompiled file `rosetta_decomp.c` contains string literals that re
 
 ---
 
-## Usage
-
-### Building
-
-```bash
-# Compile with GCC
-gcc -c rosetta_refactored.c -o rosetta_refactored.o
-
-# Include in your project
-#include "rosetta_refactored.h"
-
-# Or use the single-header implementation
-#define ROSETTA_IMPLEMENTATION
-#include "rosetta_refactored_complete.h"
-```
-
-### Example: Using Translation Functions
-
-```c
-#include "rosetta_refactored.h"
-
-// Initialize Rosetta state
-thread_state_t *state = create_thread_state();
-
-// Translate a basic block
-void *translated = translate_block(guest_pc);
-
-// Execute translated code
-execute_translated_block(translated, state);
-```
-
----
-
 ## Progress
 
 ### Current Status
@@ -349,19 +479,83 @@ execute_translated_block(translated, state);
 | Metric | Value |
 |--------|-------|
 | Total Functions | 828 |
-| Functions Implemented | 612 |
-| Completion | 74% |
-| Categories Complete | 66/66 |
+| Functions Mapped | 828 (100%) |
+| Functions Implemented | 600+ |
+| Completion | ~75% |
+| Categories Documented | 66 |
+| Source Files | 50+ |
+| Total Lines of Code | ~150,000+ |
+
+### Modular Architecture (Sessions 61+)
+
+The translation infrastructure has been fully modularized into the following components:
+
+| Module Category | Files | Description |
+|-----------------|-------|-------------|
+| Core Types | `rosetta_types.h` | Base type definitions |
+| x86 Decoding | `rosetta_x86_decode.h/.c` | x86_64 instruction decoder |
+| ARM64 Emission | `rosetta_arm64_emit.h/.c` | ARM64 code emission |
+| Code Generation | `rosetta_codegen.h/.c` | Code generation primitives |
+| JIT Core | `rosetta_jit.h/.c` | JIT compilation infrastructure |
+| Translation Cache | `rosetta_cache.h/.c`, `rosetta_transcache.h/.c` | Block caching (AOT/JIT) |
+| Block Translation | `rosetta_translate_block.h/.c` | Basic block translation |
+| Instruction Dispatch | `rosetta_trans_dispatch.h/.c` | Instruction dispatching |
+| ALU Translation | `rosetta_translate_alu.h/.c`, `rosetta_trans_alu.h/.c` | Arithmetic/logic ops |
+| Memory Translation | `rosetta_translate_memory.h/.c`, `rosetta_trans_mem.h/.c` | Load/store operations |
+| Branch Translation | `rosetta_translate_branch.h/.c`, `rosetta_trans_branch.h/.c` | Control flow |
+| Bit Translation | `rosetta_translate_bit.h/.c`, `rosetta_trans_bit.h/.c` | Bit manipulation |
+| String Translation | `rosetta_translate_string.h/.c`, `rosetta_trans_string.h/.c` | String operations |
+| Special Translation | `rosetta_translate_special.h/.c`, `rosetta_trans_special.h/.c` | Special instructions |
+| System Translation | `rosetta_trans_system.h/.c` | System registers |
+| NEON Translation | `rosetta_trans_neon.c` | SIMD/NEON operations |
+| SIMD Ops | `rosetta_simd.h/.c`, `rosetta_simd_mem.h/.c` | SIMD operations |
+| Vector Ops | `rosetta_vector.h/.c` | Vector operations |
+| FP Translation | `rosetta_fp_translate.h/.c`, `rosetta_fp_helpers.h/.c` | Floating-point |
+| JIT Emit | `rosetta_jit_emit.h/.c`, `rosetta_jit_emit_simd.h/.c` | JIT emission |
+| Syscalls | `rosetta_syscalls.h/.c`, `rosetta_syscalls_impl.h/.c` | Syscall handling |
+| Crypto | `rosetta_crypto.h/.c` | AES, SHA, CRC32 |
+| Context | `rosetta_context.h/.c` | CPU context save/restore |
+| Runtime | `rosetta_runtime.h/.c` | Runtime entry point |
+| Memory Mgmt | `rosetta_memmgmt.h/.c` | Memory management |
+| Utilities | `rosetta_utils.h/.c`, `rosetta_string_utils.h/.c` | Utility functions |
+
+**Total: 35+ modular components**
+
+### Translation Coverage
+
+| Category | Instructions |
+|----------|--------------|
+| ALU | ADD, SUB, AND, OR, XOR, MUL, DIV, INC, DEC, NEG, NOT, SHL, SHR, SAR, ROL, ROR |
+| Memory | MOV, MOVZX, MOVSX, MOVSXD, LEA, PUSH, POP, CMP, TEST |
+| Branch | Jcc, JMP, CALL, RET, CMOVcc, SETcc, XCHG |
+| Bit | BSF, BSR, POPCNT, BT, BTS, BTR, BTC |
+| String | MOVS, STOS, LODS, CMPS, SCAS |
+| Special | CPUID, RDTSC, SHLD, SHRD, CWD, CDQ, CQO, CLI, STI, NOP |
+| SIMD | SSE, SSE2, SSE3, SSSE3, SSE4.x |
+| FP | x87, SSE scalar FP |
+| Crypto | AES-NI, SHA, CRC32 |
 
 ### Recent Sessions
 
-| Session | Functions | Focus |
-|---------|-----------|-------|
-| 34 | 27 | Additional Utility Functions |
-| 33 | 19 | Cryptographic Extensions (SHA/CRC32) |
-| 32 | 10 | Cryptographic Extensions (AES) |
-| 31 | 27 | Advanced SIMD Operations |
-| 30 | 21 | Saturating Convert Operations |
+| Session | Focus | Files Created/Modified |
+|---------|-------|------------------------|
+| 61+ | Full Modularization | 35+ modular components |
+| 61 | Translation Modularization | 6 translation modules + x86_decode enhancements |
+| 60 | Translation Infrastructure | translate_block() core implementation |
+| 59 | Syscall Implementation | Additional syscall handlers |
+| 58 | Syscall Translation | I/O vector and network handlers |
+| 57 | Memory Management | VM allocation tracker enhancements |
+| 56 | SIMD Operations | Advanced SIMD translations |
+| 55 | FP/SIMD | Floating-point instruction translation |
+| 54 | Crypto Extensions | AES-NI passthrough implementation |
+| 53 | Crypto Extensions | SHA and CRC32 instructions |
+| 52 | String Operations | SIMD-optimized string functions |
+| 51 | Vector Operations | NEON vector arithmetic |
+| 50 | Vector Conversions | Floating-point conversions |
+| 49 | Translation Cache | AOT/JIT cache management |
+| 48 | JIT Core | JIT compilation infrastructure |
+| 46-47 | Code Generation | x86_64 code generation helpers |
+| 45 | Decode Helpers | ARM64 decode utilities |
 
 ---
 
