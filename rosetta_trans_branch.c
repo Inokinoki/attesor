@@ -17,7 +17,7 @@ int translate_b(ThreadState *state, const uint8_t *insn)
                               ((insn[2] & 0xFF) << 8) | ((insn[3] & 0x03) << 16));
     imm26 = (imm26 << 6) >> 6;  /* Sign extend */
 
-    state->cpu.gpr.pc += imm26 * 4;
+    state->guest.pc += imm26 * 4;
 
     return 0;
 }
@@ -29,10 +29,10 @@ int translate_bl(ThreadState *state, const uint8_t *insn)
     imm26 = (imm26 << 6) >> 6;  /* Sign extend */
 
     /* Save return address */
-    state->cpu.gpr.lr = state->cpu.gpr.pc + 4;
+    state->guest.x[30] = state->guest.pc + 4;
 
     /* Branch to target */
-    state->cpu.gpr.pc += imm26 * 4;
+    state->guest.pc += imm26 * 4;
 
     return 0;
 }
@@ -41,7 +41,7 @@ int translate_br(ThreadState *state, const uint8_t *insn)
 {
     uint8_t rn = (insn[1] >> 5) & 0x1F;
 
-    state->cpu.gpr.pc = state->cpu.gpr.x[rn];
+    state->guest.pc = state->guest.x[rn];
 
     return 0;
 }
@@ -54,10 +54,10 @@ int translate_bcond(ThreadState *state, const uint8_t *insn)
     imm19 = (imm19 << 13) >> 13;  /* Sign extend */
 
     /* Check condition flags (NZCV) */
-    uint8_t N = (state->cpu.gpr.nzcv >> 31) & 1;  /* Negative */
-    uint8_t Z = (state->cpu.gpr.nzcv >> 30) & 1;  /* Zero */
-    uint8_t C = (state->cpu.gpr.nzcv >> 29) & 1;  /* Carry */
-    uint8_t V = (state->cpu.gpr.nzcv >> 28) & 1;  /* Overflow */
+    uint8_t N = (state->guest.pstate >> 31) & 1;  /* Negative */
+    uint8_t Z = (state->guest.pstate >> 30) & 1;  /* Zero */
+    uint8_t C = (state->guest.pstate >> 29) & 1;  /* Carry */
+    uint8_t V = (state->guest.pstate >> 28) & 1;  /* Overflow */
 
     bool taken = false;
     switch (cond) {
@@ -80,7 +80,7 @@ int translate_bcond(ThreadState *state, const uint8_t *insn)
     }
 
     if (taken) {
-        state->cpu.gpr.pc += imm19 * 4;
+        state->guest.pc += imm19 * 4;
     }
 
     return 0;
@@ -93,8 +93,8 @@ int translate_cbz(ThreadState *state, const uint8_t *insn)
                               ((insn[3] & 0x7F) << 8));
     imm19 = (imm19 << 13) >> 13;
 
-    if (state->cpu.gpr.x[rt] == 0) {
-        state->cpu.gpr.pc += imm19 * 4;
+    if (state->guest.x[rt] == 0) {
+        state->guest.pc += imm19 * 4;
     }
 
     return 0;
@@ -107,8 +107,8 @@ int translate_cbnz(ThreadState *state, const uint8_t *insn)
                               ((insn[3] & 0x7F) << 8));
     imm19 = (imm19 << 13) >> 13;
 
-    if (state->cpu.gpr.x[rt] != 0) {
-        state->cpu.gpr.pc += imm19 * 4;
+    if (state->guest.x[rt] != 0) {
+        state->guest.pc += imm19 * 4;
     }
 
     return 0;
@@ -122,8 +122,8 @@ int translate_tbz(ThreadState *state, const uint8_t *insn)
                               ((insn[3] & 0x3F) << 8));
     imm14 = (imm14 << 18) >> 18;  /* Sign extend */
 
-    if ((state->cpu.gpr.x[rt] & (1ULL << bit)) == 0) {
-        state->cpu.gpr.pc += imm14 * 4;
+    if ((state->guest.x[rt] & (1ULL << bit)) == 0) {
+        state->guest.pc += imm14 * 4;
     }
 
     return 0;
@@ -137,8 +137,8 @@ int translate_tbnz(ThreadState *state, const uint8_t *insn)
                               ((insn[3] & 0x3F) << 8));
     imm14 = (imm14 << 18) >> 18;  /* Sign extend */
 
-    if ((state->cpu.gpr.x[rt] & (1ULL << bit)) != 0) {
-        state->cpu.gpr.pc += imm14 * 4;
+    if ((state->guest.x[rt] & (1ULL << bit)) != 0) {
+        state->guest.pc += imm14 * 4;
     }
 
     return 0;
@@ -148,7 +148,7 @@ int translate_ret(ThreadState *state, const uint8_t *insn)
 {
     uint8_t rn = (insn[1] >> 5) & 0x1F;
 
-    state->cpu.gpr.pc = state->cpu.gpr.x[rn];
+    state->guest.pc = state->guest.x[rn];
 
     return 0;
 }
@@ -158,10 +158,10 @@ int translate_blr(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
 
     /* Save return address */
-    state->cpu.gpr.lr = state->cpu.gpr.pc + 4;
+    state->guest.x[30] = state->guest.pc + 4;
 
     /* Branch to register */
-    state->cpu.gpr.pc = state->cpu.gpr.x[rn];
+    state->guest.pc = state->guest.x[rn];
 
     return 0;
 }
@@ -174,10 +174,10 @@ int translate_csel(ThreadState *state, const uint8_t *insn)
     uint8_t cond = (insn[0] >> 12) & 0x0F;
 
     /* Check condition flags */
-    uint8_t N = (state->cpu.gpr.nzcv >> 31) & 1;
-    uint8_t Z = (state->cpu.gpr.nzcv >> 30) & 1;
-    uint8_t C = (state->cpu.gpr.nzcv >> 29) & 1;
-    uint8_t V = (state->cpu.gpr.nzcv >> 28) & 1;
+    uint8_t N = (state->guest.pstate >> 31) & 1;
+    uint8_t Z = (state->guest.pstate >> 30) & 1;
+    uint8_t C = (state->guest.pstate >> 29) & 1;
+    uint8_t V = (state->guest.pstate >> 28) & 1;
 
     bool cond_true = false;
     switch (cond) {
@@ -199,9 +199,9 @@ int translate_csel(ThreadState *state, const uint8_t *insn)
     }
 
     if (cond_true) {
-        state->cpu.gpr.x[rd] = state->cpu.gpr.x[rn];
+        state->guest.x[rd] = state->guest.x[rn];
     } else {
-        state->cpu.gpr.x[rd] = state->cpu.gpr.x[rm];
+        state->guest.x[rd] = state->guest.x[rm];
     }
 
     return 0;
@@ -212,8 +212,8 @@ int translate_cmp(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
-    uint64_t op1 = state->cpu.gpr.x[rn];
-    uint64_t op2 = state->cpu.gpr.x[rm];
+    uint64_t op1 = state->guest.x[rn];
+    uint64_t op2 = state->guest.x[rm];
     uint64_t result = op1 - op2;
 
     /* Update NZCV flags */
@@ -236,7 +236,7 @@ int translate_cmp(ThreadState *state, const uint8_t *insn)
         nzcv |= (1ULL << 28);
     }
 
-    state->cpu.gpr.nzcv = nzcv;
+    state->guest.pstate = nzcv;
 
     return 0;
 }
@@ -246,8 +246,8 @@ int translate_cmn(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
-    uint64_t op1 = state->cpu.gpr.x[rn];
-    uint64_t op2 = state->cpu.gpr.x[rm];
+    uint64_t op1 = state->guest.x[rn];
+    uint64_t op2 = state->guest.x[rm];
     uint64_t result = op1 + op2;
 
     /* Update NZCV flags */
@@ -270,7 +270,7 @@ int translate_cmn(ThreadState *state, const uint8_t *insn)
         nzcv |= (1ULL << 28);
     }
 
-    state->cpu.gpr.nzcv = nzcv;
+    state->guest.pstate = nzcv;
 
     return 0;
 }
@@ -280,7 +280,7 @@ int translate_tst(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
-    uint64_t result = state->cpu.gpr.x[rn] & state->cpu.gpr.x[rm];
+    uint64_t result = state->guest.x[rn] & state->guest.x[rm];
 
     /* Update N, Z flags */
     uint64_t nzcv = 0;
@@ -292,7 +292,7 @@ int translate_tst(ThreadState *state, const uint8_t *insn)
         nzcv |= (1ULL << 30);  /* Z flag */
     }
 
-    state->cpu.gpr.nzcv = nzcv;
+    state->guest.pstate = nzcv;
 
     return 0;
 }

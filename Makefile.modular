@@ -12,10 +12,17 @@ ifeq ($(shell uname -s),Darwin)
 endif
 
 # Source files - Core translation modules
-SRCS = rosetta_codegen.c
+# Note: rosetta_refactored.c is a minimal wrapper that includes all modules
+# rosetta_codegen.c is modularized into smaller components below
+SRCS = rosetta_codegen_buf.c
+SRCS += rosetta_codegen_gpr.c
+SRCS += rosetta_codegen_ctrl.c
+SRCS += rosetta_codegen_fp.c
+SRCS += rosetta_codegen_simd.c
 SRCS += rosetta_jit.c
 SRCS += rosetta_translate.c
 SRCS += rosetta_refactored.c
+SRCS += rosetta_arm64_decode.c
 SRCS += rosetta_x86_decode.c
 SRCS += rosetta_arm64_emit.c
 SRCS += rosetta_translate_alu.c
@@ -38,14 +45,97 @@ SRCS += rosetta_transcache.c
 SRCS += rosetta_vector.c
 SRCS += rosetta_memmgmt.c
 SRCS += rosetta_utils.c
+SRCS += rosetta_exec.c
+SRCS += rosetta_init.c
+SRCS += rosetta_runtime.c
+SRCS += rosetta_trans_helpers.c
+SRCS += rosetta_trans_dispatch.c
+
+# Source files - Translation emulation layer (rosetta_trans_*)
+SRCS += rosetta_trans_alu.c
+SRCS += rosetta_trans_mem.c
+SRCS += rosetta_trans_branch.c
+SRCS += rosetta_trans_bit.c
+SRCS += rosetta_trans_string.c
+SRCS += rosetta_trans_special.c
+SRCS += rosetta_trans_system.c
+SRCS += rosetta_trans_neon.c
+SRCS += rosetta_trans_mov.c
+SRCS += rosetta_trans_compare.c
+
+# Source files - Additional implementation modules
+SRCS += rosetta_fp_translate.c
+SRCS += rosetta_fp_helpers.c
+SRCS += rosetta_jit_emit.c
+SRCS += rosetta_jit_emit_simd.c
+SRCS += rosetta_x86_insns.c
+SRCS += rosetta_memory_utils.c
+SRCS += rosetta_string_utils.c
+SRCS += rosetta_string_simd.c
+SRCS += rosetta_syscalls_impl.c
+SRCS += rosetta_translate_alu_impl.c
+SRCS += rosetta_translate_memory_impl.c
+SRCS += rosetta_translate_branch_impl.c
+SRCS += rosetta_translate_special_impl.c
+
+# Source files - New modular components (Session 2026)
+SRCS += rosetta_emit_x86.c
+SRCS += rosetta_trans_cache.c
+
+# Source files - New modular translation components (Session 2026 Refactored)
+SRCS += rosetta_translate_alu_main.c
+SRCS += rosetta_translate_mem_main.c
+SRCS += rosetta_translate_branch_main.c
+SRCS += rosetta_translate_mov.c
+SRCS += rosetta_translate_compare.c
+SRCS += rosetta_translate_system.c
+SRCS += rosetta_translate_conditional.c
+SRCS += rosetta_translate_bitfield.c
+
+# Source files - Rosetta Refactored modular components
+SRCS += rosetta_refactored_helpers.c
+SRCS += rosetta_refactored_init.c
+SRCS += rosetta_refactored_exec.c
+SRCS += rosetta_refactored_reg.c
+SRCS += rosetta_refactored_debug.c
+SRCS += rosetta_refactored_stats.c
+SRCS += rosetta_refactored_block.c
+SRCS += rosetta_refactored_memory.c
+SRCS += rosetta_refactored_signal.c
+SRCS += rosetta_refactored_dispatch.c
+SRCS += rosetta_refactored_syscall.c
+SRCS += rosetta_refactored_exception.c
+SRCS += rosetta_refactored_codecache.c
+SRCS += rosetta_refactored_vector.c
+
+# Source files - Refactored instruction modules (full functional implementations)
+SRCS += rosetta_refactored_alu.c
+SRCS += rosetta_refactored_mem_insns.c
+SRCS += rosetta_refactored_control.c
+SRCS += rosetta_refactored_utils.c
+
+# Source files - New functional modules (NEON, FP, Atomic)
+SRCS += rosetta_refactored_neon.c
+SRCS += rosetta_refactored_float.c
+SRCS += rosetta_refactored_atomic.c
+
+# Source files - New optimizer and info modules
+SRCS += rosetta_optimizer.c
+SRCS += rosetta_info.c
 
 # Header files (for dependency tracking)
 HDRS = rosetta_types.h
+HDRS += rosetta_codegen_buf.h
+HDRS += rosetta_codegen_gpr.h
+HDRS += rosetta_codegen_ctrl.h
+HDRS += rosetta_codegen_fp.h
+HDRS += rosetta_codegen_simd.h
 HDRS += rosetta_codegen.h
 HDRS += rosetta_jit.h
 HDRS += rosetta_translate.h
 HDRS += rosetta_arm64_translate.h
 HDRS += rosetta_arm64_decode.h
+HDRS += rosetta_arm64_decode_helpers.h
 HDRS += rosetta_x86_decode.h
 HDRS += rosetta_arm64_emit.h
 HDRS += rosetta_translate_alu.h
@@ -69,6 +159,82 @@ HDRS += rosetta_transcache.h
 HDRS += rosetta_vector.h
 HDRS += rosetta_memmgmt.h
 HDRS += rosetta_utils.h
+HDRS += rosetta_exec.h
+HDRS += rosetta_init.h
+HDRS += rosetta_runtime.h
+HDRS += rosetta_trans_helpers.h
+HDRS += rosetta_trans_dispatch.h
+
+# Translation emulation layer headers
+HDRS += rosetta_trans_alu.h
+HDRS += rosetta_trans_mem.h
+HDRS += rosetta_trans_branch.h
+HDRS += rosetta_trans_bit.h
+HDRS += rosetta_trans_string.h
+HDRS += rosetta_trans_special.h
+HDRS += rosetta_trans_system.h
+HDRS += rosetta_trans_neon.h
+HDRS += rosetta_trans_mov.h
+HDRS += rosetta_trans_compare.h
+
+# Additional implementation headers
+HDRS += rosetta_fp_translate.h
+HDRS += rosetta_fp_helpers.h
+HDRS += rosetta_jit_emit.h
+HDRS += rosetta_jit_emit_simd.h
+HDRS += rosetta_x86_insns.h
+HDRS += rosetta_memory_utils.h
+HDRS += rosetta_string_utils.h
+HDRS += rosetta_string_simd.h
+HDRS += rosetta_syscalls_impl.h
+HDRS += rosetta_translate_alu_impl.h
+HDRS += rosetta_translate_memory_impl.h
+HDRS += rosetta_translate_branch_impl.h
+HDRS += rosetta_translate_special_impl.h
+
+# New modular headers (Session 2026)
+HDRS += rosetta_emit_x86.h
+HDRS += rosetta_trans_cache.h
+
+# New modular translation headers (Session 2026 Refactored)
+HDRS += rosetta_translate_alu_main.h
+HDRS += rosetta_translate_mem_main.h
+HDRS += rosetta_translate_branch_main.h
+HDRS += rosetta_translate_mov.h
+HDRS += rosetta_translate_compare.h
+HDRS += rosetta_translate_system.h
+HDRS += rosetta_translate_bitfield.h
+
+# Rosetta Refactored modular headers
+HDRS += rosetta_refactored_helpers.h
+HDRS += rosetta_refactored_init.h
+HDRS += rosetta_refactored_exec.h
+HDRS += rosetta_refactored_reg.h
+HDRS += rosetta_refactored_debug.h
+HDRS += rosetta_refactored_stats.h
+HDRS += rosetta_refactored_block.h
+HDRS += rosetta_refactored_memory.h
+HDRS += rosetta_refactored_signal.h
+HDRS += rosetta_refactored_dispatch.h
+HDRS += rosetta_refactored_syscall.h
+HDRS += rosetta_refactored_exception.h
+HDRS += rosetta_refactored_codecache.h
+HDRS += rosetta_refactored_vector.h
+
+# Refactored instruction module headers (full functional implementations)
+HDRS += rosetta_refactored_alu.h
+HDRS += rosetta_refactored_mem_insns.h
+HDRS += rosetta_refactored_control.h
+HDRS += rosetta_refactored_utils.h
+
+# New functional module headers (NEON, FP, Atomic)
+HDRS += rosetta_refactored_neon.h
+HDRS += rosetta_refactored_float.h
+HDRS += rosetta_refactored_atomic.h
+
+# New optimizer and info headers
+HDRS += rosetta_optimizer.h
+HDRS += rosetta_info.h
 
 # Object files
 OBJS = $(SRCS:.c=.o)

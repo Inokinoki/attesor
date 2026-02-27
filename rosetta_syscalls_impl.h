@@ -83,10 +83,10 @@ int syscall_uname(ThreadState *state);
 int syscall_fcntl(ThreadState *state);
 
 /* Terminate the calling process */
-noreturn void syscall_exit(ThreadState *state);
+noreturn int syscall_exit(ThreadState *state);
 
 /* Terminate all threads in process */
-noreturn void syscall_exit_group(ThreadState *state);
+noreturn int syscall_exit_group(ThreadState *state);
 
 /* Set pointer to thread ID */
 int syscall_set_tid_address(ThreadState *state);

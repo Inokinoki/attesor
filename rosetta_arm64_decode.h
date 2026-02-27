@@ -8,6 +8,164 @@
 #include "rosetta_types.h"
 
 /* ============================================================================
+ * ARM64 Instruction Classes and Types
+ * ============================================================================ */
+
+/* Instruction classes */
+typedef enum {
+    ARM64_INS_UNKNOWN = 0,
+    ARM64_INS_ALU,
+    ARM64_INS_BRANCH,
+    ARM64_INS_COMPARE,
+    ARM64_INS_MOV,
+    ARM64_INS_LOAD,
+    ARM64_INS_STORE,
+    ARM64_INS_SYSTEM,
+    ARM64_INS_FP,
+    ARM64_INS_SIMD,
+    ARM64_INS_BARRIER,
+    ARM64_INS_HINT
+} arm64_insn_class_t;
+
+/* ALU instruction types */
+typedef enum {
+    ARM64_ALU_ADD,
+    ARM64_ALU_SUB,
+    ARM64_ALU_AND,
+    ARM64_ALU_ORR,
+    ARM64_ALU_EOR,
+    ARM64_ALU_MVN,
+    ARM64_ALU_MUL,
+    ARM64_ALU_DIV,
+    ARM64_ALU_LSL,
+    ARM64_ALU_LSR,
+    ARM64_ALU_ASR,
+    ARM64_ALU_ROR
+} arm64_alu_type_t;
+
+/* Branch instruction types */
+typedef enum {
+    ARM64_BRANCH_UNCOND,    /* B */
+    ARM64_BRANCH_LINK,      /* BL */
+    ARM64_BRANCH_REG,       /* BR */
+    ARM64_BRANCH_RET,       /* RET */
+    ARM64_BRANCH_COND,      /* B.cond */
+    ARM64_BRANCH_CBZ,       /* CBZ */
+    ARM64_BRANCH_CBNZ,      /* CBNZ */
+    ARM64_BRANCH_TBZ,       /* TBZ */
+    ARM64_BRANCH_TBNZ       /* TBNZ */
+} arm64_branch_type_t;
+
+/* Compare instruction types */
+typedef enum {
+    ARM64_CMP_CMP,
+    ARM64_CMP_CMN,
+    ARM64_CMP_TST
+} arm64_compare_type_t;
+
+/* MOV instruction types */
+typedef enum {
+    ARM64_MOV_MOVZ,
+    ARM64_MOV_MOVK,
+    ARM64_MOV_MOVN,
+    ARM64_MOV_REG
+} arm64_mov_type_t;
+
+/* Load/Store instruction types */
+typedef enum {
+    ARM64_LDR_IMM,
+    ARM64_LDR_REG,
+    ARM64_LDR_POST,
+    ARM64_LDR_PRE,
+    ARM64_STR_IMM,
+    ARM64_STR_REG,
+    ARM64_STR_POST,
+    ARM64_STR_PRE,
+    ARM64_LDP,
+    ARM64_STP
+} arm64_mem_type_t;
+
+/* System instruction types */
+typedef enum {
+    ARM64_SYS_SVC,
+    ARM64_SYS_BRK,
+    ARM64_SYS_HLT,
+    ARM64_SYS_MRS,
+    ARM64_SYS_MSR
+} arm64_system_type_t;
+
+/* FP instruction types */
+typedef enum {
+    ARM64_FP_FADD,
+    ARM64_FP_FSUB,
+    ARM64_FP_FMUL,
+    ARM64_FP_FDIV,
+    ARM64_FP_FSQRT,
+    ARM64_FP_FABS,
+    ARM64_FP_FNEG,
+    ARM64_FP_FCSEL,
+    ARM64_FP_FMOV,
+    ARM64_FP_FCVT,
+    ARM64_FCMP
+} arm64_fp_type_t;
+
+/* SIMD instruction types */
+typedef enum {
+    ARM64_SIMD_ADD,
+    ARM64_SIMD_SUB,
+    ARM64_SIMD_AND,
+    ARM64_SIMD_ORR,
+    ARM64_SIMD_EOR,
+    ARM64_SIMD_BIC,
+    ARM64_SIMD_MUL,
+    ARM64_SIMD_SHL,
+    ARM64_SIMD_SHR,
+    ARM64_SIMD_CMGT,
+    ARM64_SIMD_CMEQ,
+    ARM64_SIMD_CMLT
+} arm64_simd_type_t;
+
+/* Shift types */
+typedef enum {
+    ARM64_SHIFT_LSL = 0,
+    ARM64_SHIFT_LSR = 1,
+    ARM64_SHIFT_ASR = 2,
+    ARM64_SHIFT_ROR = 3
+} arm64_shift_type_t;
+
+/* Decoded instruction structure */
+typedef struct {
+    uint32_t encoding;          /* Original instruction encoding */
+    arm64_insn_class_t class;   /* Instruction class */
+    union {
+        arm64_alu_type_t alu;
+        arm64_branch_type_t branch;
+        arm64_compare_type_t compare;
+        arm64_mov_type_t mov;
+        arm64_mem_type_t mem;
+        arm64_system_type_t system;
+        arm64_fp_type_t fp;
+        arm64_simd_type_t simd;
+        uint32_t type;          /* Generic type field */
+    };
+    uint8_t rd;                 /* Destination register */
+    uint8_t rn;                 /* First operand register */
+    uint8_t rm;                 /* Second operand register */
+    uint8_t rt2;                /* Second target register (LDP/STP) */
+    uint8_t vd;                 /* FP/SIMD destination */
+    uint8_t vn;                 /* FP/SIMD first operand */
+    uint8_t vm;                 /* FP/SIMD second operand */
+    uint8_t cond;               /* Condition code */
+    uint8_t access_size;        /* Access size (0=byte, 1=half, 2=word, 3=double) */
+    uint8_t shift_type;         /* Shift type */
+    uint8_t shift_amount;       /* Shift amount */
+    uint8_t q;                  /* Q bit (128-bit flag) */
+    uint8_t test_bit;           /* Test bit for TBZ/TBNZ */
+    int32_t imm;                /* Immediate value */
+    uint8_t insn_size;          /* Instruction size in bytes (always 4) */
+} arm64_insn_t;
+
+/* ============================================================================
  * ARM64 Instruction Encoding Fields
  * ============================================================================ */
 
@@ -277,7 +435,7 @@ static inline int arm64_is_tbnz(u32 encoding) {
  * ============================================================================ */
 
 static inline int arm64_is_ldr(u32 encoding) {
-    return (encoding & 0xFF800000) == 0xF9400000;
+    return (encoding & 0xFFC00000) == 0xF9400000;
 }
 
 static inline int arm64_is_str(u32 encoding) {
@@ -313,7 +471,7 @@ static inline int arm64_is_ldrsw(u32 encoding) {
 }
 
 static inline int arm64_is_ldp(u32 encoding) {
-    return (encoding & 0xFF800000) == 0xA9400000;
+    return (encoding & 0xFFC00000) == 0xA9400000;
 }
 
 static inline int arm64_is_stp(u32 encoding) {
@@ -353,11 +511,11 @@ static inline int arm64_is_hlt(u32 encoding) {
 }
 
 static inline int arm64_is_mrs(u32 encoding) {
-    return (encoding & 0xFFE00000) == 0xD5300000;
+    return (encoding & 0xFFF00000) == 0xD5300000;
 }
 
 static inline int arm64_is_msr(u32 encoding) {
-    return (encoding & 0xFFE00000) == 0xD5100000;
+    return (encoding & 0xFFF00000) == 0xD5100000;
 }
 
 /* ============================================================================
@@ -653,5 +811,53 @@ static inline int arm64_instruction_length(u32 encoding) {
     (void)encoding;  /* Unused */
     return 4;
 }
+
+/* ============================================================================
+ * ARM64 Decoder Function Declarations
+ * ============================================================================ */
+
+/**
+ * arm64_decode_instruction - Decode ARM64 instruction
+ * @encoding: ARM64 instruction encoding
+ * @decoded: Pointer to decoded instruction structure
+ * Returns: 0 on success, -1 on unknown instruction
+ */
+int arm64_decode_instruction(uint32_t encoding, arm64_insn_t *decoded);
+
+/**
+ * arm64_get_instruction_name - Get human-readable instruction name
+ * @decoded: Decoded instruction
+ * Returns: Instruction name string
+ */
+const char *arm64_get_instruction_name(const arm64_insn_t *decoded);
+
+/**
+ * get_condition_name - Get condition name string
+ * @cond: Condition code (0-15)
+ * Returns: Condition name string
+ */
+const char *get_condition_name(uint8_t cond);
+
+/**
+ * arm64_is_load_store - Check if instruction is load/store
+ * @encoding: ARM64 instruction encoding
+ * Returns: 1 if load/store, 0 otherwise
+ */
+int arm64_is_load_store(uint32_t encoding);
+
+/**
+ * arm64_get_load_store_size - Get load/store access size
+ * @encoding: ARM64 instruction encoding
+ * Returns: Size in bytes (1, 2, 4, or 8)
+ */
+int arm64_get_load_store_size(uint32_t encoding);
+
+/**
+ * arm64_compute_branch_target - Compute branch target address
+ * @encoding: ARM64 instruction encoding
+ * @pc: Current PC
+ * Returns: Branch target address
+ */
+uint64_t arm64_compute_branch_target(uint32_t encoding, uint64_t pc);
 
 #endif /* ROSETTA_ARM64_DECODE_H */

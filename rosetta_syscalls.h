@@ -227,8 +227,8 @@ int syscall_gettid(ThreadState *state);
 int syscall_uname(ThreadState *state);
 int syscall_fcntl(ThreadState *state);
 int syscall_set_tid_address(ThreadState *state);
-noreturn void syscall_exit(ThreadState *state);
-noreturn void syscall_exit_group(ThreadState *state);
+noreturn int syscall_exit(ThreadState *state);
+noreturn int syscall_exit_group(ThreadState *state);
 
 /* ============================================================================
  * Time Syscall Handlers

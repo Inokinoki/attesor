@@ -72,7 +72,11 @@ REFACTORED_TRANS_SRCS = \
     rosetta_trans_branch.c \
     rosetta_trans_bit.c \
     rosetta_trans_string.c \
-    rosetta_trans_special.c
+    rosetta_trans_special.c \
+    rosetta_trans_cond.c \
+    rosetta_trans_mul_ext.c \
+    rosetta_refactored_utils.c \
+    rosetta_translate_alu_full.c
 
 # Floating point and NEON translation
 REFACTORED_FP_SRCS = \
@@ -138,11 +142,17 @@ REFACTORED_UTIL_SRCS = \
     rosetta_refactored_vector.c \
     rosetta_refactored_helpers.c
 
+# Refactored instruction modules (full functional implementations)
+REFACTORED_INSN_SRCS = \
+    rosetta_refactored_alu.c \
+    rosetta_refactored_mem_insns.c \
+    rosetta_refactored_control.c
+
 # Runtime and entry point
 REFACTORED_RUNTIME_SRCS = \
     rosetta_runtime.c
 
-REFACTORED_SRCS = $(REFACTORED_CORE_SRCS) $(REFACTORED_TRANS_SRCS) $(REFACTORED_FP_SRCS) $(REFACTORED_NEON_SRCS) $(REFACTORED_SYSTEM_SRCS) $(REFACTORED_CRYPTO_SRCS) $(REFACTORED_STRING_SIMD_SRCS) $(REFACTORED_SYSCALLS_IMPL_SRCS) $(REFACTORED_MEMORY_UTILS_SRCS) $(REFACTORED_STRING_UTILS_SRCS) $(REFACTORED_TRANS_HELPERS_SRCS) $(REFACTORED_TRANS_IMPL_SRCS) $(REFACTORED_TRANS_DISPATCH_SRCS) $(REFACTORED_SIMD_MEM_HELPERS_SRCS) $(REFACTORED_JIT_CORE_SRCS) $(REFACTORED_X86_INSNS_SRCS) $(REFACTORED_UTIL_SRCS) $(REFACTORED_RUNTIME_SRCS)
+REFACTORED_SRCS = $(REFACTORED_CORE_SRCS) $(REFACTORED_TRANS_SRCS) $(REFACTORED_FP_SRCS) $(REFACTORED_NEON_SRCS) $(REFACTORED_SYSTEM_SRCS) $(REFACTORED_CRYPTO_SRCS) $(REFACTORED_STRING_SIMD_SRCS) $(REFACTORED_SYSCALLS_IMPL_SRCS) $(REFACTORED_MEMORY_UTILS_SRCS) $(REFACTORED_STRING_UTILS_SRCS) $(REFACTORED_TRANS_HELPERS_SRCS) $(REFACTORED_TRANS_IMPL_SRCS) $(REFACTORED_TRANS_DISPATCH_SRCS) $(REFACTORED_SIMD_MEM_HELPERS_SRCS) $(REFACTORED_JIT_CORE_SRCS) $(REFACTORED_X86_INSNS_SRCS) $(REFACTORED_UTIL_SRCS) $(REFACTORED_INSN_SRCS) $(REFACTORED_RUNTIME_SRCS)
 
 # All source files (include REFACTORED_SRCS which contains NEON, System, Crypto, String SIMD modules)
 MODULAR_SRCS = $(CORE_SRCS) $(TRANSLATE_SRCS) $(SYSTEM_SRCS) $(REFACTORED_SRCS)
@@ -212,7 +222,14 @@ HEADERS = \
     rosetta_jit_core.h \
     rosetta_x86_insns.h \
     rosetta_arm64_insns.h \
-    rosetta_trans_dispatch.h
+    rosetta_trans_dispatch.h \
+    rosetta_refactored_alu.h \
+    rosetta_refactored_mem_insns.h \
+    rosetta_refactored_control.h \
+    rosetta_trans_cond.h \
+    rosetta_trans_mul_ext.h \
+    rosetta_refactored_utils.h \
+    rosetta_translate_alu_full.h
 
 # Main targets
 all: librosetta.a test_jit test_translate

@@ -38,18 +38,18 @@ void *rosetta_memset_simd(void *s, int c, size_t n);
 /**
  * SIMD-optimized memory search for null bytes
  * @param ptr Pointer to memory to search
- * @param len Maximum length to search
- * @return Pointer to found byte, or NULL if not found
+ * @param len Maximum length to search (-1 for unlimited)
+ * @return Pointer to found null byte, or NULL if not found
  */
-void *rosetta_memchr_simd(const void *ptr, long len);
+void *rosetta_memchr_simd_nul(const void *ptr, long len);
 
 /**
- * SIMD-optimized memory search for unaligned data
+ * SIMD-optimized memory search for unaligned data (null bytes)
  * @param ptr Pointer to memory to search
- * @param len Maximum length to search
- * @return Pointer to found byte, or NULL if not found
+ * @param len Maximum length to search (-1 for unlimited)
+ * @return Pointer to found null byte, or NULL if not found
  */
-void *rosetta_memchr_simd_unaligned(const void *ptr, long len);
+void *rosetta_memchr_simd_unaligned_nul(const void *ptr, long len);
 
 /**
  * SIMD-optimized memory compare

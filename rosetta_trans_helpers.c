@@ -79,7 +79,7 @@ int helper_block_remove(uint64_t guest_pc)
 void helper_block_invalidate(void)
 {
     /* Clear translation cache */
-    for (int i = 0; i < TRANSLATION_CACHE_SIZE; i++) {
+    for (uint32_t i = 0; i < TRANSLATION_CACHE_SIZE; i++) {
         translation_cache[i].guest_addr = 0;
         translation_cache[i].host_addr = 0;
         translation_cache[i].hash = 0;

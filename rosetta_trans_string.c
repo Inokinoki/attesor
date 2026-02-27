@@ -13,10 +13,10 @@ static void *memory_translate_addr(uint64_t guest_addr)
 
 int translate_movs(ThreadState *state, const uint8_t *insn, int size, bool rep, uint32_t ecx)
 {
-    uint64_t rsi = state->cpu.gpr.x[6];  /* RSI */
-    uint64_t rdi = state->cpu.gpr.x[7];  /* RDI */
+    uint64_t rsi = state->guest.x[6];  /* RSI */
+    uint64_t rdi = state->guest.x[7];  /* RDI */
     uint32_t count = rep ? ecx : 1;
-    int df = (state->cpu.gpr.nzcv >> 27) & 1;  /* Direction flag (stub) */
+    int df = (state->guest.pstate >> 27) & 1;  /* Direction flag (stub) */
     int step = df ? -size : size;
 
     void *src_addr = memory_translate_addr(rsi);
@@ -44,11 +44,11 @@ int translate_movs(ThreadState *state, const uint8_t *insn, int size, bool rep, 
         dst_addr = (uint8_t *)dst_addr + step;
     }
 
-    state->cpu.gpr.x[6] = (uint64_t)src_addr;
-    state->cpu.gpr.x[7] = (uint64_t)dst_addr;
+    state->guest.x[6] = (uint64_t)src_addr;
+    state->guest.x[7] = (uint64_t)dst_addr;
 
     if (rep) {
-        state->cpu.gpr.x[1] = 0;  /* RCX = 0 */
+        state->guest.x[1] = 0;  /* RCX = 0 */
     }
 
     return 0;
@@ -56,10 +56,10 @@ int translate_movs(ThreadState *state, const uint8_t *insn, int size, bool rep, 
 
 int translate_stos(ThreadState *state, const uint8_t *insn, int size, bool rep, uint32_t ecx)
 {
-    uint64_t rdi = state->cpu.gpr.x[7];  /* RDI */
-    uint64_t rax = state->cpu.gpr.x[0];  /* RAX */
+    uint64_t rdi = state->guest.x[7];  /* RDI */
+    uint64_t rax = state->guest.x[0];  /* RAX */
     uint32_t count = rep ? ecx : 1;
-    int df = (state->cpu.gpr.nzcv >> 27) & 1;
+    int df = (state->guest.pstate >> 27) & 1;
     int step = df ? -size : size;
 
     void *dst_addr = memory_translate_addr(rdi);
@@ -77,10 +77,10 @@ int translate_stos(ThreadState *state, const uint8_t *insn, int size, bool rep, 
         dst_addr = (uint8_t *)dst_addr + step;
     }
 
-    state->cpu.gpr.x[7] = (uint64_t)dst_addr;
+    state->guest.x[7] = (uint64_t)dst_addr;
 
     if (rep) {
-        state->cpu.gpr.x[1] = 0;
+        state->guest.x[1] = 0;
     }
 
     return 0;
@@ -88,9 +88,9 @@ int translate_stos(ThreadState *state, const uint8_t *insn, int size, bool rep, 
 
 int translate_lods(ThreadState *state, const uint8_t *insn, int size, bool rep, uint32_t ecx)
 {
-    uint64_t rsi = state->cpu.gpr.x[6];  /* RSI */
+    uint64_t rsi = state->guest.x[6];  /* RSI */
     uint32_t count = rep ? ecx : 1;
-    int df = (state->cpu.gpr.nzcv >> 27) & 1;
+    int df = (state->guest.pstate >> 27) & 1;
     int step = df ? -size : size;
 
     void *src_addr = memory_translate_addr(rsi);
@@ -109,11 +109,11 @@ int translate_lods(ThreadState *state, const uint8_t *insn, int size, bool rep, 
         src_addr = (uint8_t *)src_addr + step;
     }
 
-    state->cpu.gpr.x[0] = val;  /* RAX */
-    state->cpu.gpr.x[6] = (uint64_t)src_addr;
+    state->guest.x[0] = val;  /* RAX */
+    state->guest.x[6] = (uint64_t)src_addr;
 
     if (rep) {
-        state->cpu.gpr.x[1] = 0;
+        state->guest.x[1] = 0;
     }
 
     return 0;
@@ -121,10 +121,10 @@ int translate_lods(ThreadState *state, const uint8_t *insn, int size, bool rep, 
 
 int translate_cmps(ThreadState *state, const uint8_t *insn, int size, bool rep, uint32_t ecx)
 {
-    uint64_t rsi = state->cpu.gpr.x[6];
-    uint64_t rdi = state->cpu.gpr.x[7];
+    uint64_t rsi = state->guest.x[6];
+    uint64_t rdi = state->guest.x[7];
     uint32_t count = rep ? ecx : 1;
-    int df = (state->cpu.gpr.nzcv >> 27) & 1;
+    int df = (state->guest.pstate >> 27) & 1;
     int step = df ? -size : size;
 
     void *src_addr = memory_translate_addr(rsi);
@@ -154,19 +154,19 @@ int translate_cmps(ThreadState *state, const uint8_t *insn, int size, bool rep, 
     if (result & (1ULL << 63)) nzcv |= (1ULL << 31);
     if (result == 0) nzcv |= (1ULL << 30);
 
-    state->cpu.gpr.nzcv = nzcv;
-    state->cpu.gpr.x[6] = (uint64_t)src_addr;
-    state->cpu.gpr.x[7] = (uint64_t)dst_addr;
+    state->guest.pstate = nzcv;
+    state->guest.x[6] = (uint64_t)src_addr;
+    state->guest.x[7] = (uint64_t)dst_addr;
 
     return 0;
 }
 
 int translate_scas(ThreadState *state, const uint8_t *insn, int size, bool rep, uint32_t ecx)
 {
-    uint64_t rdi = state->cpu.gpr.x[7];
-    uint64_t rax = state->cpu.gpr.x[0];
+    uint64_t rdi = state->guest.x[7];
+    uint64_t rax = state->guest.x[0];
     uint32_t count = rep ? ecx : 1;
-    int df = (state->cpu.gpr.nzcv >> 27) & 1;
+    int df = (state->guest.pstate >> 27) & 1;
     int step = df ? -size : size;
 
     void *dst_addr = memory_translate_addr(rdi);
@@ -192,8 +192,8 @@ int translate_scas(ThreadState *state, const uint8_t *insn, int size, bool rep, 
     if (result & (1ULL << 63)) nzcv |= (1ULL << 31);
     if (result == 0) nzcv |= (1ULL << 30);
 
-    state->cpu.gpr.nzcv = nzcv;
-    state->cpu.gpr.x[7] = (uint64_t)dst_addr;
+    state->guest.pstate = nzcv;
+    state->guest.x[7] = (uint64_t)dst_addr;
 
     return 0;
 }

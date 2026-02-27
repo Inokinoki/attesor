@@ -331,6 +331,14 @@ int translate_trn(ThreadState *state, const uint8_t *insn);
 int translate_sqadd(ThreadState *state, const uint8_t *insn);
 
 /**
+ * translate_uqadd - Translate ARM64 UQADD (unsigned saturating add)
+ * @param state Thread state
+ * @param insn ARM64 instruction bytes
+ * @return 0 on success, -1 on failure
+ */
+int translate_uqadd(ThreadState *state, const uint8_t *insn);
+
+/**
  * translate_sqsub - Translate ARM64 SQSUB (saturating subtract)
  * @param state Thread state
  * @param insn ARM64 instruction bytes
@@ -339,12 +347,76 @@ int translate_sqadd(ThreadState *state, const uint8_t *insn);
 int translate_sqsub(ThreadState *state, const uint8_t *insn);
 
 /**
+ * translate_uqsub - Translate ARM64 UQSUB (unsigned saturating subtract)
+ * @param state Thread state
+ * @param insn ARM64 instruction bytes
+ * @return 0 on success, -1 on failure
+ */
+int translate_uqsub(ThreadState *state, const uint8_t *insn);
+
+/**
  * translate_sqdadd - Translate ARM64 SQDADD (doubling saturating add)
  * @param state Thread state
  * @param insn ARM64 instruction bytes
  * @return 0 on success, -1 on failure
  */
 int translate_sqdadd(ThreadState *state, const uint8_t *insn);
+
+/**
+ * translate_sqdmulh - Translate ARM64 SQDMULH (saturating doubling multiply high)
+ * @param state Thread state
+ * @param insn ARM64 instruction bytes
+ * @return 0 on success, -1 on failure
+ */
+int translate_sqdmulh(ThreadState *state, const uint8_t *insn);
+
+/**
+ * translate_sqrdmulh - Translate ARM64 SQRDMULH (saturating rounding doubling multiply high)
+ * @param state Thread state
+ * @param insn ARM64 instruction bytes
+ * @return 0 on success, -1 on failure
+ */
+int translate_sqrdmulh(ThreadState *state, const uint8_t *insn);
+
+/**
+ * translate_abs_vec - Translate ARM64 ABS (vector absolute value)
+ * @param state Thread state
+ * @param insn ARM64 instruction bytes
+ * @return 0 on success, -1 on failure
+ */
+int translate_abs_vec(ThreadState *state, const uint8_t *insn);
+
+/**
+ * translate_neg_vec - Translate ARM64 NEG (vector negate)
+ * @param state Thread state
+ * @param insn ARM64 instruction bytes
+ * @return 0 on success, -1 on failure
+ */
+int translate_neg_vec(ThreadState *state, const uint8_t *insn);
+
+/**
+ * translate_rbit_vec - Translate ARM64 RBIT (reverse bit order)
+ * @param state Thread state
+ * @param insn ARM64 instruction bytes
+ * @return 0 on success, -1 on failure
+ */
+int translate_rbit_vec(ThreadState *state, const uint8_t *insn);
+
+/**
+ * translate_cls_vec - Translate ARM64 CLS (count leading sign bits)
+ * @param state Thread state
+ * @param insn ARM64 instruction bytes
+ * @return 0 on success, -1 on failure
+ */
+int translate_cls_vec(ThreadState *state, const uint8_t *insn);
+
+/**
+ * translate_clz_vec - Translate ARM64 CLZ (count leading zeros)
+ * @param state Thread state
+ * @param insn ARM64 instruction bytes
+ * @return 0 on success, -1 on failure
+ */
+int translate_clz_vec(ThreadState *state, const uint8_t *insn);
 
 /* ============================================================================
  * NEON Reduction Operations

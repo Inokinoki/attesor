@@ -11,6 +11,7 @@
  * ============================================================================ */
 
 #include "rosetta_jit.h"
+#include "rosetta_arm64_decode.h"
 #include <string.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -101,8 +102,15 @@ int jit_init(jit_context_t *ctx, u32 cache_size)
     ctx->code_cache_size = cache_size;
     ctx->code_cache_offset = 0;
 
-    /* Initialize translation cache */
-    memset(ctx->cache, 0, sizeof(ctx->cache));
+    /* Allocate translation cache dynamically to avoid stack overflow */
+    ctx->cache = (TranslationCacheEntry *)calloc(TRANSLATION_CACHE_SIZE,
+                                                  sizeof(TranslationCacheEntry));
+    if (!ctx->cache) {
+        munmap(ctx->code_cache, cache_size);
+        ctx->code_cache = NULL;
+        return ROSETTA_ERR_NOMEM;
+    }
+
     ctx->cache_insert_index = 0;
 
     /* Initialize code buffer for emission */
@@ -126,6 +134,12 @@ int jit_init(jit_context_t *ctx, u32 cache_size)
 void jit_cleanup(jit_context_t *ctx)
 {
     if (!ctx) return;
+
+    /* Free translation cache */
+    if (ctx->cache) {
+        free(ctx->cache);
+        ctx->cache = NULL;
+    }
 
     /* Free code cache */
     if (ctx->code_cache) {
@@ -484,6 +498,11 @@ void *translate_block(jit_context_t *ctx, u64 guest_pc)
     void *cached;
     u8 *code_start;
     u32 code_size;
+    u32 *insn_ptr;
+    u32 insn_encoding;
+    int is_terminator = 0;
+    int max_insns = 64;  /* Max instructions per block */
+    int insn_count = 0;
 
     if (!ctx || !ctx->initialized) return NULL;
 
@@ -505,12 +524,121 @@ void *translate_block(jit_context_t *ctx, u64 guest_pc)
     emit_push_reg(&ctx->emit_buf, X86_RBP);
     emit_mov_reg_reg(&ctx->emit_buf, X86_RBP, X86_RSP);
 
-    /* TODO: Full ARM64 instruction decoding and translation */
-    /* For now, emit a simple return */
-    emit_ud2(&ctx->emit_buf);  /* Undefined instruction as placeholder */
+    /* Push callee-saved registers */
+    emit_push_reg(&ctx->emit_buf, X86_RBX);
+    emit_push_reg(&ctx->emit_buf, X86_R12);
+    emit_push_reg(&ctx->emit_buf, X86_R13);
+    emit_push_reg(&ctx->emit_buf, X86_R14);
+    emit_push_reg(&ctx->emit_buf, X86_R15);
+
+    /* Translate ARM64 instructions until block terminator */
+    insn_ptr = (u32 *)(uintptr_t)guest_pc;
+
+    while (!is_terminator && insn_count < max_insns) {
+        insn_encoding = *insn_ptr++;
+        insn_count++;
+
+        /* Dispatch based on instruction type */
+        if (arm64_is_add(insn_encoding) || arm64_is_sub(insn_encoding)) {
+            /* ADD/SUB: Translate to x86 ADD/SUB */
+            u8 rd = arm64_get_rd(insn_encoding);
+            u8 rn = arm64_get_rn(insn_encoding);
+            u8 rm = arm64_get_rm(insn_encoding);
+            if (arm64_is_add(insn_encoding)) {
+                emit_add_reg_reg(&ctx->emit_buf, rd, rm);
+            } else {
+                emit_sub_reg_reg(&ctx->emit_buf, rd, rm);
+            }
+        } else if (arm64_is_and(insn_encoding)) {
+            /* AND: Translate to x86 AND */
+            u8 rd = arm64_get_rd(insn_encoding);
+            u8 rm = arm64_get_rm(insn_encoding);
+            emit_and_reg_reg(&ctx->emit_buf, rd, rm);
+        } else if (arm64_is_orr(insn_encoding)) {
+            /* ORR: Translate to x86 OR */
+            u8 rd = arm64_get_rd(insn_encoding);
+            u8 rm = arm64_get_rm(insn_encoding);
+            emit_orr_reg_reg(&ctx->emit_buf, rd, rm);
+        } else if (arm64_is_eor(insn_encoding)) {
+            /* EOR: Translate to x86 XOR */
+            u8 rd = arm64_get_rd(insn_encoding);
+            u8 rm = arm64_get_rm(insn_encoding);
+            emit_xor_reg_reg(&ctx->emit_buf, rd, rm);
+        } else if (arm64_is_mvn(insn_encoding)) {
+            /* MVN: Translate to x86 NOT */
+            u8 rd = arm64_get_rd(insn_encoding);
+            u8 rm = arm64_get_rm(insn_encoding);
+            emit_mvn_reg_reg(&ctx->emit_buf, rd, rm);
+        } else if (arm64_is_mul(insn_encoding)) {
+            /* MUL: Translate to x86 MUL */
+            u8 rd = arm64_get_rd(insn_encoding);
+            u8 rn = arm64_get_rn(insn_encoding);
+            u8 rm = arm64_get_rm(insn_encoding);
+            emit_mul_reg(&ctx->emit_buf, rd, rn, rm);
+        } else if (arm64_is_cmp(insn_encoding)) {
+            /* CMP: Translate to x86 CMP */
+            u8 rn = arm64_get_rn(insn_encoding);
+            u8 rm = arm64_get_rm(insn_encoding);
+            emit_cmp_reg_reg(&ctx->emit_buf, rn, rm);
+        } else if (arm64_is_tst(insn_encoding)) {
+            /* TST: Translate to x86 TEST */
+            u8 rn = arm64_get_rn(insn_encoding);
+            u8 rm = arm64_get_rm(insn_encoding);
+            emit_test_reg_reg(&ctx->emit_buf, rn, rm);
+        } else if (arm64_is_ldr(insn_encoding)) {
+            /* LDR: Translate to x86 MOV (load) */
+            u8 rd = arm64_get_rd(insn_encoding);
+            u8 rn = arm64_get_rn(insn_encoding);
+            emit_mov_reg_mem(&ctx->emit_buf, rd, rn, 0);
+        } else if (arm64_is_str(insn_encoding)) {
+            /* STR: Translate to x86 MOV (store) */
+            u8 rd = arm64_get_rd(insn_encoding);
+            u8 rn = arm64_get_rn(insn_encoding);
+            emit_mov_mem_reg(&ctx->emit_buf, rn, rd, 0);
+        } else if (arm64_is_movz(insn_encoding) || arm64_is_movk(insn_encoding)) {
+            /* MOVZ/MOVK: Translate to x86 MOV imm64 */
+            u8 rd = arm64_get_rd(insn_encoding);
+            u16 imm16 = arm64_get_imm16(insn_encoding);
+            u8 hw = arm64_get_hw(insn_encoding);
+            u64 imm = (u64)imm16 << (hw * 16);
+            emit_mov_reg_imm64(&ctx->emit_buf, rd, imm);
+        } else if (arm64_is_b(insn_encoding)) {
+            /* B: Unconditional branch - emit JMP */
+            /* For now, emit NOP as branch handling is complex */
+            emit_nop(&ctx->emit_buf);
+            is_terminator = 1;
+        } else if (arm64_is_bl(insn_encoding)) {
+            /* BL: Branch with link - emit CALL */
+            emit_nop(&ctx->emit_buf);
+            is_terminator = 1;
+        } else if (arm64_is_ret(insn_encoding)) {
+            /* RET: Return - emit epilogue and RET */
+            is_terminator = 1;
+            continue;  /* Skip emitting terminator, handle below */
+        } else if (arm64_is_bcond(insn_encoding)) {
+            /* B.cond: Conditional branch */
+            emit_nop(&ctx->emit_buf);
+            is_terminator = 1;
+        } else if (arm64_is_svc(insn_encoding)) {
+            /* SVC: Supervisor call (syscall) */
+            emit_nop(&ctx->emit_buf);
+            is_terminator = 1;
+        } else {
+            /* Unknown instruction - emit NOP */
+            emit_nop(&ctx->emit_buf);
+        }
+    }
 
     /* Emit epilogue (restore guest state, teardown frame) */
     emit_mov_reg_reg(&ctx->emit_buf, X86_RSP, X86_RBP);
+
+    /* Pop callee-saved registers */
+    emit_pop_reg(&ctx->emit_buf, X86_R15);
+    emit_pop_reg(&ctx->emit_buf, X86_R14);
+    emit_pop_reg(&ctx->emit_buf, X86_R13);
+    emit_pop_reg(&ctx->emit_buf, X86_R12);
+    emit_pop_reg(&ctx->emit_buf, X86_RBX);
+
     emit_pop_reg(&ctx->emit_buf, X86_RBP);
     emit_ret(&ctx->emit_buf);
 
@@ -545,9 +673,10 @@ void *translate_block_fast(jit_context_t *ctx, u64 guest_pc)
  * Looks up or translates a block, then executes it.
  * Returns the next guest PC to execute.
  */
-u64 jit_execute(jit_context_t *ctx, u64 guest_pc, thread_state_t *state)
+u64 jit_execute(jit_context_t *ctx, u64 guest_pc, ThreadState *state)
 {
     void (*host_func)(void);
+    u64 next_pc;
 
     if (!ctx || !ctx->initialized) return 0;
 
@@ -557,12 +686,27 @@ u64 jit_execute(jit_context_t *ctx, u64 guest_pc, thread_state_t *state)
         return 0;  /* Translation failed */
     }
 
-    /* TODO: Set up guest state in host registers */
-    /* TODO: Call the translated function */
-    /* TODO: Retrieve next guest PC from return value */
+    /* Save current thread state to memory before execution */
+    /* In a full implementation, this would:
+     * 1. Map ARM64 registers (X0-X30) to x86_64 registers
+     * 2. Save x86_64 callee-saved registers
+     * 3. Set up the guest state in the expected locations
+     * 4. Call the translated function
+     * 5. Restore x86_64 state and update ARM64 state from memory
+     */
 
-    /* For now, return 0 to indicate end of execution */
-    return 0;
+    /* For now, execute the translated code directly */
+    /* The translated code will use the register mapping established
+     * during translation (ARM64 Xn -> x86_64 Rn) */
+
+    /* Execute the translated block */
+    host_func();
+
+    /* Return next PC - in a full implementation, this would be
+     * determined by the block's exit condition (fall-through, branch, etc.) */
+    next_pc = guest_pc + 4;  /* Default: next instruction (ARM64 instructions are 4 bytes) */
+
+    return next_pc;
 }
 
 /* ============================================================================

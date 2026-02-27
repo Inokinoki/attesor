@@ -177,7 +177,8 @@ typedef struct code_buffer {
  * Thread State
  * ============================================================================ */
 
-typedef struct thread_state {
+/* Use RosettaThreadState to avoid conflict with macOS mach/thread_status.h */
+typedef struct RosettaThreadState {
     /* Guest ARM64 state */
     arm64_context_t guest;
 
@@ -200,19 +201,27 @@ typedef struct thread_state {
     /* Memory management */
     void *guest_base;               /* Guest memory base */
     size_t guest_size;              /* Guest memory size */
-} thread_state_t;
+} RosettaThreadState;
 
 /* Alias for ThreadState (used in syscall module) */
-typedef thread_state_t ThreadState;
+typedef RosettaThreadState ThreadState;
 
 /* ============================================================================
  * Memory Protection Flags
  * ============================================================================ */
 
+#ifndef PROT_NONE
 #define PROT_NONE   0x0
+#endif
+#ifndef PROT_READ
 #define PROT_READ   0x1
+#endif
+#ifndef PROT_WRITE
 #define PROT_WRITE  0x2
+#endif
+#ifndef PROT_EXEC
 #define PROT_EXEC   0x4
+#endif
 
 /* ============================================================================
  * Syscall Numbers (ARM64 Linux)
@@ -252,7 +261,7 @@ typedef thread_state_t ThreadState;
 #define BITS(val, hi, lo)       (((val) >> (lo)) & ((1U << ((hi) - (lo) + 1)) - 1))
 #define BIT(val, bit)           (((val) >> (bit)) & 1)
 
-/* Sign extension */
-#define SIGN_EXT(val, bits)     (((s64)((val) << (64 - (bits)))) >> (64 - (bits)))
+/* Sign extension - cast to u64 before shifting to avoid shift count overflow */
+#define SIGN_EXT(val, bits)     (((s64)((u64)(val) << (64 - (bits)))) >> (64 - (bits)))
 
 #endif /* ROSETTA_TYPES_H */

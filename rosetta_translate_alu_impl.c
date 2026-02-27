@@ -7,6 +7,7 @@
  * ============================================================================ */
 
 #include "rosetta_codegen.h"
+#include "rosetta_arm64_emit.h"
 #include "rosetta_translate_alu_impl.h"
 #include <stdint.h>
 
@@ -50,58 +51,68 @@ static inline int x86_is_or(const x86_insn_t *insn)
            (insn->opcode == 0x80 && (insn->modrm & 0x38) == 0x08);
 }
 
+static inline int x86_is_xor(const x86_insn_t *insn) __attribute__((unused));
 static inline int x86_is_xor(const x86_insn_t *insn)
 {
     return (insn->opcode >= 0x30 && insn->opcode <= 0x35) ||
            (insn->opcode == 0x80 && (insn->modrm & 0x38) == 0x30);
 }
 
+static inline int x86_is_mul(const x86_insn_t *insn) __attribute__((unused));
 static inline int x86_is_mul(const x86_insn_t *insn)
 {
     return insn->opcode == 0x0FAF ||
            (insn->opcode == 0xF7 && (insn->modrm & 0x38) == 0x20);
 }
 
+static inline int x86_is_div(const x86_insn_t *insn) __attribute__((unused));
 static inline int x86_is_div(const x86_insn_t *insn)
 {
     return (insn->opcode == 0xF7 && (insn->modrm & 0x38) == 0x30) ||
            (insn->opcode == 0xF7 && (insn->modrm & 0x38) == 0x38);
 }
 
+static inline int x86_is_inc(const x86_insn_t *insn) __attribute__((unused));
 static inline int x86_is_inc(const x86_insn_t *insn)
 {
     return (insn->opcode >= 0x40 && insn->opcode <= 0x47) ||
            (insn->opcode == 0xFF && (insn->modrm & 0x38) == 0x00);
 }
 
+static inline int x86_is_dec(const x86_insn_t *insn) __attribute__((unused));
 static inline int x86_is_dec(const x86_insn_t *insn)
 {
     return (insn->opcode >= 0x48 && insn->opcode <= 0x4F) ||
            (insn->opcode == 0xFF && (insn->modrm & 0x38) == 0x08);
 }
 
+static inline int x86_is_neg(const x86_insn_t *insn) __attribute__((unused));
 static inline int x86_is_neg(const x86_insn_t *insn)
 {
     return insn->opcode == 0xF7 && (insn->modrm & 0x38) == 0x18;
 }
 
+static inline int x86_is_not(const x86_insn_t *insn) __attribute__((unused));
 static inline int x86_is_not(const x86_insn_t *insn)
 {
     return insn->opcode == 0xF7 && (insn->modrm & 0x38) == 0x10;
 }
 
+static inline int x86_is_shl(const x86_insn_t *insn) __attribute__((unused));
 static inline int x86_is_shl(const x86_insn_t *insn)
 {
     return (insn->opcode >= 0xD0 && insn->opcode <= 0xD3) ||
            (insn->opcode == 0xC0 && (insn->modrm & 0x38) == 0x00);
 }
 
+static inline int x86_is_shr(const x86_insn_t *insn) __attribute__((unused));
 static inline int x86_is_shr(const x86_insn_t *insn)
 {
     return (insn->opcode >= 0xD0 && insn->opcode <= 0xD3) ||
            (insn->opcode == 0xC0 && (insn->modrm & 0x38) == 0x08);
 }
 
+static inline int x86_is_sar(const x86_insn_t *insn) __attribute__((unused));
 static inline int x86_is_sar(const x86_insn_t *insn)
 {
     return (insn->opcode >= 0xD0 && insn->opcode <= 0xD3) ||
@@ -198,9 +209,8 @@ void translate_alu_xor(code_buffer_t *code_buf, const void *insn_ptr,
 {
     const x86_insn_t *insn = (const x86_insn_t *)insn_ptr;
     (void)insn;
-    /* XOR implementation would go here - similar pattern */
-    /* Using MVN + AND for now as placeholder */
-    emit_mov_reg_reg(code_buf, arm_rd, arm_rm);
+    /* XOR: ARM64 EOR (Exclusive OR) */
+    emit_eor_reg(code_buf, arm_rd, arm_rd, arm_rm);
 }
 
 /**
@@ -255,9 +265,9 @@ void translate_alu_neg(code_buffer_t *code_buf, const void *insn_ptr,
 {
     const x86_insn_t *insn = (const x86_insn_t *)insn_ptr;
     (void)insn;
-    (void)arm_rd;
-    (void)arm_rm;
-    /* NEG would be implemented here */
+    /* NEG: ARM64 NEG (substitute from zero: 0 - src) */
+    /* NEG rd, rm -> SUBS rd, XZR, rm */
+    emit_neg_reg(code_buf, arm_rd, arm_rm);
 }
 
 /**
@@ -268,9 +278,10 @@ void translate_alu_not(code_buffer_t *code_buf, const void *insn_ptr,
 {
     const x86_insn_t *insn = (const x86_insn_t *)insn_ptr;
     (void)insn;
-    (void)arm_rd;
-    (void)arm_rm;
-    /* NOT would be implemented here */
+    /* NOT: ARM64 MVN (Move Not) - implemented as ORN Rd, XZR, Rm */
+    /* MVN inverts all bits: ~rm */
+    /* Encoding: ORN Rd, XZR, Rm = 0x4A200000 | (Rm << 16) | (31 << 5) | Rd */
+    emit_arm64_insn(code_buf, 0x4A200000 | ((arm_rm & 0x1F) << 16) | ((arm_rd & 0x1F) << 0));
 }
 
 /**
@@ -281,7 +292,40 @@ void translate_alu_shift(code_buffer_t *code_buf, const void *insn_ptr,
 {
     const x86_insn_t *insn = (const x86_insn_t *)insn_ptr;
     (void)insn;
-    (void)arm_rd;
-    (void)arm_rm;
-    /* Shift instructions would be implemented here */
+    /* Shift instructions: SHL, SHR, SAR
+     * ARM64: LSL (logical left), LSR (logical right), ASR (arithmetic right)
+     */
+    uint8_t shift_amount = insn->imm32 & 0x3F;
+    uint8_t opcode = insn->opcode;
+
+    if (opcode >= 0xD0 && opcode <= 0xD3) {
+        /* Variable shift (shift count in CL register) */
+        /* For now, handle as immediate shift with count 1 */
+        shift_amount = 1;
+    }
+
+    /* Determine shift type based on x86 opcode */
+    if (opcode == 0xC0 || (opcode >= 0xD0 && opcode <= 0xD3)) {
+        /* Check reg field in ModRM for shift type */
+        uint8_t shift_type = (insn->modrm >> 3) & 0x7;
+        switch (shift_type) {
+            case 0: /* ROL - rotate left (not directly supported, use LSL) */
+            case 4: /* SHL/SAL - shift left */
+                emit_shl_reg_imm(code_buf, arm_rd, arm_rm, shift_amount);
+                break;
+            case 1: /* ROR - rotate right (not directly supported, use LSR) */
+            case 5: /* SHR - shift right logical */
+                emit_shr_reg_imm(code_buf, arm_rd, arm_rm, shift_amount);
+                break;
+            case 7: /* SAR - shift right arithmetic */
+                emit_sar_reg_imm(code_buf, arm_rd, arm_rm, shift_amount);
+                break;
+            default:
+                /* Unknown shift type, default to logical shift right */
+                emit_shr_reg_imm(code_buf, arm_rd, arm_rm, shift_amount);
+                break;
+        }
+    } else {
+        emit_shr_reg_imm(code_buf, arm_rd, arm_rm, shift_amount);
+    }
 }

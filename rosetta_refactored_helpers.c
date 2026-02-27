@@ -21,8 +21,10 @@ static void *guest_memory_base = NULL;
 static uint64_t guest_memory_size = 0;
 
 /* Translation cache configuration */
+#ifndef TRANSLATION_CACHE_SIZE
 #define TRANSLATION_CACHE_SIZE  4096
 #define TRANSLATION_CACHE_MASK  (TRANSLATION_CACHE_SIZE - 1)
+#endif
 
 /* Static translation cache */
 static TranslationCacheEntry translation_cache[TRANSLATION_CACHE_SIZE];
@@ -100,7 +102,7 @@ int translation_insert(uint64_t guest, uint64_t host, size_t sz)
 
 void translation_invalidate(void)
 {
-    for (int i = 0; i < TRANSLATION_CACHE_SIZE; i++) {
+    for (uint32_t i = 0; i < TRANSLATION_CACHE_SIZE; i++) {
         translation_cache[i].guest_addr = 0;
         translation_cache[i].host_addr = 0;
         translation_cache[i].hash = 0;

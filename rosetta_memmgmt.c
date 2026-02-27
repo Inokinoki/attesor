@@ -5,7 +5,9 @@
  * memory mapping, protection, and address translation.
  */
 
+#ifndef _DARWIN_C_SOURCE
 #define _DARWIN_C_SOURCE  /* For posix_memalign on macOS */
+#endif
 
 #include "rosetta_types.h"
 #include <stdint.h>

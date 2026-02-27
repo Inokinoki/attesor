@@ -3,10 +3,14 @@
  * Apple's ARM64-to-x86_64 translation layer for Linux
  *
  * This header defines the core structures and types used by Rosetta.
+ * It builds upon rosetta_types.h for basic type definitions.
  */
 
 #ifndef ROSETTA_REFACTORED_H
 #define ROSETTA_REFACTORED_H
+
+/* Include rosetta_types.h first for basic types and ThreadState */
+#include "rosetta_types.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -17,7 +21,7 @@
 #define noreturn _Noreturn
 
 /* ============================================================================
- * Basic Type Definitions
+ * Basic Type Definitions (aliases for convenience)
  * ============================================================================ */
 
 typedef uint8_t   byte;
@@ -27,24 +31,16 @@ typedef uint64_t  qword;
 typedef int64_t   longlong;
 typedef uint64_t  ulonglong;
 
-/* ============================================================================
- * ARM64 Register Context Structures
- * ============================================================================ */
-
-/* Vector register (128-bit NEON/FP register) - only define if not already defined */
-#ifndef VECTOR128_DEFINED
+/* Vector128 type for NEON/SIMD operations */
 typedef struct {
     uint64_t lo;
     uint64_t hi;
 } Vector128;
-#define VECTOR128_DEFINED
-#endif
 
-/* ARM64 Floating Point Context */
+/* ARM64 Vector Context (V0-V31) */
 typedef struct {
-    uint32_t fpcr;  /* Floating Point Control Register */
-    uint32_t fpsr;  /* Floating Point Status Register */
-} FPContext;
+    Vector128 v[32];
+} VectorContext;
 
 /* ARM64 General Purpose Registers */
 typedef struct {
@@ -55,12 +51,13 @@ typedef struct {
     uint64_t nzcv;   /* Condition flags (N, Z, C, V) */
 } GPRContext;
 
-/* ARM64 Vector Registers (V0-V31) */
+/* ARM64 Floating Point Context */
 typedef struct {
-    Vector128 v[32];
-} VectorContext;
+    uint32_t fpcr;  /* Floating Point Control Register */
+    uint32_t fpsr;  /* Floating Point Status Register */
+} FPContext;
 
-/* Full ARM64 CPU Context */
+/* Full ARM64 CPU Context - used by context save/restore */
 typedef struct {
     GPRContext    gpr;
     VectorContext vec;
@@ -87,8 +84,7 @@ typedef struct {
     uint32_t refcount;
 } TranslationCacheEntry;
 
-/* Guest-Host Mapping - only if rosetta_types.h not included */
-#ifndef ROSETTA_TYPES_H
+/* Guest-Host Mapping */
 typedef struct {
     uint64_t guest_base;
     uint64_t host_base;
@@ -96,17 +92,6 @@ typedef struct {
     uint32_t prot;
     uint32_t flags;
 } MemoryMapping;
-
-/* Thread Local State */
-typedef struct {
-    CPUContext    cpu;
-    void         *tls_base;
-    uint32_t      thread_id;
-    uint32_t      flags;
-    uint64_t      syscall_nr;
-    int64_t       syscall_result;
-} ThreadState;
-#endif
 
 /* ============================================================================
  * Function Pointer Types
@@ -287,8 +272,8 @@ int syscall_gettid(ThreadState *state);
 int syscall_uname(ThreadState *state);
 int syscall_fcntl(ThreadState *state);
 int syscall_set_tid_address(ThreadState *state);
-noreturn void syscall_exit(ThreadState *state);
-noreturn void syscall_exit_group(ThreadState *state);
+noreturn int syscall_exit(ThreadState *state);
+noreturn int syscall_exit_group(ThreadState *state);
 
 /* Time */
 int syscall_gettimeofday(ThreadState *state);
@@ -374,11 +359,20 @@ int syscall_getdents(ThreadState *state);
 
 void *translate_block(uint64_t guest_pc);
 void *translate_block_fast(uint64_t guest_pc);
+void execute_translated(ThreadState *state, void *block);
+
+/* Interpreter mode for testing and fallback */
+uint64_t rosetta_interpret(uint32_t insn, ThreadState *state, uint64_t pc);
+void rosetta_run_interpreter(uint64_t guest_pc, int max_insns);
 
 /* ============================================================================
  * ALU Translation Functions
+ * Note: These are now implemented in rosetta_refactored_alu.c
+ * with signature: void translate_*(uint32_t encoding, ThreadState *state)
  * ============================================================================ */
 
+/* Old declarations kept for compatibility (rosetta_translate_alu.c) */
+/*
 int translate_add(ThreadState *state, const uint8_t *insn);
 int translate_sub(ThreadState *state, const uint8_t *insn);
 int translate_and(ThreadState *state, const uint8_t *insn);
@@ -387,11 +381,16 @@ int translate_eor(ThreadState *state, const uint8_t *insn);
 int translate_mul(ThreadState *state, const uint8_t *insn);
 int translate_div(ThreadState *state, const uint8_t *insn);
 int translate_mvn(ThreadState *state, const uint8_t *insn);
+*/
 
 /* ============================================================================
  * Branch Translation Functions
+ * Note: These are now implemented in rosetta_refactored_control.c
+ * with signature: void translate_*(uint32_t encoding, ThreadState *state)
  * ============================================================================ */
 
+/* Old declarations kept for compatibility (rosetta_translate_branch.c) */
+/*
 int translate_b(ThreadState *state, const uint8_t *insn);
 int translate_bl(ThreadState *state, const uint8_t *insn);
 int translate_br(ThreadState *state, const uint8_t *insn);
@@ -400,6 +399,7 @@ int translate_cbz(ThreadState *state, const uint8_t *insn);
 int translate_cbnz(ThreadState *state, const uint8_t *insn);
 int translate_tbz(ThreadState *state, const uint8_t *insn);
 int translate_tbnz(ThreadState *state, const uint8_t *insn);
+*/
 
 /* ============================================================================
  * Compare Translation Functions
@@ -411,8 +411,12 @@ int translate_tst(ThreadState *state, const uint8_t *insn);
 
 /* ============================================================================
  * Load/Store Translation Functions
+ * Note: These are now implemented in rosetta_refactored_mem_insns.c
+ * with signature: void translate_*(uint32_t encoding, ThreadState *state)
  * ============================================================================ */
 
+/* Old declarations kept for compatibility (rosetta_translate_memory.c) */
+/*
 int translate_ldr(ThreadState *state, const uint8_t *insn);
 int translate_str(ThreadState *state, const uint8_t *insn);
 int translate_ldp(ThreadState *state, const uint8_t *insn);
@@ -421,6 +425,7 @@ int translate_ldrb(ThreadState *state, const uint8_t *insn);
 int translate_strb(ThreadState *state, const uint8_t *insn);
 int translate_ldrh(ThreadState *state, const uint8_t *insn);
 int translate_strh(ThreadState *state, const uint8_t *insn);
+*/
 
 /* ============================================================================
  * System Instruction Translation Functions
@@ -558,8 +563,8 @@ void *translate_block(uint64_t guest_pc);
 void execute_translated(ThreadState *state, void *block);
 
 /* Memory operations (SIMD-optimized) */
-void *rosetta_memchr_simd(const void *s, long n);
-void *rosetta_memchr_simd_unaligned(const void *s, long n);
+void *rosetta_memchr_simd(const void *ptr, int c, size_t n);
+void *rosetta_memchr_simd_unaligned(const void *ptr, int c, size_t n);
 int   rosetta_strcmp_simd(const char *s1, const char *s2);
 int   rosetta_strncmp_simd(const char *s1, const char *s2, size_t n);
 int   rosetta_memcmp_simd(const void *s1, const void *s2, size_t n);
@@ -629,10 +634,16 @@ int code_cache_protect(void *addr, size_t size, int prot);
 void debug_trace(const char *msg, uint64_t value);
 void debug_dump_regs(void);
 
-/* Translation helpers - Session 19 */
-void translate_movz(ThreadState *state, const uint8_t *insn);
-void translate_movk(ThreadState *state, const uint8_t *insn);
-void translate_movn(ThreadState *state, const uint8_t *insn);
+/* Translation helpers - Session 19
+ * Note: These are now declared in modular headers:
+ * - rosetta_trans_mov.h for translate_movz/movk/movn
+ * - rosetta_trans_alu.h for ALU translations
+ * - rosetta_trans_mem.h for memory translations
+ * - rosetta_trans_branch.h for branch translations
+ * - rosetta_trans_compare.h for compare translations
+ * - rosetta_trans_system.h for system instructions
+ * - rosetta_trans_neon.h for NEON/SIMD
+ */
 
 /* Vector helpers - Session 19 */
 Vector128 v128_dupw(uint32_t val);

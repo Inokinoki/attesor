@@ -70,8 +70,8 @@ typedef struct jit_context {
     u32 code_cache_size;                /* Total code cache size */
     u32 code_cache_offset;              /* Current write position */
 
-    /* Translation cache */
-    TranslationCacheEntry cache[TRANSLATION_CACHE_SIZE];
+    /* Translation cache (dynamically allocated to avoid stack overflow) */
+    TranslationCacheEntry *cache;       /* Translation cache array */
     u32 cache_insert_index;             /* Round-robin insert index */
 
     /* Current translation state */
@@ -299,7 +299,7 @@ void *translate_block_fast(jit_context_t *ctx, u64 guest_pc);
  * @param state Thread state
  * @return Next guest PC or 0 on exit
  */
-u64 jit_execute(jit_context_t *ctx, u64 guest_pc, thread_state_t *state);
+u64 jit_execute(jit_context_t *ctx, u64 guest_pc, ThreadState *state);
 
 /* ============================================================================
  * Statistics and Debugging

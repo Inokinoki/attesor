@@ -9,21 +9,11 @@
 #ifndef ROSETTA_REFACTORED_VECTOR_H
 #define ROSETTA_REFACTORED_VECTOR_H
 
+#include "rosetta_refactored.h"  /* Includes Vector128 definition */
 #include <stdint.h>
 #include <stdbool.h>
 
-/* 128-bit vector type - only define if not already defined */
-#ifndef VECTOR128_DEFINED
-#ifdef ROSETTA_TYPES_H
-typedef v128_t Vector128;
-#else
-typedef struct {
-    uint64_t lo;
-    uint64_t hi;
-} Vector128;
-#endif
-#define VECTOR128_DEFINED
-#endif
+/* Vector128 is defined in rosetta_refactored.h */
 
 /* ============================================================================
  * Vector Arithmetic Operations

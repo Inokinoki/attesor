@@ -14,9 +14,16 @@
  * Translation Cache Configuration
  * ============================================================================ */
 
-#define TRANSLATION_CACHE_SIZE  4096
-#define TRANSLATION_CACHE_MASK  (TRANSLATION_CACHE_SIZE - 1)
+/* These are also defined in rosetta_types.h - using local values for standalone operation */
+#ifndef TRANSLATION_CACHE_BITS
 #define TRANSLATION_CACHE_BITS  12
+#endif
+#ifndef TRANSLATION_CACHE_SIZE
+#define TRANSLATION_CACHE_SIZE  (1U << TRANSLATION_CACHE_BITS)
+#endif
+#ifndef TRANSLATION_CACHE_MASK
+#define TRANSLATION_CACHE_MASK  (TRANSLATION_CACHE_SIZE - 1)
+#endif
 
 /* ============================================================================
  * Translation Cache Entry Structure

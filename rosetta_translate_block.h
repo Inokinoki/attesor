@@ -115,4 +115,35 @@ int translate_block_link(void *from_block, void *to_block, size_t size);
  */
 int translate_block_unlink(void *block);
 
+/**
+ * Chain execution between two blocks
+ *
+ * Supports multiple chain slots per block for optimized
+ * conditional and unconditional branch targets.
+ *
+ * @param from_block Source block
+ * @param to_block Target block
+ * @param chain_index Chain slot (0 = fall-through, 1 = taken branch)
+ * @return 0 on success, -1 on failure
+ */
+int translate_block_chain(void *from_block, void *to_block, int chain_index);
+
+/**
+ * Get the chained target block
+ *
+ * @param block Translation block
+ * @param chain_index Chain slot index
+ * @return Pointer to chained target block, or NULL if not chained
+ */
+void *translate_block_get_chain(void *block, int chain_index);
+
+/**
+ * Check if a block has a chain target
+ *
+ * @param block Translation block
+ * @param chain_index Chain slot index
+ * @return 1 if chained, 0 otherwise
+ */
+int translate_block_has_chain(void *block, int chain_index);
+
 #endif /* ROSETTA_TRANSLATE_BLOCK_H */

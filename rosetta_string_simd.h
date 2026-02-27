@@ -68,7 +68,7 @@ char *rosetta_strncpy_simd(char *dest, const char *src, size_t n);
  * ============================================================================ */
 
 /**
- * rosetta_memchr_simd - Find byte in memory using SIMD
+ * rosetta_memchr_simd_search - Find byte in memory using SIMD
  * @param ptr Pointer to memory
  * @param c Byte value to search for
  * @param n Number of bytes to search
@@ -77,7 +77,7 @@ char *rosetta_strncpy_simd(char *dest, const char *src, size_t n);
  * Uses SIMD parallel comparison to search for a byte value
  * much faster than byte-by-byte comparison.
  */
-void *rosetta_memchr_simd(const void *ptr, int c, size_t n);
+void *rosetta_memchr_simd_search(const void *ptr, int c, size_t n);
 
 /**
  * rosetta_memchr_simd_variant - Variant with long length parameter

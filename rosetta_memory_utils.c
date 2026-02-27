@@ -36,7 +36,7 @@ void *rosetta_memset_simd(void *s, int c, size_t n)
 /**
  * SIMD-optimized memory search for null bytes
  */
-void *rosetta_memchr_simd(const void *ptr, long len)
+void *rosetta_memchr_simd_nul(const void *ptr, long len)
 {
     const uint64_t *p;
     uint64_t word0, word1;
@@ -145,9 +145,9 @@ void *rosetta_memchr_simd(const void *ptr, long len)
 }
 
 /**
- * SIMD-optimized memory search for unaligned data
+ * SIMD-optimized memory search for unaligned data (null bytes)
  */
-void *rosetta_memchr_simd_unaligned(const void *ptr, long len)
+void *rosetta_memchr_simd_unaligned_nul(const void *ptr, long len)
 {
     const uint8_t *p = (const uint8_t *)ptr;
 

@@ -252,7 +252,8 @@ Rosetta2/
 ├── README.md                      # This file
 ├── rosetta_decomp.c               # Original decompilation (74,677 lines)
 ├── rosettad_decomp.c              # Daemon decompilation (44,064 lines)
-├── rosetta_refactored.c           # Refactored implementations (19,302 lines)
+├── rosetta_refactored.c           # Minimal wrapper (59 lines) - includes modular headers
+├── rosetta_refactored.c.legacy    # Legacy refactored code (19,302 lines) - archived
 ├── rosetta_refactored.h           # Main header (1,215 lines)
 ├── rosetta_refactored_complete.c  # Single-file implementation (2,686 lines)
 ├── rosetta_function_map.h         # Function name mapping (828 functions)
@@ -260,9 +261,9 @@ Rosetta2/
 └── SESSION_*.md                   # Session logs (30+ sessions)
 ```
 
-### Modular Translation Infrastructure (Session 61+)
+### Modular Translation Infrastructure (56 C files + 65 H files)
 
-The translation infrastructure has been fully modularized into categorized components:
+The translation infrastructure is fully modularized into categorized components:
 
 ```
 ├── rosetta_types.h                # Base type definitions
@@ -294,6 +295,8 @@ Core infrastructure and support modules:
 
 ```
 ├── rosetta_jit.h/.c               # JIT compilation infrastructure
+├── rosetta_exec.h/.c              # Execution engine (NEW)
+├── rosetta_init.h/.c              # Initialization & FP registers (NEW)
 ├── rosetta_codegen.h/.c           # Code generation primitives
 ├── rosetta_cache.h/.c             # Translation cache (AOT/JIT)
 ├── rosetta_transcache.h/.c        # Translation cache management
@@ -483,16 +486,18 @@ The original decompiled file `rosetta_decomp.c` contains string literals that re
 | Functions Implemented | 600+ |
 | Completion | ~75% |
 | Categories Documented | 66 |
-| Source Files | 50+ |
+| Source Files | 56 C + 65 H |
 | Total Lines of Code | ~150,000+ |
 
-### Modular Architecture (Sessions 61+)
+### Modular Architecture (Complete)
 
-The translation infrastructure has been fully modularized into the following components:
+The translation infrastructure is fully modularized into the following components:
 
 | Module Category | Files | Description |
 |-----------------|-------|-------------|
 | Core Types | `rosetta_types.h` | Base type definitions |
+| Execution Engine | `rosetta_exec.h/.c` | execute_translated, context switching |
+| Initialization | `rosetta_init.h/.c` | init_translation_env, FP registers |
 | x86 Decoding | `rosetta_x86_decode.h/.c` | x86_64 instruction decoder |
 | ARM64 Emission | `rosetta_arm64_emit.h/.c` | ARM64 code emission |
 | Code Generation | `rosetta_codegen.h/.c` | Code generation primitives |
@@ -519,7 +524,7 @@ The translation infrastructure has been fully modularized into the following com
 | Memory Mgmt | `rosetta_memmgmt.h/.c` | Memory management |
 | Utilities | `rosetta_utils.h/.c`, `rosetta_string_utils.h/.c` | Utility functions |
 
-**Total: 35+ modular components**
+**Total: 40+ modular components**
 
 ### Translation Coverage
 

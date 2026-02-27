@@ -434,7 +434,10 @@ int syscall_mprotect(ThreadState *state)
 
 /**
  * syscall_brk - Change data segment size
+ * Note: sbrk is deprecated on macOS but is still the correct interface
  */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 int syscall_brk(ThreadState *state)
 {
     void *addr = (void *)(uintptr_t)state->guest.x[0];
@@ -458,6 +461,7 @@ int syscall_brk(ThreadState *state)
     state->syscall_result = (int64_t)(uintptr_t)new_brk;
     return 0;
 }
+#pragma clang diagnostic pop
 
 /* ============================================================================
  * File Status Syscall Handlers
@@ -595,8 +599,10 @@ int syscall_set_tid_address(ThreadState *state)
 
 /**
  * syscall_exit - Terminate process
+ * Note: Declared as returning int for syscall_handler_t compatibility,
+ *       but this function never returns.
  */
-noreturn void syscall_exit(ThreadState *state)
+noreturn int syscall_exit(ThreadState *state)
 {
     int status = (int)state->guest.x[0];
     exit(status);
@@ -604,8 +610,10 @@ noreturn void syscall_exit(ThreadState *state)
 
 /**
  * syscall_exit_group - Terminate all threads in process
+ * Note: Declared as returning int for syscall_handler_t compatibility,
+ *       but this function never returns.
  */
-noreturn void syscall_exit_group(ThreadState *state)
+noreturn int syscall_exit_group(ThreadState *state)
 {
     int status = (int)state->guest.x[0];
     _exit(status);

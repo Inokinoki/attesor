@@ -60,7 +60,7 @@ void update_nzcv_flags(ThreadState *state, uint64_t result, uint64_t op1,
         }
     }
 
-    state->cpu.gpr.nzcv = nzcv;
+    state->guest.pstate = nzcv;
 }
 
 void update_nzcv_flags_and(ThreadState *state, uint64_t result)
@@ -78,7 +78,7 @@ void update_nzcv_flags_and(ThreadState *state, uint64_t result)
     }
 
     /* C and V flags are unchanged for logical operations */
-    state->cpu.gpr.nzcv = nzcv;
+    state->guest.pstate = nzcv;
 }
 
 /* ============================================================================
@@ -91,11 +91,11 @@ int translate_add(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
-    uint64_t op1 = state->cpu.gpr.x[rn];
-    uint64_t op2 = state->cpu.gpr.x[rm];
+    uint64_t op1 = state->guest.x[rn];
+    uint64_t op2 = state->guest.x[rm];
 
-    state->cpu.gpr.x[rd] = op1 + op2;
-    update_nzcv_flags(state, state->cpu.gpr.x[rd], op1, op2, true, false);
+    state->guest.x[rd] = op1 + op2;
+    update_nzcv_flags(state, state->guest.x[rd], op1, op2, true, false);
 
     return 0;
 }
@@ -106,11 +106,11 @@ int translate_sub(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
-    uint64_t op1 = state->cpu.gpr.x[rn];
-    uint64_t op2 = state->cpu.gpr.x[rm];
+    uint64_t op1 = state->guest.x[rn];
+    uint64_t op2 = state->guest.x[rm];
 
-    state->cpu.gpr.x[rd] = op1 - op2;
-    update_nzcv_flags(state, state->cpu.gpr.x[rd], op1, op2, false, false);
+    state->guest.x[rd] = op1 - op2;
+    update_nzcv_flags(state, state->guest.x[rd], op1, op2, false, false);
 
     return 0;
 }
@@ -121,11 +121,11 @@ int translate_and(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
-    uint64_t op1 = state->cpu.gpr.x[rn];
-    uint64_t op2 = state->cpu.gpr.x[rm];
+    uint64_t op1 = state->guest.x[rn];
+    uint64_t op2 = state->guest.x[rm];
 
-    state->cpu.gpr.x[rd] = op1 & op2;
-    update_nzcv_flags_and(state, state->cpu.gpr.x[rd]);
+    state->guest.x[rd] = op1 & op2;
+    update_nzcv_flags_and(state, state->guest.x[rd]);
 
     return 0;
 }
@@ -136,11 +136,11 @@ int translate_orr(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
-    uint64_t op1 = state->cpu.gpr.x[rn];
-    uint64_t op2 = state->cpu.gpr.x[rm];
+    uint64_t op1 = state->guest.x[rn];
+    uint64_t op2 = state->guest.x[rm];
 
-    state->cpu.gpr.x[rd] = op1 | op2;
-    update_nzcv_flags_and(state, state->cpu.gpr.x[rd]);
+    state->guest.x[rd] = op1 | op2;
+    update_nzcv_flags_and(state, state->guest.x[rd]);
 
     return 0;
 }
@@ -151,11 +151,11 @@ int translate_eor(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
-    uint64_t op1 = state->cpu.gpr.x[rn];
-    uint64_t op2 = state->cpu.gpr.x[rm];
+    uint64_t op1 = state->guest.x[rn];
+    uint64_t op2 = state->guest.x[rm];
 
-    state->cpu.gpr.x[rd] = op1 ^ op2;
-    update_nzcv_flags_and(state, state->cpu.gpr.x[rd]);
+    state->guest.x[rd] = op1 ^ op2;
+    update_nzcv_flags_and(state, state->guest.x[rd]);
 
     return 0;
 }
@@ -166,7 +166,7 @@ int translate_mul(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
-    state->cpu.gpr.x[rd] = state->cpu.gpr.x[rn] * state->cpu.gpr.x[rm];
+    state->guest.x[rd] = state->guest.x[rn] * state->guest.x[rm];
 
     return 0;
 }
@@ -178,16 +178,16 @@ int translate_div(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     bool signed_div = (insn[3] >> 1) & 1;
 
-    uint64_t divisor = state->cpu.gpr.x[rm];
+    uint64_t divisor = state->guest.x[rm];
     if (divisor == 0) {
-        state->cpu.gpr.x[rd] = 0;  /* ARM64 returns 0 on div by zero */
+        state->guest.x[rd] = 0;  /* ARM64 returns 0 on div by zero */
         return 0;
     }
 
     if (signed_div) {
-        state->cpu.gpr.x[rd] = (int64_t)state->cpu.gpr.x[rn] / (int64_t)divisor;
+        state->guest.x[rd] = (int64_t)state->guest.x[rn] / (int64_t)divisor;
     } else {
-        state->cpu.gpr.x[rd] = state->cpu.gpr.x[rn] / divisor;
+        state->guest.x[rd] = state->guest.x[rn] / divisor;
     }
 
     return 0;
@@ -198,7 +198,7 @@ int translate_mvn(ThreadState *state, const uint8_t *insn)
     uint8_t rd = (insn[0] >> 0) & 0x1F;
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
-    state->cpu.gpr.x[rd] = ~state->cpu.gpr.x[rm];
+    state->guest.x[rd] = ~state->guest.x[rm];
 
     return 0;
 }
@@ -209,11 +209,11 @@ int translate_add_imm(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint16_t imm12 = (uint16_t)((insn[2] >> 10) & 0xFFF);
 
-    uint64_t op1 = state->cpu.gpr.x[rn];
+    uint64_t op1 = state->guest.x[rn];
     uint64_t op2 = imm12;
 
-    state->cpu.gpr.x[rd] = op1 + op2;
-    update_nzcv_flags(state, state->cpu.gpr.x[rd], op1, op2, true, false);
+    state->guest.x[rd] = op1 + op2;
+    update_nzcv_flags(state, state->guest.x[rd], op1, op2, true, false);
 
     return 0;
 }
@@ -224,11 +224,11 @@ int translate_sub_imm(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint16_t imm12 = (uint16_t)((insn[2] >> 10) & 0xFFF);
 
-    uint64_t op1 = state->cpu.gpr.x[rn];
+    uint64_t op1 = state->guest.x[rn];
     uint64_t op2 = imm12;
 
-    state->cpu.gpr.x[rd] = op1 - op2;
-    update_nzcv_flags(state, state->cpu.gpr.x[rd], op1, op2, false, false);
+    state->guest.x[rd] = op1 - op2;
+    update_nzcv_flags(state, state->guest.x[rd], op1, op2, false, false);
 
     return 0;
 }
@@ -239,8 +239,8 @@ int translate_and_imm(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint16_t imm12 = (uint16_t)((insn[2] >> 10) & 0xFFF);
 
-    state->cpu.gpr.x[rd] = state->cpu.gpr.x[rn] & imm12;
-    update_nzcv_flags_and(state, state->cpu.gpr.x[rd]);
+    state->guest.x[rd] = state->guest.x[rn] & imm12;
+    update_nzcv_flags_and(state, state->guest.x[rd]);
 
     return 0;
 }
@@ -251,8 +251,8 @@ int translate_orr_imm(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint16_t imm12 = (uint16_t)((insn[2] >> 10) & 0xFFF);
 
-    state->cpu.gpr.x[rd] = state->cpu.gpr.x[rn] | imm12;
-    update_nzcv_flags_and(state, state->cpu.gpr.x[rd]);
+    state->guest.x[rd] = state->guest.x[rn] | imm12;
+    update_nzcv_flags_and(state, state->guest.x[rd]);
 
     return 0;
 }

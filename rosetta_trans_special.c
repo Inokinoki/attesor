@@ -12,8 +12,8 @@ int translate_cpuid(ThreadState *state, const uint8_t *insn)
 {
     (void)insn;
 
-    uint32_t leaf = (uint32_t)state->cpu.gpr.x[0];  /* EAX */
-    uint32_t subleaf = (uint32_t)state->cpu.gpr.x[2];  /* ECX */
+    uint32_t leaf = (uint32_t)state->guest.x[0];  /* EAX */
+    uint32_t subleaf = (uint32_t)state->guest.x[2];  /* ECX */
 
     uint32_t eax = 0, ebx = 0, ecx = 0, edx = 0;
 
@@ -37,10 +37,10 @@ int translate_cpuid(ThreadState *state, const uint8_t *insn)
 
     (void)subleaf;
 
-    state->cpu.gpr.x[0] = eax;
-    state->cpu.gpr.x[3] = ebx;  /* RBX */
-    state->cpu.gpr.x[1] = ecx;  /* RCX */
-    state->cpu.gpr.x[2] = edx;  /* RDX */
+    state->guest.x[0] = eax;
+    state->guest.x[3] = ebx;  /* RBX */
+    state->guest.x[1] = ecx;  /* RCX */
+    state->guest.x[2] = edx;  /* RDX */
 
     return 0;
 }
@@ -62,8 +62,8 @@ int translate_rdtsc(ThreadState *state, const uint8_t *insn)
     tsc = (uint64_t)clock();
 #endif
 
-    state->cpu.gpr.x[0] = tsc & 0xFFFFFFFF;  /* EAX */
-    state->cpu.gpr.x[2] = tsc >> 32;  /* EDX */
+    state->guest.x[0] = tsc & 0xFFFFFFFF;  /* EAX */
+    state->guest.x[2] = tsc >> 32;  /* EDX */
 
     return 0;
 }
@@ -76,8 +76,8 @@ int translate_shld(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t shift = (insn[2] >> 16) & 0x3F;
 
-    uint64_t dst = state->cpu.gpr.x[rd];
-    uint64_t src = state->cpu.gpr.x[rn];
+    uint64_t dst = state->guest.x[rd];
+    uint64_t src = state->guest.x[rn];
 
     if (shift == 0) {
         /* No shift */
@@ -87,7 +87,7 @@ int translate_shld(ThreadState *state, const uint8_t *insn)
         dst = (dst << shift) | (src >> (64 - shift));
     }
 
-    state->cpu.gpr.x[rd] = dst;
+    state->guest.x[rd] = dst;
 
     return 0;
 }
@@ -100,8 +100,8 @@ int translate_shrd(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t shift = (insn[2] >> 16) & 0x3F;
 
-    uint64_t dst = state->cpu.gpr.x[rd];
-    uint64_t src = state->cpu.gpr.x[rn];
+    uint64_t dst = state->guest.x[rd];
+    uint64_t src = state->guest.x[rn];
 
     if (shift == 0) {
         /* No shift */
@@ -111,7 +111,7 @@ int translate_shrd(ThreadState *state, const uint8_t *insn)
         dst = (dst >> shift) | (src << (64 - shift));
     }
 
-    state->cpu.gpr.x[rd] = dst;
+    state->guest.x[rd] = dst;
 
     return 0;
 }
@@ -121,12 +121,12 @@ int translate_cqo(ThreadState *state, const uint8_t *insn)
     (void)insn;
 
     /* CQO: Sign-extend RAX into RDX:RAX */
-    int64_t rax = (int64_t)state->cpu.gpr.x[0];
+    int64_t rax = (int64_t)state->guest.x[0];
 
     if (rax < 0) {
-        state->cpu.gpr.x[2] = 0xFFFFFFFFFFFFFFFFULL;  /* RDX = -1 */
+        state->guest.x[2] = 0xFFFFFFFFFFFFFFFFULL;  /* RDX = -1 */
     } else {
-        state->cpu.gpr.x[2] = 0;
+        state->guest.x[2] = 0;
     }
 
     return 0;
@@ -137,12 +137,12 @@ int translate_cwd(ThreadState *state, const uint8_t *insn)
     (void)insn;
 
     /* CWD: Sign-extend AX into DX:AX */
-    int16_t ax = (int16_t)(state->cpu.gpr.x[0] & 0xFFFF);
+    int16_t ax = (int16_t)(state->guest.x[0] & 0xFFFF);
 
     if (ax < 0) {
-        state->cpu.gpr.x[2] = 0xFFFF;  /* DX = 0xFFFF */
+        state->guest.x[2] = 0xFFFF;  /* DX = 0xFFFF */
     } else {
-        state->cpu.gpr.x[2] = 0;
+        state->guest.x[2] = 0;
     }
 
     return 0;
@@ -153,12 +153,12 @@ int translate_cdq(ThreadState *state, const uint8_t *insn)
     (void)insn;
 
     /* CDQ: Sign-extend EAX into EDX:EAX */
-    int32_t eax = (int32_t)(state->cpu.gpr.x[0] & 0xFFFFFFFF);
+    int32_t eax = (int32_t)(state->guest.x[0] & 0xFFFFFFFF);
 
     if (eax < 0) {
-        state->cpu.gpr.x[2] = 0xFFFFFFFF;  /* EDX = 0xFFFFFFFF */
+        state->guest.x[2] = 0xFFFFFFFF;  /* EDX = 0xFFFFFFFF */
     } else {
-        state->cpu.gpr.x[2] = 0;
+        state->guest.x[2] = 0;
     }
 
     return 0;
