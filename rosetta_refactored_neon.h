@@ -11,6 +11,11 @@
 
 #include "rosetta_refactored.h"
 #include "rosetta_emit_x86.h"
+#include "rosetta_neon_arith.h"
+#include "rosetta_neon_logic.h"
+#include "rosetta_neon_shift.h"
+#include "rosetta_neon_compare.h"
+#include "rosetta_neon_loadstore.h"
 #include <stdint.h>
 
 /* ============================================================================

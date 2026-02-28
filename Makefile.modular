@@ -51,6 +51,14 @@ SRCS += rosetta_runtime.c
 SRCS += rosetta_trans_helpers.c
 SRCS += rosetta_trans_dispatch.c
 
+# Source files - New utility modules (2026 Refactored)
+SRCS += rosetta_simd_string.c
+SRCS += rosetta_vector_utils.c
+SRCS += rosetta_hash_utils.c
+SRCS += rosetta_fp_utils.c
+SRCS += rosetta_context_utils.c
+SRCS += rosetta_insn_common.c
+
 # Source files - Translation emulation layer (rosetta_trans_*)
 SRCS += rosetta_trans_alu.c
 SRCS += rosetta_trans_mem.c
@@ -115,13 +123,28 @@ SRCS += rosetta_refactored_control.c
 SRCS += rosetta_refactored_utils.c
 
 # Source files - New functional modules (NEON, FP, Atomic)
+# NEON module broken down into sub-modules for better maintainability
+SRCS += rosetta_neon_arith.c
+SRCS += rosetta_neon_logic.c
+SRCS += rosetta_neon_shift.c
+SRCS += rosetta_neon_compare.c
+SRCS += rosetta_neon_loadstore.c
 SRCS += rosetta_refactored_neon.c
 SRCS += rosetta_refactored_float.c
 SRCS += rosetta_refactored_atomic.c
 
+# FP module sub-modules (further modularization)
+SRCS += rosetta_fp_arith.c
+SRCS += rosetta_fp_compare.c
+SRCS += rosetta_fp_convert.c
+
+# Source files - Syscall handlers module (new modular component)
+SRCS += rosetta_refactored_syscall_handlers.c
+
 # Source files - New optimizer and info modules
 SRCS += rosetta_optimizer.c
 SRCS += rosetta_info.c
+SRCS += rosetta_peephole.c
 
 # Header files (for dependency tracking)
 HDRS = rosetta_types.h
@@ -164,6 +187,14 @@ HDRS += rosetta_init.h
 HDRS += rosetta_runtime.h
 HDRS += rosetta_trans_helpers.h
 HDRS += rosetta_trans_dispatch.h
+
+# New utility module headers (2026 Refactored)
+HDRS += rosetta_simd_string.h
+HDRS += rosetta_vector_utils.h
+HDRS += rosetta_hash_utils.h
+HDRS += rosetta_fp_utils.h
+HDRS += rosetta_context_utils.h
+HDRS += rosetta_insn_common.h
 
 # Translation emulation layer headers
 HDRS += rosetta_trans_alu.h
@@ -228,13 +259,31 @@ HDRS += rosetta_refactored_control.h
 HDRS += rosetta_refactored_utils.h
 
 # New functional module headers (NEON, FP, Atomic)
+# NEON sub-modules
+HDRS += rosetta_neon_arith.h
+HDRS += rosetta_neon_logic.h
+HDRS += rosetta_neon_shift.h
+HDRS += rosetta_neon_compare.h
+HDRS += rosetta_neon_loadstore.h
 HDRS += rosetta_refactored_neon.h
 HDRS += rosetta_refactored_float.h
 HDRS += rosetta_refactored_atomic.h
 
+# FP module sub-modules (further modularization)
+HDRS += rosetta_fp_arith.h
+HDRS += rosetta_fp_compare.h
+HDRS += rosetta_fp_convert.h
+
+# Common instruction utilities
+HDRS += rosetta_insn_common.h
+
+# Syscall handlers module header
+HDRS += rosetta_refactored_syscall_handlers.h
+
 # New optimizer and info headers
 HDRS += rosetta_optimizer.h
 HDRS += rosetta_info.h
+HDRS += rosetta_peephole.h
 
 # Object files
 OBJS = $(SRCS:.c=.o)
