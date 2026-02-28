@@ -260,3 +260,147 @@ void emit_fcsel_scalar(CodeBuffer *buf, uint8_t dst, uint8_t src, uint8_t src2, 
     jump_patch[4] = (skip_offset >> 16) & 0xFF;
     jump_patch[5] = (skip_offset >> 24) & 0xFF;
 }
+
+/* ============================================================================
+ * FP Estimate Functions
+ * ============================================================================ */
+
+/**
+ * fp_recip_estimate - Floating-point Reciprocal Estimate (FRECPE)
+ * @value: Input float value
+ * Returns: Estimated 1.0/value
+ *
+ * Implements ARM64 FRECPE instruction emulation using a simplified
+ * exponent-based approximation.
+ */
+float fp_recip_estimate(float value)
+{
+    uint32_t x = *(uint32_t *)&value;
+    uint32_t sign, exp, mant;
+    int32_t exp_val;
+    uint32_t result;
+
+    /* Extract sign, exponent, and mantissa */
+    sign = (x >> 31) & 0x00000001;
+    exp = (x >> 23) & 0x000000FF;
+    mant = x & 0x007FFFFF;
+
+    /* Handle special cases */
+    if (exp == 0) {
+        /* Input is zero or subnormal - return infinity */
+        result = (sign << 31) | 0x7F800000;
+        return *(float *)&result;
+    }
+    if (exp == 0xFF) {
+        if (mant == 0) {
+            /* Input is infinity - return zero */
+            result = (sign << 31);
+            return *(float *)&result;
+        }
+        /* Input is NaN - return NaN */
+        return value;
+    }
+
+    /* Compute reciprocal exponent: new_exp = 254 - old_exp */
+    exp_val = 254 - (int32_t)exp;
+
+    /* Approximate mantissa reciprocal using linear approximation */
+    /* For 1.0 <= m < 2.0, approximate 1/m using: 1.75 - 0.75*m */
+    /* This is a simplification - FRECPE has specific accuracy bounds */
+    if (mant < 0x00400000) {
+        /* mant < 0.5: result mantissa is in [1.0, 2.0) */
+        mant = 0x00800000 - mant;
+    } else {
+        /* mant >= 0.5: result mantissa is in [0.5, 1.0) */
+        mant = 0x00C00000 - (mant << 1);
+        exp_val--;
+    }
+
+    /* Handle exponent overflow/underflow */
+    if (exp_val <= 0) {
+        /* Underflow - return zero */
+        result = (sign << 31);
+        return *(float *)&result;
+    }
+    if (exp_val >= 255) {
+        /* Overflow - return infinity */
+        result = (sign << 31) | 0x7F800000;
+        return *(float *)&result;
+    }
+
+    /* Construct result */
+    result = (sign << 31) | ((uint32_t)exp_val << 23) | (mant & 0x007FFFFF);
+
+    return *(float *)&result;
+}
+
+/**
+ * fp_rsqrt_estimate - Floating-point Reciprocal Square Root Estimate (FRSQRTE)
+ * @value: Input float value
+ * Returns: Estimated 1.0/sqrt(value)
+ *
+ * Implements ARM64 FRSQRTE instruction emulation.
+ * Returns 1/sqrt(2) approximation for normalized inputs.
+ */
+float fp_rsqrt_estimate(float value)
+{
+    uint32_t x = *(uint32_t *)&value;
+    uint32_t exp, mant;
+    int32_t exp_val;
+    uint32_t result;
+
+    /* Extract exponent and mantissa (sign is ignored for rsqrt) */
+    exp = (x >> 23) & 0x000000FF;
+    mant = x & 0x007FFFFF;
+
+    /* Handle special cases */
+    if (exp == 0) {
+        if (mant == 0) {
+            /* Input is zero - return infinity */
+            result = 0x7F800000;
+            return *(float *)&result;
+        }
+        /* Subnormal - treat as zero */
+        result = 0x7F800000;
+        return *(float *)&result;
+    }
+    if (exp == 0xFF) {
+        if (mant == 0) {
+            /* Input is infinity - return zero */
+            result = 0x00000000;
+            return *(float *)&result;
+        }
+        /* Input is NaN - return NaN */
+        return value;
+    }
+
+    /* Compute rsqrt exponent: new_exp = (381 - old_exp) / 2 */
+    /* This gives: exp(1/sqrt(x)) = (254 - exp(x)) / 2 + 63.5 */
+    exp_val = (381 - (int32_t)exp) / 2;
+
+    /* Approximate mantissa for 1/sqrt(m) where 1.0 <= m < 2.0 */
+    /* Using linear approximation: 1.5 - 0.5*m */
+    /* The magic constant 0x5A827999 is approximately 1/sqrt(2) */
+    if (mant < 0x00400000) {
+        mant = 0x007FFFFF - (mant >> 1);
+    } else {
+        /* Use precomputed approximation for 1/sqrt(m) */
+        mant = 0x005A8279 - ((mant * 0x002D0000) >> 24);
+        exp_val--;
+    }
+
+    /* Handle exponent overflow/underflow */
+    if (exp_val <= 0) {
+        result = 0x00000000;
+        return *(float *)&result;
+    }
+    if (exp_val >= 255) {
+        result = 0x7F800000;
+        return *(float *)&result;
+    }
+
+    /* Construct result (sign is always positive) */
+    result = ((uint32_t)exp_val << 23) | (mant & 0x007FFFFF);
+
+    return *(float *)&result;
+}

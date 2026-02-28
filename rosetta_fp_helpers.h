@@ -42,4 +42,26 @@ void emit_fneg_scalar(CodeBuffer *buf, uint8_t dst, uint8_t src, int is_double);
  */
 void emit_fcsel_scalar(CodeBuffer *buf, uint8_t dst, uint8_t src, uint8_t src2, uint8_t cond);
 
+/* ============================================================================
+ * FP Estimate Functions (for FRECPE, FRSQRTE emulation)
+ * ============================================================================ */
+
+/**
+ * fp_recip_estimate - Floating-point Reciprocal Estimate
+ * @value: Input float value
+ * Returns: Estimated 1.0/value
+ *
+ * Implements ARM64 FRECPE instruction emulation.
+ */
+float fp_recip_estimate(float value);
+
+/**
+ * fp_rsqrt_estimate - Floating-point Reciprocal Square Root Estimate
+ * @value: Input float value
+ * Returns: Estimated 1.0/sqrt(value)
+ *
+ * Implements ARM64 FRSQRTE instruction emulation.
+ */
+float fp_rsqrt_estimate(float value);
+
 #endif /* ROSETTA_FP_HELPERS_H */

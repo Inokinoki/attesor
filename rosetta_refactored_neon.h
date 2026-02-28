@@ -299,6 +299,19 @@ int translate_neon_fmax(uint32_t encoding, code_buf_t *code_buf, Vector128 *vec_
 int translate_neon_fmin(uint32_t encoding, code_buf_t *code_buf, Vector128 *vec_regs);
 
 /* ============================================================================
+ * NEON Reduction Operations (Helpers)
+ * ============================================================================ */
+
+/**
+ * has_zero_byte - Check if any byte in a 64-bit value is zero
+ * @x: 64-bit value to check
+ * Returns: Non-zero if any byte is zero, 0 otherwise
+ *
+ * Uses SWAR technique: (x - 0x01010101...) & ~x & 0x80808080...
+ */
+uint64_t has_zero_byte(uint64_t x);
+
+/* ============================================================================
  * Dispatch Function
  * ============================================================================ */
 

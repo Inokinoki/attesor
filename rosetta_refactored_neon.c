@@ -908,3 +908,29 @@ int translate_neon_dispatch(uint32_t encoding, code_buf_t *code_buf,
 
     return -1;  /* Not a NEON instruction or not implemented */
 }
+
+/* ============================================================================
+ * NEON Reduction Helper Functions
+ * ============================================================================ */
+
+/**
+ * has_zero_byte - Check if any byte in a 64-bit value is zero
+ * @x: 64-bit value to check
+ * Returns: Non-zero if any byte is zero, 0 otherwise
+ *
+ * Uses the SWAR (SIMD Within A Register) technique:
+ * - Subtract 0x0101010101010101 from x
+ * - AND with ~x
+ * - AND with 0x8080808080808080
+ * - If result is non-zero, at least one byte was zero
+ *
+ * This works because:
+ * - If a byte is 0x00, subtracting 0x01 causes a borrow from the next byte
+ * - The borrow propagates and sets the high bit of that byte
+ * - The AND with ~x ensures we only detect borrows from zero bytes
+ * - The final AND with 0x8080... extracts the high bits
+ */
+uint64_t has_zero_byte(uint64_t x)
+{
+    return ((x - 0x0101010101010101ULL) & ~x & 0x8080808080808080ULL);
+}
