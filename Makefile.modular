@@ -146,6 +146,9 @@ SRCS += rosetta_optimizer.c
 SRCS += rosetta_info.c
 SRCS += rosetta_peephole.c
 
+# Source files - Rosetta Daemon (rosettad)
+SRCS += rosettad_refactored.c
+
 # Header files (for dependency tracking)
 HDRS = rosetta_types.h
 HDRS += rosetta_codegen_buf.h
@@ -285,6 +288,9 @@ HDRS += rosetta_optimizer.h
 HDRS += rosetta_info.h
 HDRS += rosetta_peephole.h
 
+# Rosetta Daemon headers
+HDRS += rosettad.h
+
 # Object files
 OBJS = $(SRCS:.c=.o)
 
@@ -344,6 +350,14 @@ test_translate: test_translate.c rosetta_translate.c rosetta_codegen.c $(HDRS)
 
 # Clean
 clean:
-	rm -f $(OBJS) $(TARGET) $(LIB) test_jit test_translate
+	rm -f $(OBJS) $(TARGET) $(LIB) test_jit test_translate rosettad $(LIBROSETTAD)
 
-.PHONY: all clean check debug install test test_jit test_translate
+# Rosetta Daemon target
+rosettad: rosettad_refactored.c $(LIB)
+	$(CC) $(CFLAGS) -o rosettad rosettad_refactored.c -L. -lrosetta -lm
+
+# Build rosettad library
+librosettad.a: rosettad_refactored.o $(OBJS)
+	$(AR) rcs $@ rosettad_refactored.o $(filter-out rosettad_refactored.o,$(OBJS))
+
+.PHONY: all clean check debug install test test_jit test_translate rosettad
