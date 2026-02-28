@@ -46,9 +46,10 @@ int rosetta_translate_instruction(uint32_t encoding, code_buf_t *code_buf,
  * @encoding: ARM64 instruction encoding
  * @code_buf: Code buffer
  * @regs: Guest registers
+ * @pstate: Pointer to PSTATE flags
  * Returns: 0 on success, -1 on unknown instruction
  */
-int rosetta_dispatch_alu(uint32_t encoding, code_buf_t *code_buf, uint64_t *regs);
+int rosetta_dispatch_alu(uint32_t encoding, code_buf_t *code_buf, uint64_t *regs, uint64_t *pstate);
 
 /**
  * rosetta_dispatch_memory - Dispatch memory instruction

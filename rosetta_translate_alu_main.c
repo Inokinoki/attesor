@@ -7,6 +7,7 @@
  * ============================================================================ */
 
 #include "rosetta_translate_alu_main.h"
+#include "rosetta_translate_compare.h"
 #include "rosetta_refactored.h"
 #include <string.h>
 
@@ -548,15 +549,246 @@ int translate_alu_ror(uint32_t encoding, code_buf_t *code_buf, uint64_t *guest_s
 }
 
 /**
+ * translate_update_flags_nzc - Update N, Z, C flags based on result
+ * @pstate: Pointer to PSTATE
+ * @result: Operation result
+ * @carry: Carry flag value (for ADDS) or 0 for ANDS
+ */
+void translate_update_flags_nzc(uint64_t *pstate, uint64_t result, int carry)
+{
+    /* N flag: result is negative (MSB set) */
+    translate_set_flag_n(pstate, (result & (1ULL << 63)) != 0);
+
+    /* Z flag: result is zero */
+    translate_set_flag_z(pstate, result == 0);
+
+    /* C flag: as provided */
+    translate_set_flag_c(pstate, carry);
+
+    /* V flag: cleared for ANDS, set based on overflow for ADDS/SUBS */
+    translate_set_flag_v(pstate, 0);
+}
+
+/**
+ * translate_alu_adds - Translate ADDS (add with flags) instruction
+ * @encoding: ARM64 instruction encoding
+ * @code_buf: Code buffer for x86_64 emission
+ * @guest_state: Guest register state (x[32])
+ * @pstate: Pointer to PSTATE flags
+ * Returns: 0 on success
+ */
+int translate_alu_adds(uint32_t encoding, code_buf_t *code_buf, uint64_t *guest_state, uint64_t *pstate)
+{
+    uint8_t rd = encoding & 0x1F;
+    uint8_t rn = (encoding >> 5) & 0x1F;
+    uint8_t rm = (encoding >> 16) & 0x1F;
+    uint8_t x86_rd = translate_get_x86_reg(rd);
+    uint8_t x86_rn = translate_get_x86_reg(rn);
+    uint8_t x86_rm = translate_get_x86_reg(rm);
+
+    uint64_t op1 = guest_state[rn];
+    uint64_t op2 = guest_state[rm];
+    uint64_t result = op1 + op2;
+
+    /* Update guest state */
+    guest_state[rd] = result;
+
+    /* Update NZCV flags */
+    *pstate &= ~FLAG_NZCV_MASK;
+    translate_set_flag_n(pstate, (result & (1ULL << 63)) != 0);
+    translate_set_flag_z(pstate, result == 0);
+    translate_set_flag_c(pstate, result < op1);  /* Carry if unsigned overflow */
+    /* V flag: signed overflow - both operands same sign, result different */
+    {
+        int op1_sign = (op1 >> 63) & 1;
+        int op2_sign = (op2 >> 63) & 1;
+        int result_sign = (result >> 63) & 1;
+        int overflow = (op1_sign == op2_sign) && (result_sign != op1_sign);
+        translate_set_flag_v(pstate, overflow);
+    }
+
+    /* Emit x86_64 code */
+    emit_x86_mov_reg_reg(code_buf, x86_rd, x86_rn);
+    emit_x86_add_reg_reg(code_buf, x86_rd, x86_rm);
+
+    return 0;
+}
+
+/**
+ * translate_alu_subs - Translate SUBS (subtract with flags) instruction
+ * @encoding: ARM64 instruction encoding
+ * @code_buf: Code buffer for x86_64 emission
+ * @guest_state: Guest register state (x[32])
+ * @pstate: Pointer to PSTATE flags
+ * Returns: 0 on success
+ */
+int translate_alu_subs(uint32_t encoding, code_buf_t *code_buf, uint64_t *guest_state, uint64_t *pstate)
+{
+    uint8_t rd = encoding & 0x1F;
+    uint8_t rn = (encoding >> 5) & 0x1F;
+    uint8_t rm = (encoding >> 16) & 0x1F;
+    uint8_t x86_rd = translate_get_x86_reg(rd);
+    uint8_t x86_rn = translate_get_x86_reg(rn);
+    uint8_t x86_rm = translate_get_x86_reg(rm);
+
+    uint64_t op1 = guest_state[rn];
+    uint64_t op2 = guest_state[rm];
+    uint64_t result = op1 - op2;
+
+    /* Update guest state */
+    guest_state[rd] = result;
+
+    /* Update NZCV flags */
+    *pstate &= ~FLAG_NZCV_MASK;
+    translate_set_flag_n(pstate, (result & (1ULL << 63)) != 0);
+    translate_set_flag_z(pstate, result == 0);
+    translate_set_flag_c(pstate, op1 >= op2);  /* Carry = no borrow for subtraction */
+    /* V flag: signed overflow */
+    {
+        int op1_sign = (op1 >> 63) & 1;
+        int op2_sign = (op2 >> 63) & 1;
+        int result_sign = (result >> 63) & 1;
+        int overflow = (op1_sign != op2_sign) && (result_sign != op1_sign);
+        translate_set_flag_v(pstate, overflow);
+    }
+
+    /* Emit x86_64 code */
+    emit_x86_mov_reg_reg(code_buf, x86_rd, x86_rn);
+    emit_x86_sub_reg_reg(code_buf, x86_rd, x86_rm);
+
+    return 0;
+}
+
+/**
+ * translate_alu_ands - Translate ANDS (AND with flags) instruction
+ * @encoding: ARM64 instruction encoding
+ * @code_buf: Code buffer for x86_64 emission
+ * @guest_state: Guest register state (x[32])
+ * @pstate: Pointer to PSTATE flags
+ * Returns: 0 on success
+ */
+int translate_alu_ands(uint32_t encoding, code_buf_t *code_buf, uint64_t *guest_state, uint64_t *pstate)
+{
+    uint8_t rd = encoding & 0x1F;
+    uint8_t rn = (encoding >> 5) & 0x1F;
+    uint8_t rm = (encoding >> 16) & 0x1F;
+    uint8_t x86_rd = translate_get_x86_reg(rd);
+    uint8_t x86_rn = translate_get_x86_reg(rn);
+    uint8_t x86_rm = translate_get_x86_reg(rm);
+
+    uint64_t result = guest_state[rn] & guest_state[rm];
+
+    /* Update guest state */
+    guest_state[rd] = result;
+
+    /* Update NZCV flags */
+    *pstate &= ~FLAG_NZCV_MASK;
+    translate_set_flag_n(pstate, (result & (1ULL << 63)) != 0);
+    translate_set_flag_z(pstate, result == 0);
+    /* C flag: may be affected by shifter operand, cleared here for simplicity */
+    translate_set_flag_c(pstate, 0);
+    /* V flag: unchanged by ANDS */
+    translate_set_flag_v(pstate, 0);
+
+    /* Emit x86_64 code */
+    emit_x86_mov_reg_reg(code_buf, x86_rd, x86_rn);
+    emit_x86_and_reg_reg(code_buf, x86_rd, x86_rm);
+
+    return 0;
+}
+
+/**
+ * translate_alu_madd - Translate MADD (multiply-add) instruction
+ * @encoding: ARM64 instruction encoding
+ * @code_buf: Code buffer for x86_64 emission
+ * @guest_state: Guest register state (x[32])
+ * Returns: 0 on success
+ *
+ * MADD Rd, Rn, Rm, Ra  ; Rd = Rn * Rm + Ra
+ */
+int translate_alu_madd(uint32_t encoding, code_buf_t *code_buf, uint64_t *guest_state)
+{
+    uint8_t rd = encoding & 0x1F;
+    uint8_t rn = (encoding >> 5) & 0x1F;
+    uint8_t rm = (encoding >> 16) & 0x1F;
+    uint8_t ra = (encoding >> 10) & 0x1F;
+    uint8_t x86_rd = translate_get_x86_reg(rd);
+    uint8_t x86_rn = translate_get_x86_reg(rn);
+    uint8_t x86_rm = translate_get_x86_reg(rm);
+    uint8_t x86_ra = translate_get_x86_reg(ra);
+
+    /* Update guest state: Rd = Rn * Rm + Ra */
+    guest_state[rd] = guest_state[rn] * guest_state[rm] + guest_state[ra];
+
+    /* Emit x86_64 code:
+     * MOV rd, rn
+     * IMUL rd, rm  (rd = rn * rm)
+     * ADD rd, ra   (rd = rd + ra)
+     */
+    emit_x86_mov_reg_reg(code_buf, x86_rd, x86_rn);
+    emit_x86_imul_reg_reg_reg(code_buf, x86_rd, x86_rd, x86_rm);
+    emit_x86_add_reg_reg(code_buf, x86_rd, x86_ra);
+
+    return 0;
+}
+
+/**
+ * translate_alu_msub - Translate MSUB (multiply-subtract) instruction
+ * @encoding: ARM64 instruction encoding
+ * @code_buf: Code buffer for x86_64 emission
+ * @guest_state: Guest register state (x[32])
+ * Returns: 0 on success
+ *
+ * MSUB Rd, Rn, Rm, Ra  ; Rd = Ra - (Rn * Rm)
+ */
+int translate_alu_msub(uint32_t encoding, code_buf_t *code_buf, uint64_t *guest_state)
+{
+    uint8_t rd = encoding & 0x1F;
+    uint8_t rn = (encoding >> 5) & 0x1F;
+    uint8_t rm = (encoding >> 16) & 0x1F;
+    uint8_t ra = (encoding >> 10) & 0x1F;
+    uint8_t x86_rd = translate_get_x86_reg(rd);
+    uint8_t x86_rn = translate_get_x86_reg(rn);
+    uint8_t x86_rm = translate_get_x86_reg(rm);
+    uint8_t x86_ra = translate_get_x86_reg(ra);
+
+    /* Update guest state: Rd = Ra - (Rn * Rm) */
+    guest_state[rd] = guest_state[ra] - (guest_state[rn] * guest_state[rm]);
+
+    /* Emit x86_64 code:
+     * MOV rd, ra
+     * MOV temp, rn
+     * IMUL temp, rm  (temp = rn * rm)
+     * SUB rd, temp   (rd = ra - temp)
+     */
+    emit_x86_mov_reg_reg(code_buf, x86_rd, x86_ra);
+    emit_x86_mov_reg_reg(code_buf, EMIT_RCX, x86_rn);
+    emit_x86_imul_reg_reg_reg(code_buf, EMIT_RCX, EMIT_RCX, x86_rm);
+    emit_x86_sub_reg_reg(code_buf, x86_rd, EMIT_RCX);
+
+    return 0;
+}
+
+/**
  * translate_alu_dispatch - Dispatch ALU instruction based on encoding
  * @encoding: ARM64 instruction encoding
  * @code_buf: Code buffer for x86_64 emission
  * @guest_state: Guest register state (x[32])
+ * @pstate: Pointer to PSTATE flags
  * Returns: 0 if instruction handled, -1 otherwise
  */
-int translate_alu_dispatch(uint32_t encoding, code_buf_t *code_buf, uint64_t *guest_state)
+int translate_alu_dispatch(uint32_t encoding, code_buf_t *code_buf, uint64_t *guest_state, uint64_t *pstate)
 {
-    if ((encoding & ALU_ADD_MASK) == ALU_ADD_VAL) {
+    /* ALU with flags update (check first as they have unique encodings) */
+    if ((encoding & ALU_ADDS_MASK) == ALU_ADDS_VAL) {
+        return translate_alu_adds(encoding, code_buf, guest_state, pstate);
+    } else if ((encoding & ALU_SUBS_MASK) == ALU_SUBS_VAL) {
+        return translate_alu_subs(encoding, code_buf, guest_state, pstate);
+    } else if ((encoding & ALU_ANDS_MASK) == ALU_ANDS_VAL) {
+        return translate_alu_ands(encoding, code_buf, guest_state, pstate);
+    }
+    /* Regular ALU instructions */
+    else if ((encoding & ALU_ADD_MASK) == ALU_ADD_VAL) {
         return translate_alu_add(encoding, code_buf, guest_state);
     } else if ((encoding & ALU_SUB_MASK) == ALU_SUB_VAL) {
         return translate_alu_sub(encoding, code_buf, guest_state);
@@ -576,6 +808,10 @@ int translate_alu_dispatch(uint32_t encoding, code_buf_t *code_buf, uint64_t *gu
         return translate_alu_mvn(encoding, code_buf, guest_state);
     } else if ((encoding & ALU_MUL_MASK) == ALU_MUL_VAL) {
         return translate_alu_mul(encoding, code_buf, guest_state);
+    } else if ((encoding & ALU_MADD_MASK) == ALU_MADD_VAL) {
+        return translate_alu_madd(encoding, code_buf, guest_state);
+    } else if ((encoding & ALU_MSUB_MASK) == ALU_MSUB_VAL) {
+        return translate_alu_msub(encoding, code_buf, guest_state);
     } else if ((encoding & ALU_UDIV_MASK) == ALU_UDIV_VAL) {
         return translate_alu_udiv(encoding, code_buf, guest_state);
     } else if ((encoding & ALU_SDIV_MASK) == ALU_SDIV_VAL) {

@@ -36,7 +36,7 @@ int rosetta_decode_and_dispatch(uint32_t encoding, code_buf_t *code_buf,
     /* Try each translation module in order of frequency */
 
     /* 1. ALU instructions (most common) */
-    if (translate_alu_dispatch(encoding, code_buf, state->guest.x) == 0) {
+    if (translate_alu_dispatch(encoding, code_buf, state->guest.x, &state->guest.pstate) == 0) {
         rosetta_stats_record_alu("unknown");
         return 0;
     }
@@ -124,9 +124,9 @@ int rosetta_translate_instruction(uint32_t encoding, code_buf_t *code_buf,
 /**
  * rosetta_dispatch_alu - Dispatch ALU instruction
  */
-int rosetta_dispatch_alu(uint32_t encoding, code_buf_t *code_buf, uint64_t *regs)
+int rosetta_dispatch_alu(uint32_t encoding, code_buf_t *code_buf, uint64_t *regs, uint64_t *pstate)
 {
-    return translate_alu_dispatch(encoding, code_buf, regs);
+    return translate_alu_dispatch(encoding, code_buf, regs, pstate);
 }
 
 /**

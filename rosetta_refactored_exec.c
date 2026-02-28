@@ -98,7 +98,7 @@ void *translate_block(uint64_t guest_pc)
         uint64_t current_pc = guest_pc + (insn_ptr - (const uint32_t *)(uintptr_t)guest_pc - 1) * 4;
 
         /* Try modular dispatch first - ALU instructions */
-        if (translate_alu_dispatch(encoding, &code_buf, state->guest.x) == 0) {
+        if (translate_alu_dispatch(encoding, &code_buf, state->guest.x, &state->guest.pstate) == 0) {
             continue;
         }
 
