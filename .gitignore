@@ -10,3 +10,6 @@ librosetta.a
 # Intermediate Markdown files except README.md
 *.md
 !README.md
+
+# Debug
+*.dSYM
