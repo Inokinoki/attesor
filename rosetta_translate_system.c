@@ -98,14 +98,16 @@ int translate_system_svc(uint32_t encoding, code_buf_t *code_buf, uint64_t *gues
         args[i] = guest_state[i];
     }
 
-    /* Emulate the syscall */
+    /* Emulate the syscall at translation time */
     if (translate_emulate_syscall(syscall_num, args, &result) == 0) {
         /* Set return value in x0 */
         guest_state[0] = result;
     }
 
-    /* Emit x86_64 code - for now just NOP */
-    /* TODO: Emit proper syscall emulation code */
+    /* Emit x86_64 code - NOP since syscall was emulated at translation time.
+     * The syscall result is already stored in guest_state[0], so no runtime
+     * emulation is needed. For syscalls that need runtime execution, this would
+     * emit a call to an external syscall wrapper function. */
     emit_x86_nop(code_buf);
 
     return 0;

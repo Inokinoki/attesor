@@ -38,11 +38,18 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
     }
 
     /* Check for legacy prefixes (simplified) */
+    int has_rep = 0;
     while (*p == 0x66 || *p == 0x67 || *p == 0x2E || *p == 0x3E ||
            *p == 0x26 || *p == 0x36 || *p == 0x64 || *p == 0x65 ||
            *p == 0xF0 || *p == 0xF2 || *p == 0xF3) {
         if (*p == 0x66) insn->is_64bit = 0;
+        if (*p == 0xF2 || *p == 0xF3) has_rep = 1;  /* REP/REPNE prefix */
         p++;
+    }
+
+    /* Store REP prefix flag in rex field (bit 6) */
+    if (has_rep) {
+        insn->rex |= 0x40;
     }
 
     /* Check for 0F escape */

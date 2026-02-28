@@ -336,18 +336,16 @@ static inline int x86_is_popcnt(const x86_insn_t *i)
 
 static inline int x86_is_tzcnt(const x86_insn_t *i)
 {
-    /* TZCNT r64,r/m64 (F3 0F BC) - same as BSF with F3 prefix */
-    /* TODO: Add prefix detection */
-    (void)i;
-    return 0;
+    /* TZCNT r64,r/m64 (F3 0F BC) - same as BSF with F3 REP prefix */
+    /* BSF is 0F BC, TZCNT adds F3 prefix */
+    return i->opcode == 0xF3 && i->opcode2 == 0xBC;
 }
 
 static inline int x86_is_lzcnt(const x86_insn_t *i)
 {
-    /* LZCNT r64,r/m64 (F3 0F BD) - same as BSR with F3 prefix */
-    /* TODO: Add prefix detection */
-    (void)i;
-    return 0;
+    /* LZCNT r64,r/m64 (F3 0F BD) - same as BSR with F3 REP prefix */
+    /* BSR is 0F BD, LZCNT adds F3 prefix */
+    return i->opcode == 0xF3 && i->opcode2 == 0xBD;
 }
 
 /* ============================================================================
@@ -387,9 +385,8 @@ static inline int x86_is_scas(const x86_insn_t *i)
 static inline int x86_has_rep_prefix(const x86_insn_t *i)
 {
     /* REP/REPE/REPNE prefixes: F3 (REP/REPE), F2 (REPNE) */
-    /* TODO: Add prefix tracking */
-    (void)i;
-    return 0;
+    /* REP prefix flag is stored in rex field bit 6 (0x40) */
+    return i->rex & 0x40;
 }
 
 /* ============================================================================
