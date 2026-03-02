@@ -673,8 +673,8 @@ s64 execute_host_syscall(s32 host_nr, u64 *args)
 void return_syscall_to_guest(ThreadState *ts, s64 result)
 {
     if (ts) {
-        /* Set return value in X0 register */
-        ts->guest.x[0] = (u64)result;
+        /* Set return value in x86_64 RAX register */
+        ts->guest.r[X86_RAX] = (u64)result;
     }
 }
 

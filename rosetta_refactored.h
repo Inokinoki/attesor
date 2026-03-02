@@ -98,7 +98,7 @@ typedef struct {
  * ============================================================================ */
 
 typedef void (*translate_func_t)(ThreadState *);
-typedef int (*syscall_handler_t)(ThreadState *, int nr);
+/* syscall_handler_t is defined in rosetta_syscalls.h */
 typedef void *(*memory_map_func_t)(uint64_t guest, uint64_t size);
 typedef int (*memory_unmap_func_t)(uint64_t guest, uint64_t size);
 

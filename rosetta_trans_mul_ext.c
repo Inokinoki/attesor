@@ -40,11 +40,11 @@ int translate_madd(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t ra = (insn[3] >> 10) & 0x1F;
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = state->guest.x[rm];
-    uint64_t acc = state->guest.x[ra];
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = state->host.x[rm];
+    uint64_t acc = state->host.x[ra];
 
-    state->guest.x[rd] = op1 * op2 + acc;
+    state->host.x[rd] = op1 * op2 + acc;
 
     return 0;
 }
@@ -64,11 +64,11 @@ int translate_msub(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t ra = (insn[3] >> 10) & 0x1F;
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = state->guest.x[rm];
-    uint64_t acc = state->guest.x[ra];
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = state->host.x[rm];
+    uint64_t acc = state->host.x[ra];
 
-    state->guest.x[rd] = op1 * op2 - acc;
+    state->host.x[rd] = op1 * op2 - acc;
 
     return 0;
 }
@@ -92,11 +92,11 @@ int translate_smaddl(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t ra = (insn[3] >> 10) & 0x1F;
 
-    int64_t op1 = (int32_t)(uint32_t)state->guest.x[rn];
-    int64_t op2 = (int32_t)(uint32_t)state->guest.x[rm];
-    uint64_t acc = state->guest.x[ra];
+    int64_t op1 = (int32_t)(uint32_t)state->host.x[rn];
+    int64_t op2 = (int32_t)(uint32_t)state->host.x[rm];
+    uint64_t acc = state->host.x[ra];
 
-    state->guest.x[rd] = (uint64_t)(op1 * op2) + acc;
+    state->host.x[rd] = (uint64_t)(op1 * op2) + acc;
 
     return 0;
 }
@@ -116,11 +116,11 @@ int translate_smsubl(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t ra = (insn[3] >> 10) & 0x1F;
 
-    int64_t op1 = (int32_t)(uint32_t)state->guest.x[rn];
-    int64_t op2 = (int32_t)(uint32_t)state->guest.x[rm];
-    uint64_t acc = state->guest.x[ra];
+    int64_t op1 = (int32_t)(uint32_t)state->host.x[rn];
+    int64_t op2 = (int32_t)(uint32_t)state->host.x[rm];
+    uint64_t acc = state->host.x[ra];
 
-    state->guest.x[rd] = (uint64_t)(op1 * op2) - acc;
+    state->host.x[rd] = (uint64_t)(op1 * op2) - acc;
 
     return 0;
 }
@@ -140,11 +140,11 @@ int translate_umaddl(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t ra = (insn[3] >> 10) & 0x1F;
 
-    uint64_t op1 = (uint32_t)state->guest.x[rn];
-    uint64_t op2 = (uint32_t)state->guest.x[rm];
-    uint64_t acc = state->guest.x[ra];
+    uint64_t op1 = (uint32_t)state->host.x[rn];
+    uint64_t op2 = (uint32_t)state->host.x[rm];
+    uint64_t acc = state->host.x[ra];
 
-    state->guest.x[rd] = op1 * op2 + acc;
+    state->host.x[rd] = op1 * op2 + acc;
 
     return 0;
 }
@@ -164,11 +164,11 @@ int translate_umsubl(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t ra = (insn[3] >> 10) & 0x1F;
 
-    uint64_t op1 = (uint32_t)state->guest.x[rn];
-    uint64_t op2 = (uint32_t)state->guest.x[rm];
-    uint64_t acc = state->guest.x[ra];
+    uint64_t op1 = (uint32_t)state->host.x[rn];
+    uint64_t op2 = (uint32_t)state->host.x[rm];
+    uint64_t acc = state->host.x[ra];
 
-    state->guest.x[rd] = op1 * op2 - acc;
+    state->host.x[rd] = op1 * op2 - acc;
 
     return 0;
 }
@@ -193,10 +193,10 @@ int translate_mul(ThreadState *state, const uint8_t *insn)
     uint8_t sf = (insn[3] >> 31) & 1;
 
     if (sf) {
-        state->guest.x[rd] = state->guest.x[rn] * state->guest.x[rm];
+        state->host.x[rd] = state->host.x[rn] * state->host.x[rm];
     } else {
-        state->guest.x[rd] = (uint32_t)((uint32_t)state->guest.x[rn] *
-                                         (uint32_t)state->guest.x[rm]);
+        state->host.x[rd] = (uint32_t)((uint32_t)state->host.x[rn] *
+                                         (uint32_t)state->host.x[rm]);
     }
 
     return 0;
@@ -216,10 +216,10 @@ int translate_smull(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
-    int64_t op1 = (int32_t)(uint32_t)state->guest.x[rn];
-    int64_t op2 = (int32_t)(uint32_t)state->guest.x[rm];
+    int64_t op1 = (int32_t)(uint32_t)state->host.x[rn];
+    int64_t op2 = (int32_t)(uint32_t)state->host.x[rm];
 
-    state->guest.x[rd] = (uint64_t)(op1 * op2);
+    state->host.x[rd] = (uint64_t)(op1 * op2);
 
     return 0;
 }
@@ -238,10 +238,10 @@ int translate_umull(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
-    uint64_t op1 = (uint32_t)state->guest.x[rn];
-    uint64_t op2 = (uint32_t)state->guest.x[rm];
+    uint64_t op1 = (uint32_t)state->host.x[rn];
+    uint64_t op2 = (uint32_t)state->host.x[rm];
 
-    state->guest.x[rd] = op1 * op2;
+    state->host.x[rd] = op1 * op2;
 
     return 0;
 }
@@ -261,8 +261,8 @@ int translate_smulh(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
     /* Use 128-bit multiplication to get high 64 bits */
-    int64_t op1 = (int64_t)state->guest.x[rn];
-    int64_t op2 = (int64_t)state->guest.x[rm];
+    int64_t op1 = (int64_t)state->host.x[rn];
+    int64_t op2 = (int64_t)state->host.x[rm];
 
     /* For signed multiplication, we need the high 64 bits of the 128-bit result */
     /* Split into high and low 32-bit parts */
@@ -278,7 +278,7 @@ int translate_smulh(ThreadState *state, const uint8_t *insn)
     /* lo_lo doesn't affect high 64 bits directly */
 
     /* Combine with proper shifts */
-    state->guest.x[rd] = hi_hi + ((hi_lo >> 32) & 0xFFFFFFFF) + ((lo_hi >> 32) & 0xFFFFFFFF);
+    state->host.x[rd] = hi_hi + ((hi_lo >> 32) & 0xFFFFFFFF) + ((lo_hi >> 32) & 0xFFFFFFFF);
 
     return 0;
 }
@@ -298,8 +298,8 @@ int translate_umulh(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
 
     /* Use 128-bit multiplication to get high 64 bits */
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = state->host.x[rm];
 
     /* Split into high and low 32-bit parts */
     uint64_t op1_hi = op1 >> 32;
@@ -313,7 +313,7 @@ int translate_umulh(ThreadState *state, const uint8_t *insn)
     uint64_t lo_hi = op1_lo * op2_hi;
 
     /* Combine with proper shifts */
-    state->guest.x[rd] = hi_hi + ((hi_lo >> 32) & 0xFFFFFFFF) + ((lo_hi >> 32) & 0xFFFFFFFF);
+    state->host.x[rd] = hi_hi + ((hi_lo >> 32) & 0xFFFFFFFF) + ((lo_hi >> 32) & 0xFFFFFFFF);
 
     return 0;
 }
@@ -337,8 +337,8 @@ int translate_sdiv(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t sf = (insn[3] >> 31) & 1;
 
-    int64_t dividend = (int64_t)state->guest.x[rn];
-    int64_t divisor = (int64_t)state->guest.x[rm];
+    int64_t dividend = (int64_t)state->host.x[rn];
+    int64_t divisor = (int64_t)state->host.x[rm];
     int64_t result;
 
     if (divisor == 0) {
@@ -355,7 +355,7 @@ int translate_sdiv(ThreadState *state, const uint8_t *insn)
         }
     }
 
-    state->guest.x[rd] = (uint64_t)result;
+    state->host.x[rd] = (uint64_t)result;
 
     return 0;
 }
@@ -375,8 +375,8 @@ int translate_udiv(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t sf = (insn[3] >> 31) & 1;
 
-    uint64_t dividend = state->guest.x[rn];
-    uint64_t divisor = state->guest.x[rm];
+    uint64_t dividend = state->host.x[rn];
+    uint64_t divisor = state->host.x[rm];
     uint64_t result;
 
     if (divisor == 0) {
@@ -390,7 +390,7 @@ int translate_udiv(ThreadState *state, const uint8_t *insn)
         }
     }
 
-    state->guest.x[rd] = result;
+    state->host.x[rd] = result;
 
     return 0;
 }
@@ -414,8 +414,8 @@ int translate_smod(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t sf = (insn[3] >> 31) & 1;
 
-    int64_t dividend = (int64_t)state->guest.x[rn];
-    int64_t divisor = (int64_t)state->guest.x[rm];
+    int64_t dividend = (int64_t)state->host.x[rn];
+    int64_t divisor = (int64_t)state->host.x[rm];
     int64_t result;
 
     if (divisor == 0) {
@@ -429,7 +429,7 @@ int translate_smod(ThreadState *state, const uint8_t *insn)
         }
     }
 
-    state->guest.x[rd] = (uint64_t)result;
+    state->host.x[rd] = (uint64_t)result;
 
     return 0;
 }
@@ -449,8 +449,8 @@ int translate_umod(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t sf = (insn[3] >> 31) & 1;
 
-    uint64_t dividend = state->guest.x[rn];
-    uint64_t divisor = state->guest.x[rm];
+    uint64_t dividend = state->host.x[rn];
+    uint64_t divisor = state->host.x[rm];
     uint64_t result;
 
     if (divisor == 0) {
@@ -464,7 +464,7 @@ int translate_umod(ThreadState *state, const uint8_t *insn)
         }
     }
 
-    state->guest.x[rd] = result;
+    state->host.x[rd] = result;
 
     return 0;
 }

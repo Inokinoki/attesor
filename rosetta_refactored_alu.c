@@ -81,20 +81,20 @@ void translate_add(uint32_t encoding, ThreadState *state)
 
         if (imm == 0) {
             /* MOV Rd, Rn (ADD with zero is a move) */
-            state->guest.x[rd] = state->guest.x[rn];
+            state->host.x[rd] = state->host.x[rn];
         } else {
             /* ADD with immediate */
             if (sf) {
-                state->guest.x[rd] = state->guest.x[rn] + imm;
+                state->host.x[rd] = state->host.x[rn] + imm;
             } else {
-                state->guest.x[rd] = (uint32_t)((uint32_t)state->guest.x[rn] + (uint32_t)imm);
+                state->host.x[rd] = (uint32_t)((uint32_t)state->host.x[rn] + (uint32_t)imm);
             }
         }
 
         /* Update flags if S bit set */
         if ((encoding >> 29) & 1) {
             /* Update NZCV flags based on result */
-            update_nzcv_flags(state, state->guest.x[rd], sf);
+            update_nzcv_flags(state, state->host.x[rd], sf);
         }
     } else {
         /* ADD (register): ADD Rd, Rn, Rm */
@@ -102,7 +102,7 @@ void translate_add(uint32_t encoding, ThreadState *state)
         uint8_t shift_type = (encoding >> 22) & 3;
         uint8_t shift_amt = get_shift_amount(encoding);
 
-        uint64_t operand = state->guest.x[rm];
+        uint64_t operand = state->host.x[rm];
 
         /* Apply shift if specified */
         switch (shift_type) {
@@ -125,14 +125,14 @@ void translate_add(uint32_t encoding, ThreadState *state)
         }
 
         if (sf) {
-            state->guest.x[rd] = state->guest.x[rn] + operand;
+            state->host.x[rd] = state->host.x[rn] + operand;
         } else {
-            state->guest.x[rd] = (uint32_t)((uint32_t)state->guest.x[rn] + (uint32_t)operand);
+            state->host.x[rd] = (uint32_t)((uint32_t)state->host.x[rn] + (uint32_t)operand);
         }
 
         /* Update flags if S bit set */
         if ((encoding >> 29) & 1) {
-            update_nzcv_flags(state, state->guest.x[rd], sf);
+            update_nzcv_flags(state, state->host.x[rd], sf);
         }
     }
 }
@@ -158,14 +158,14 @@ void translate_sub(uint32_t encoding, ThreadState *state)
         uint64_t imm = get_operand2(encoding, sf);
 
         if (sf) {
-            state->guest.x[rd] = state->guest.x[rn] - imm;
+            state->host.x[rd] = state->host.x[rn] - imm;
         } else {
-            state->guest.x[rd] = (uint32_t)((uint32_t)state->guest.x[rn] - (uint32_t)imm);
+            state->host.x[rd] = (uint32_t)((uint32_t)state->host.x[rn] - (uint32_t)imm);
         }
 
         /* Update flags if S bit set */
         if ((encoding >> 29) & 1) {
-            update_nzcv_flags(state, state->guest.x[rd], sf);
+            update_nzcv_flags(state, state->host.x[rd], sf);
         }
     } else {
         /* SUB (register) */
@@ -173,7 +173,7 @@ void translate_sub(uint32_t encoding, ThreadState *state)
         uint8_t shift_type = (encoding >> 22) & 3;
         uint8_t shift_amt = get_shift_amount(encoding);
 
-        uint64_t operand = state->guest.x[rm];
+        uint64_t operand = state->host.x[rm];
 
         /* Apply shift */
         switch (shift_type) {
@@ -196,14 +196,14 @@ void translate_sub(uint32_t encoding, ThreadState *state)
         }
 
         if (sf) {
-            state->guest.x[rd] = state->guest.x[rn] - operand;
+            state->host.x[rd] = state->host.x[rn] - operand;
         } else {
-            state->guest.x[rd] = (uint32_t)((uint32_t)state->guest.x[rn] - (uint32_t)operand);
+            state->host.x[rd] = (uint32_t)((uint32_t)state->host.x[rn] - (uint32_t)operand);
         }
 
         /* Update flags if S bit set */
         if ((encoding >> 29) & 1) {
-            update_nzcv_flags(state, state->guest.x[rd], sf);
+            update_nzcv_flags(state, state->host.x[rd], sf);
         }
     }
 }
@@ -223,18 +223,18 @@ void translate_adc(uint32_t encoding, ThreadState *state)
     uint8_t sf = (encoding >> 31) & 1;
 
     /* Get carry flag */
-    uint64_t carry = (state->guest.pstate >> 29) & 1;
+    uint64_t carry = (state->host.pstate >> 29) & 1;
 
     if (sf) {
-        state->guest.x[rd] = state->guest.x[rn] + state->guest.x[rm] + carry;
+        state->host.x[rd] = state->host.x[rn] + state->host.x[rm] + carry;
     } else {
-        state->guest.x[rd] = (uint32_t)((uint32_t)state->guest.x[rn] +
-                                          (uint32_t)state->guest.x[rm] + carry);
+        state->host.x[rd] = (uint32_t)((uint32_t)state->host.x[rn] +
+                                          (uint32_t)state->host.x[rm] + carry);
     }
 
     /* Update flags if S bit set */
     if ((encoding >> 29) & 1) {
-        update_nzcv_flags(state, state->guest.x[rd], sf);
+        update_nzcv_flags(state, state->host.x[rd], sf);
     }
 }
 
@@ -253,18 +253,18 @@ void translate_sbc(uint32_t encoding, ThreadState *state)
     uint8_t sf = (encoding >> 31) & 1;
 
     /* Get carry flag (inverted for SBC) */
-    uint64_t carry = ~((state->guest.pstate >> 29) & 1) & 1;
+    uint64_t carry = ~((state->host.pstate >> 29) & 1) & 1;
 
     if (sf) {
-        state->guest.x[rd] = state->guest.x[rn] - state->guest.x[rm] - carry;
+        state->host.x[rd] = state->host.x[rn] - state->host.x[rm] - carry;
     } else {
-        state->guest.x[rd] = (uint32_t)((uint32_t)state->guest.x[rn] -
-                                          (uint32_t)state->guest.x[rm] - carry);
+        state->host.x[rd] = (uint32_t)((uint32_t)state->host.x[rn] -
+                                          (uint32_t)state->host.x[rm] - carry);
     }
 
     /* Update flags if S bit set */
     if ((encoding >> 29) & 1) {
-        update_nzcv_flags(state, state->guest.x[rd], sf);
+        update_nzcv_flags(state, state->host.x[rd], sf);
     }
 }
 
@@ -284,11 +284,11 @@ void translate_and(uint32_t encoding, ThreadState *state)
     uint8_t rm = (encoding >> 16) & 0x1F;
     uint8_t sf = (encoding >> 31) & 1;
 
-    state->guest.x[rd] = state->guest.x[rn] & state->guest.x[rm];
+    state->host.x[rd] = state->host.x[rn] & state->host.x[rm];
 
     /* Update flags if S bit set */
     if ((encoding >> 29) & 1) {
-        update_nzcv_flags(state, state->guest.x[rd], sf);
+        update_nzcv_flags(state, state->host.x[rd], sf);
     }
 }
 
@@ -304,11 +304,11 @@ void translate_orr(uint32_t encoding, ThreadState *state)
     uint8_t rm = (encoding >> 16) & 0x1F;
     uint8_t sf = (encoding >> 31) & 1;
 
-    state->guest.x[rd] = state->guest.x[rn] | state->guest.x[rm];
+    state->host.x[rd] = state->host.x[rn] | state->host.x[rm];
 
     /* Update flags if S bit set */
     if ((encoding >> 29) & 1) {
-        update_nzcv_flags(state, state->guest.x[rd], sf);
+        update_nzcv_flags(state, state->host.x[rd], sf);
     }
 }
 
@@ -324,11 +324,11 @@ void translate_eor(uint32_t encoding, ThreadState *state)
     uint8_t rm = (encoding >> 16) & 0x1F;
     uint8_t sf = (encoding >> 31) & 1;
 
-    state->guest.x[rd] = state->guest.x[rn] ^ state->guest.x[rm];
+    state->host.x[rd] = state->host.x[rn] ^ state->host.x[rm];
 
     /* Update flags if S bit set */
     if ((encoding >> 29) & 1) {
-        update_nzcv_flags(state, state->guest.x[rd], sf);
+        update_nzcv_flags(state, state->host.x[rd], sf);
     }
 }
 
@@ -346,11 +346,11 @@ void translate_bic(uint32_t encoding, ThreadState *state)
     uint8_t rm = (encoding >> 16) & 0x1F;
     uint8_t sf = (encoding >> 31) & 1;
 
-    state->guest.x[rd] = state->guest.x[rn] & ~state->guest.x[rm];
+    state->host.x[rd] = state->host.x[rn] & ~state->host.x[rm];
 
     /* Update flags if S bit set */
     if ((encoding >> 29) & 1) {
-        update_nzcv_flags(state, state->guest.x[rd], sf);
+        update_nzcv_flags(state, state->host.x[rd], sf);
     }
 }
 
@@ -371,10 +371,10 @@ void translate_mul(uint32_t encoding, ThreadState *state)
     uint8_t sf = (encoding >> 31) & 1;
 
     if (sf) {
-        state->guest.x[rd] = state->guest.x[rn] * state->guest.x[rm];
+        state->host.x[rd] = state->host.x[rn] * state->host.x[rm];
     } else {
-        state->guest.x[rd] = (uint32_t)((uint32_t)state->guest.x[rn] *
-                                          (uint32_t)state->guest.x[rm]);
+        state->host.x[rd] = (uint32_t)((uint32_t)state->host.x[rn] *
+                                          (uint32_t)state->host.x[rm]);
     }
 }
 
@@ -391,8 +391,8 @@ void translate_div(uint32_t encoding, ThreadState *state)
     uint8_t sf = (encoding >> 31) & 1;
     int is_signed = (encoding >> 21) & 1;  /* 1 = SDIV, 0 = UDIV */
 
-    uint64_t dividend = state->guest.x[rn];
-    uint64_t divisor = state->guest.x[rm];
+    uint64_t dividend = state->host.x[rn];
+    uint64_t divisor = state->host.x[rm];
     uint64_t result;
 
     if (divisor == 0) {
@@ -416,7 +416,7 @@ void translate_div(uint32_t encoding, ThreadState *state)
         }
     }
 
-    state->guest.x[rd] = result;
+    state->host.x[rd] = result;
 }
 
 /* ============================================================================
@@ -436,11 +436,11 @@ void translate_mvn(uint32_t encoding, ThreadState *state)
     uint8_t rm = (encoding >> 16) & 0x1F;
     uint8_t sf = (encoding >> 31) & 1;
 
-    state->guest.x[rd] = ~state->guest.x[rm];
+    state->host.x[rd] = ~state->host.x[rm];
 
     /* Update flags if S bit set */
     if ((encoding >> 29) & 1) {
-        update_nzcv_flags(state, state->guest.x[rd], sf);
+        update_nzcv_flags(state, state->host.x[rd], sf);
     }
 }
 
@@ -459,14 +459,14 @@ void translate_neg(uint32_t encoding, ThreadState *state)
     uint8_t sf = (encoding >> 31) & 1;
 
     if (sf) {
-        state->guest.x[rd] = (uint64_t)(0 - (int64_t)state->guest.x[rm]);
+        state->host.x[rd] = (uint64_t)(0 - (int64_t)state->host.x[rm]);
     } else {
-        state->guest.x[rd] = (uint32_t)(0 - (int32_t)(uint32_t)state->guest.x[rm]);
+        state->host.x[rd] = (uint32_t)(0 - (int32_t)(uint32_t)state->host.x[rm]);
     }
 
     /* Update flags if S bit set */
     if ((encoding >> 29) & 1) {
-        update_nzcv_flags(state, state->guest.x[rd], sf);
+        update_nzcv_flags(state, state->host.x[rd], sf);
     }
 }
 
@@ -512,5 +512,5 @@ void update_nzcv_flags(ThreadState *state, uint64_t result, int sf)
     /* For ADD/SUB, they indicate carry/borrow and overflow */
     /* This is a simplified implementation */
 
-    state->guest.pstate = flags;
+    state->host.pstate = flags;
 }

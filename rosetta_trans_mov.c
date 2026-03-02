@@ -45,7 +45,7 @@ int translate_movz(ThreadState *state, const uint8_t *insn)
     /* Build the 64-bit value with appropriate shift */
     uint64_t value = ((uint64_t)imm16) << (hw * 16);
 
-    state->guest.x[rd] = value;
+    state->host.x[rd] = value;
 
     return 0;
 }
@@ -72,9 +72,9 @@ int translate_movk(ThreadState *state, const uint8_t *insn)
 
     /* Clear the target 16-bit field and insert new value */
     uint64_t mask = ~(((uint64_t)0xFFFF) << (hw * 16));
-    uint64_t value = (state->guest.x[rd] & mask) | (((uint64_t)imm16) << (hw * 16));
+    uint64_t value = (state->host.x[rd] & mask) | (((uint64_t)imm16) << (hw * 16));
 
-    state->guest.x[rd] = value;
+    state->host.x[rd] = value;
 
     return 0;
 }
@@ -103,7 +103,7 @@ int translate_movn(ThreadState *state, const uint8_t *insn)
     uint64_t value = ((uint64_t)imm16) << (hw * 16);
     value = ~value;
 
-    state->guest.x[rd] = value;
+    state->host.x[rd] = value;
 
     return 0;
 }
@@ -132,7 +132,7 @@ int translate_mov(ThreadState *state, const uint8_t *insn)
     uint8_t rm = arm64_get_rm(encoding);
 
     /* MOV Rd, Rm is ORR Rd, XZR, Rm */
-    state->guest.x[rd] = state->guest.x[rm];
+    state->host.x[rd] = state->host.x[rm];
 
     return 0;
 }
@@ -156,7 +156,7 @@ int translate_mvn(ThreadState *state, const uint8_t *insn)
     uint8_t rd = arm64_get_rd(encoding);
     uint8_t rm = arm64_get_rm(encoding);
 
-    state->guest.x[rd] = ~state->guest.x[rm];
+    state->host.x[rd] = ~state->host.x[rm];
 
     return 0;
 }
@@ -184,10 +184,10 @@ int translate_neg(ThreadState *state, const uint8_t *insn)
     uint8_t rd = arm64_get_rd(encoding);
     uint8_t rm = arm64_get_rm(encoding);
 
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t op2 = state->host.x[rm];
     uint64_t result = 0 - op2;
 
-    state->guest.x[rd] = result;
+    state->host.x[rd] = result;
 
     /* Update flags like SUBS */
     uint64_t nzcv = 0;
@@ -205,7 +205,7 @@ int translate_neg(ThreadState *state, const uint8_t *insn)
         nzcv |= NZCV_V;
     }
 
-    state->guest.pstate = nzcv;
+    state->host.pstate = nzcv;
 
     return 0;
 }
@@ -230,12 +230,12 @@ int translate_ngc(ThreadState *state, const uint8_t *insn)
     uint8_t rm = arm64_get_rm(encoding);
 
     /* Get carry flag (inverted - C=0 means borrow) */
-    uint64_t carry = (state->guest.pstate & NZCV_C) ? 0 : 1;
+    uint64_t carry = (state->host.pstate & NZCV_C) ? 0 : 1;
 
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t op2 = state->host.x[rm];
     uint64_t result = 0 - op2 - carry;
 
-    state->guest.x[rd] = result;
+    state->host.x[rd] = result;
 
     /* Update flags */
     uint64_t nzcv = 0;
@@ -249,7 +249,7 @@ int translate_ngc(ThreadState *state, const uint8_t *insn)
         nzcv |= NZCV_C;
     }
 
-    state->guest.pstate = nzcv;
+    state->host.pstate = nzcv;
 
     return 0;
 }
@@ -277,7 +277,7 @@ int translate_rev(ThreadState *state, const uint8_t *insn)
     uint8_t rd = arm64_get_rd(encoding);
     uint8_t rm = arm64_get_rm(encoding);
 
-    uint64_t src = state->guest.x[rm];
+    uint64_t src = state->host.x[rm];
 
     /* Byte swap the 64-bit value */
     uint64_t result = ((src & 0x00000000000000FFULL) << 56) |
@@ -289,7 +289,7 @@ int translate_rev(ThreadState *state, const uint8_t *insn)
                       ((src & 0x00FF000000000000ULL) >> 40) |
                       ((src & 0xFF00000000000000ULL) >> 56);
 
-    state->guest.x[rd] = result;
+    state->host.x[rd] = result;
 
     return 0;
 }
@@ -311,13 +311,13 @@ int translate_rev16(ThreadState *state, const uint8_t *insn)
     uint8_t rd = arm64_get_rd(encoding);
     uint8_t rm = arm64_get_rm(encoding);
 
-    uint64_t src = state->guest.x[rm];
+    uint64_t src = state->host.x[rm];
 
     /* Reverse bytes within each 16-bit halfword */
     uint64_t result = ((src & 0x00FF00FF00FF00FFULL) << 8) |
                       ((src & 0xFF00FF00FF00FF00ULL) >> 8);
 
-    state->guest.x[rd] = result;
+    state->host.x[rd] = result;
 
     return 0;
 }
@@ -339,7 +339,7 @@ int translate_rev32(ThreadState *state, const uint8_t *insn)
     uint8_t rd = arm64_get_rd(encoding);
     uint8_t rm = arm64_get_rm(encoding);
 
-    uint64_t src = state->guest.x[rm];
+    uint64_t src = state->host.x[rm];
 
     /* Reverse bytes within each 32-bit word */
     uint32_t lo = (uint32_t)(src & 0xFFFFFFFFULL);
@@ -355,7 +355,7 @@ int translate_rev32(ThreadState *state, const uint8_t *insn)
          ((hi & 0x00FF0000) >> 8) |
          ((hi & 0xFF000000) >> 24);
 
-    state->guest.x[rd] = ((uint64_t)hi << 32) | lo;
+    state->host.x[rd] = ((uint64_t)hi << 32) | lo;
 
     return 0;
 }

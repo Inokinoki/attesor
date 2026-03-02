@@ -10571,7 +10571,8 @@ undefined1  [16] FUN_8000000303ec(long param_1,undefined8 param_2)
 
 /* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
 
-void FUN_80000003049c(undefined8 *param_1,int param_2,long param_3,long *param_4,long *param_5)
+void 
+FUN_80000003049c(undefined8 *param_1,int param_2,long param_3,long *param_4,long *param_5)
 
 {
   char cVar1;

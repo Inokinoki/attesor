@@ -1,0 +1,208 @@
+  Mismatches Found
+
+  1. Missing /proc/cpuinfo Emulation (Critical)
+
+  Decompiled code (FUN_80000002bf74 at line 7420-7481):
+  - Contains special handling for /proc/cpuinfo opens
+  - Creates a fake CPU info file using memfd_create("rosetta_fake_cpuinfo")
+  - Writes fake CPU information:
+    - vendor_id: VirtualApple
+    - model name: VirtualApple @ 2.50GHz
+    - cpu MHz: 2502.057
+    - flags: fpu tsc de cx8 apic sep cmov pat pse36 clflush mmx fxsr sse sse2 syscall nx lm rep_good nopl pni cpuid pclmulqdq ssse3 cx16 sse4_1 popcnt sse4_2 aes lahf_lm movbe fna avx f16c rdrand bmi1 avx2 bmi2
+  - Counts processor entries to determine CPU core count
+
+  Refactored code:
+  - syscall_fcntl in rosetta_syscalls_impl.c:348-361 and rosetta_syscalls.c:604-617 simply passes through to native fcntl()
+  - No /proc/cpuinfo emulation exists
+  - syscall_handler_fcntl in rosetta_refactored_syscall_handlers.c:767 is a STUB
+
+  2. Missing /proc/self/auxv and /proc/thread-self/auxv Handling
+
+  Decompiled code (FUN_80000002bf74 at line 7386-7407, FUN_80000002e50c at line 9230-9248):
+  - Special handling for auxiliary vector paths
+  - Can read from stack-saved auxiliary vector (DAT_8000001a2ca8)
+  - Falls back to opening /proc/self/auxv or /proc/thread-self/auxv
+
+  Refactored code: No auxv handling exists
+
+  3. Missing /proc/self/cmdline and /proc/thread-self/cmdline Handling
+
+  Decompiled code (FUN_80000002bf74 at line 7568-7574, FUN_80000002e50c at line 9251-9262):
+  - Special handling for cmdline paths
+  - Uses FUN_80000002c604 to read and forward cmdline contents
+
+  Refactored code: No cmdline handling exists
+
+  4. Missing /proc/self/exe and /proc/%d/exe Handling
+
+  Decompiled code (FUN_80000002bf74 at line 7482-7520, FUN_80000002e50c at line 9271-9282):
+  - Handles /proc/self/exe, /proc/thread-self/exe, /proc/%d/exe, /proc/%d/task/%d/exe
+  - Uses readlinkat to resolve executable paths
+  - Compares paths to detect if process is running under Rosetta
+
+  Refactored code: Only has basic openat stub, no special exe handling
+
+  5. Missing Path Validation Function (FUN_80000002e50c)
+
+  Decompiled code (lines 9214-9289):
+  - Comprehensive path validation function
+  - Checks for various /proc/ paths based on param_2 type:
+    - Type 0: /proc/self/exe, /proc/thread-self/exe, /proc/%d/exe
+    - Type 1: /proc/self/cmdline, /proc/thread-self/cmdline, /proc/%d/cmdline
+    - Type 2: /proc/self/auxv, /proc/thread-self/auxv, /proc/%d/auxv
+
+  Refactored code: No equivalent function exists
+
+  6. Missing openat Implementation
+
+  Decompiled code: Complex openat handler with all the special path handling above
+
+  Refactored code:
+  - syscall_handler_openat in rosetta_refactored_syscall_handlers.c:796 is a STUB
+  - No implementation in rosetta_syscalls_impl.c
+
+  7. Missing memfd_create Implementation
+
+  Decompiled code: Uses memfd_create for creating fake /proc/cpuinfo file
+
+  Refactored code:
+  - syscall_handler_memfd_create in rosetta_refactored_syscall_handlers.c:971 is a STUB
+  - Not implemented in rosetta_syscalls_impl.c
+
+  8. Incomplete Syscall Handler Table
+
+  Refactored code (rosetta_refactored_syscall_handlers.c:454-730):
+  - Many handlers are stubs via STUB_HANDLER macro
+  - Only basic handlers implemented: read, write, close, open, lseek, mmap, mprotect, munmap, brk, exit, getpid, getuid, geteuid, getgid, getegid, sigaction, fstat, stat, access, poll, select
+
+  Summary Table
+
+  | Feature                     | Decompiled    | Refactored              | Status  |
+  |-----------------------------|---------------|-------------------------|---------|
+  | /proc/cpuinfo emulation     | Yes           | No                      | MISSING |
+  | /proc/self/auxv handling    | Yes           | No                      | MISSING |
+  | /proc/self/cmdline handling | Yes           | No                      | MISSING |
+  | /proc/self/exe handling     | Yes           | Partial (in complete.c) | PARTIAL |
+  | Path validation function    | Yes           | No                      | MISSING |
+  | openat implementation       | Yes           | Stub only               | MISSING |
+  | fcntl implementation        | Yes (complex) | Stub only               | MISSING |
+  | memfd_create implementation | Yes           | Stub only               | MISSING |
+
+⏺ I've completed the analysis. Here's a summary of the key mismatches between the decompiled code and the modularized/refactored code:
+
+  Key Mismatches Summary
+
+  The most significant finding is that the decompiled code contains a sophisticated openat/fcntl handler (FUN_80000002bf74) that:
+
+  1. Emulates /proc/cpuinfo - Creates a fake file via memfd_create that returns VirtualApple CPU information to x86_64 binaries
+  2. Handles /proc/self/auxv - Provides auxiliary vector information to Linux binaries
+  3. Handles /proc/self/cmdline - Provides command line arguments
+  4. Handles /proc/self/exe - Resolves executable paths and detects Rosetta processes
+
+  The refactored code currently has:
+  - Stub handlers for fcntl, openat, memfd_create
+  - No emulation for any of the /proc/ filesystem paths
+  - Basic passthrough syscalls that would fail for Linux x86_64 binaries expecting Linux semantics
+
+  This means the modularized code would not function correctly for real x86_64 Linux binaries that depend on these emulated paths - a critical gap for Rosetta 2 compatibility.
+
+    1. Missing Switch Case Handler Implementations
+
+  Location: rosetta_trans_helpers.c
+
+  Issue: The following functions are declared in rosetta_refactored.h but only have stub implementations or are missing proper logic:
+
+  | Function               | Header Declaration                               | Implementation Status                                |
+  |------------------------|--------------------------------------------------|------------------------------------------------------|
+  | switch_case_handler_13 | uint64_t switch_case_handler_13(uint64_t value); | Exists but just returns value                        |
+  | switch_case_handler_2e | uint64_t switch_case_handler_2e(uint64_t value); | Exists but just returns value                        |
+  | switch_case_handler_1a | uint64_t switch_case_handler_1a(uint64_t value); | Missing from rosetta_trans_helpers.c (only in .bak2) |
+  | switch_case_handler_2b | uint64_t switch_case_handler_2b(uint64_t value); | Missing from rosetta_trans_helpers.c (only in .bak2) |
+
+  2. Flag Update Logic Differences
+
+  Decompiled code pattern:
+  // From rosetta_decomp.c - Uses NEON_uminv for vector operations
+  uVar26 = NEON_uminv(auVar3,1);
+
+  Modularized code (rosetta_refactored_alu.c):
+  // Uses simplified scalar flag update
+  state->host.pstate = flags;  // Missing proper C/V flag computation
+
+  Issue: The update_nzcv_flags function in rosetta_refactored_alu.c (line 483-516) has a comment acknowledging incomplete implementation:
+  /* C and V flags would need to be computed based on the operation */
+  /* This is a simplified implementation */
+
+  But rosetta_trans_alu.c has more complete flag handling (lines 15-65).
+
+  3. Inconsistent Function Signatures
+
+  | Module                   | Signature Style                                            |
+  |--------------------------|------------------------------------------------------------|
+  | rosetta_refactored_alu.c | void translate_add(uint32_t encoding, ThreadState *state)  |
+  | rosetta_trans_alu.c      | int translate_add(ThreadState *state, const uint8_t *insn) |
+
+  Issue: Two different conventions:
+  - Refactored modules use uint32_t encoding + void return
+  - Trans modules use const uint8_t *insn + int return
+
+  4. Missing Memory Operations from Decompiled Code
+
+  The decompiled code contains many CallSupervisor(0) calls (syscall/hypervisor interface) that are not represented in the modularized code:
+
+  // rosetta_decomp.c - many instances
+  CallSupervisor(0);
+  if (0xfffffffffffff000 < param_1) {
+      param_1 = 0xffffffffffffffff;
+  }
+
+  These appear to be syscall wrappers for memory operations that should have equivalents in rosetta_refactored_memory.c or rosetta_refactored_syscall_handlers.c.
+
+  5. NEON Helper Function Mismatch
+
+  Decompiled code uses:
+  NEON_uminv(auVar3, 1)  // Vector minimum across elements
+
+  Modularized code (rosetta_refactored.h):
+  uint8_t neon_uminv(const uint8_t vec[16]);  // Different signature!
+
+  Issue: The signature mismatch suggests the inline helper in the header doesn't match the actual runtime function used in Rosetta 2.
+
+  6. FP Register Handling
+
+  Decompiled code:
+  fpcr = 0;
+  fpsr = param_1;  // Direct register access
+
+  Modularized code:
+  // Uses accessor functions
+  uint32_t read_fpcr(void);
+  void write_fpcr(uint32_t val);
+
+  Issue: The decompiled code directly accesses FPCR/FPSR registers, while the modularized code uses accessor functions. This is an architectural difference that needs reconciliation.
+
+  7. Translation Infrastructure Gap
+
+  The decompiled code shows extensive translation infrastructure:
+  - translate_block (line 18615)
+  - translate_indirect_branch (line 13099)
+  - translate_instruction (line 43141)
+  - translate_jcc, translate_call, translate_loop (x86-specific)
+
+  The modularized code has these functions but with different semantics (ARM64→x86_64 vs x86_64→ARM64).
+
+  8. File Organization Issues
+
+  Several backup files contain implementations not present in the main modularized files:
+  - rosetta_refactored.c.bak2 has switch_case_handler_1a/2b
+  - rosetta_refactored.c.legacy has alternative implementations
+  - rosetta_refactored_complete.c has empty stub functions
+
+  Recommendations
+
+  1. Add missing handlers - Implement switch_case_handler_1a and switch_case_handler_2b in rosetta_trans_helpers.c
+  2. Unify function signatures - Choose one convention (encoding vs insn pointer) consistently
+  3. Complete flag handling - Implement proper C/V flag computation in update_nzcv_flags
+  4. Remove backup files - Clean up .bak, .bak2, .legacy files or merge their content
+  5. Match NEON signatures - Align neon_uminv signature with actual usage pattern

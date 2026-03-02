@@ -74,7 +74,7 @@ static inline void alu_update_nzcv_add(ThreadState *state, uint64_t result,
         }
     }
 
-    state->guest.pstate = nzcv;
+    state->host.pstate = nzcv;
 }
 
 /**
@@ -132,7 +132,7 @@ static inline void alu_update_nzcv_sub(ThreadState *state, uint64_t result,
         }
     }
 
-    state->guest.pstate = nzcv;
+    state->host.pstate = nzcv;
 }
 
 /**
@@ -163,7 +163,7 @@ static inline void alu_update_nzcv_logical(ThreadState *state, uint64_t result, 
     }
 
     /* C and V flags unchanged for logical operations */
-    state->guest.pstate = nzcv;
+    state->host.pstate = nzcv;
 }
 
 /* ============================================================================
@@ -249,11 +249,11 @@ int translate_add_reg(ThreadState *state, const uint8_t *insn)
     uint8_t shift_amount = (encoding >> 10) & 0x3F;
     shift_amount &= sf ? 0x3F : 0x1F;
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = alu_apply_shift(state->guest.x[rm], shift_type, shift_amount, sf);
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = alu_apply_shift(state->host.x[rm], shift_type, shift_amount, sf);
     uint64_t result = op1 + op2;
 
-    state->guest.x[rd] = sf ? result : (uint32_t)result;
+    state->host.x[rd] = sf ? result : (uint32_t)result;
 
     if (s) {
         alu_update_nzcv_add(state, result, op1, op2, sf);
@@ -280,10 +280,10 @@ int translate_add_imm(ThreadState *state, const uint8_t *insn)
     uint8_t s = (encoding >> 29) & 1;
 
     uint64_t imm = alu_decode_immediate(encoding, sf);
-    uint64_t op1 = state->guest.x[rn];
+    uint64_t op1 = state->host.x[rn];
     uint64_t result = op1 + imm;
 
-    state->guest.x[rd] = sf ? result : (uint32_t)result;
+    state->host.x[rd] = sf ? result : (uint32_t)result;
 
     if (s) {
         alu_update_nzcv_add(state, result, op1, imm, sf);
@@ -310,12 +310,12 @@ int translate_adc(ThreadState *state, const uint8_t *insn)
     uint8_t sf = (encoding >> 31) & 1;
     uint8_t s = (encoding >> 29) & 1;
 
-    uint64_t carry = (state->guest.pstate >> 29) & 1;
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t carry = (state->host.pstate >> 29) & 1;
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = state->host.x[rm];
     uint64_t result = op1 + op2 + carry;
 
-    state->guest.x[rd] = sf ? result : (uint32_t)result;
+    state->host.x[rd] = sf ? result : (uint32_t)result;
 
     if (s) {
         alu_update_nzcv_add(state, result, op1, op2 + carry, sf);
@@ -347,11 +347,11 @@ int translate_sub_reg(ThreadState *state, const uint8_t *insn)
     uint8_t shift_amount = (encoding >> 10) & 0x3F;
     shift_amount &= sf ? 0x3F : 0x1F;
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = alu_apply_shift(state->guest.x[rm], shift_type, shift_amount, sf);
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = alu_apply_shift(state->host.x[rm], shift_type, shift_amount, sf);
     uint64_t result = op1 - op2;
 
-    state->guest.x[rd] = sf ? result : (uint32_t)result;
+    state->host.x[rd] = sf ? result : (uint32_t)result;
 
     if (s) {
         alu_update_nzcv_sub(state, result, op1, op2, sf);
@@ -376,10 +376,10 @@ int translate_sub_imm(ThreadState *state, const uint8_t *insn)
     uint8_t s = (encoding >> 29) & 1;
 
     uint64_t imm = alu_decode_immediate(encoding, sf);
-    uint64_t op1 = state->guest.x[rn];
+    uint64_t op1 = state->host.x[rn];
     uint64_t result = op1 - imm;
 
-    state->guest.x[rd] = sf ? result : (uint32_t)result;
+    state->host.x[rd] = sf ? result : (uint32_t)result;
 
     if (s) {
         alu_update_nzcv_sub(state, result, op1, imm, sf);
@@ -406,12 +406,12 @@ int translate_sbc(ThreadState *state, const uint8_t *insn)
     uint8_t sf = (encoding >> 31) & 1;
     uint8_t s = (encoding >> 29) & 1;
 
-    uint64_t carry = ~((state->guest.pstate >> 29) & 1) & 1;  /* Inverted C flag */
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t carry = ~((state->host.pstate >> 29) & 1) & 1;  /* Inverted C flag */
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = state->host.x[rm];
     uint64_t result = op1 - op2 - carry;
 
-    state->guest.x[rd] = sf ? result : (uint32_t)result;
+    state->host.x[rd] = sf ? result : (uint32_t)result;
 
     if (s) {
         alu_update_nzcv_sub(state, result, op1, op2 + carry, sf);
@@ -439,10 +439,10 @@ int translate_neg(ThreadState *state, const uint8_t *insn)
     uint8_t s = (encoding >> 29) & 1;
 
     uint64_t op1 = 0;
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t op2 = state->host.x[rm];
     uint64_t result = op1 - op2;
 
-    state->guest.x[rd] = sf ? result : (uint32_t)result;
+    state->host.x[rd] = sf ? result : (uint32_t)result;
 
     if (s) {
         alu_update_nzcv_sub(state, result, op1, op2, sf);
@@ -474,11 +474,11 @@ int translate_and_reg(ThreadState *state, const uint8_t *insn)
     uint8_t shift_amount = (encoding >> 10) & 0x3F;
     shift_amount &= sf ? 0x3F : 0x1F;
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = alu_apply_shift(state->guest.x[rm], shift_type, shift_amount, sf);
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = alu_apply_shift(state->host.x[rm], shift_type, shift_amount, sf);
     uint64_t result = op1 & op2;
 
-    state->guest.x[rd] = sf ? result : (uint32_t)result;
+    state->host.x[rd] = sf ? result : (uint32_t)result;
 
     if (s) {
         alu_update_nzcv_logical(state, result, sf);
@@ -503,10 +503,10 @@ int translate_and_imm(ThreadState *state, const uint8_t *insn)
     uint8_t s = (encoding >> 29) & 1;
 
     uint64_t imm = alu_decode_immediate(encoding, sf);
-    uint64_t op1 = state->guest.x[rn];
+    uint64_t op1 = state->host.x[rn];
     uint64_t result = op1 & imm;
 
-    state->guest.x[rd] = sf ? result : (uint32_t)result;
+    state->host.x[rd] = sf ? result : (uint32_t)result;
 
     if (s) {
         alu_update_nzcv_logical(state, result, sf);
@@ -531,11 +531,11 @@ int translate_orr_reg(ThreadState *state, const uint8_t *insn)
     uint8_t sf = (encoding >> 31) & 1;
     uint8_t s = (encoding >> 29) & 1;
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = state->host.x[rm];
     uint64_t result = op1 | op2;
 
-    state->guest.x[rd] = sf ? result : (uint32_t)result;
+    state->host.x[rd] = sf ? result : (uint32_t)result;
 
     if (s) {
         alu_update_nzcv_logical(state, result, sf);
@@ -560,11 +560,11 @@ int translate_eor_reg(ThreadState *state, const uint8_t *insn)
     uint8_t sf = (encoding >> 31) & 1;
     uint8_t s = (encoding >> 29) & 1;
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = state->host.x[rm];
     uint64_t result = op1 ^ op2;
 
-    state->guest.x[rd] = sf ? result : (uint32_t)result;
+    state->host.x[rd] = sf ? result : (uint32_t)result;
 
     if (s) {
         alu_update_nzcv_logical(state, result, sf);
@@ -591,11 +591,11 @@ int translate_bic(ThreadState *state, const uint8_t *insn)
     uint8_t sf = (encoding >> 31) & 1;
     uint8_t s = (encoding >> 29) & 1;
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = ~state->guest.x[rm];
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = ~state->host.x[rm];
     uint64_t result = op1 & op2;
 
-    state->guest.x[rd] = sf ? result : (uint32_t)result;
+    state->host.x[rd] = sf ? result : (uint32_t)result;
 
     if (s) {
         alu_update_nzcv_logical(state, result, sf);
@@ -621,9 +621,9 @@ int translate_mvn_reg(ThreadState *state, const uint8_t *insn)
     uint8_t sf = (encoding >> 31) & 1;
     uint8_t s = (encoding >> 29) & 1;
 
-    uint64_t result = ~state->guest.x[rm];
+    uint64_t result = ~state->host.x[rm];
 
-    state->guest.x[rd] = sf ? result : (uint32_t)result;
+    state->host.x[rd] = sf ? result : (uint32_t)result;
 
     if (s) {
         alu_update_nzcv_logical(state, result, sf);
@@ -652,8 +652,8 @@ int translate_cmp_reg(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (encoding >> 16) & 0x1F;
     uint8_t sf = (encoding >> 31) & 1;
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = state->host.x[rm];
     uint64_t result = op1 - op2;
 
     alu_update_nzcv_sub(state, result, op1, op2, sf);
@@ -674,7 +674,7 @@ int translate_cmp_imm(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (encoding >> 5) & 0x1F;
     uint8_t sf = (encoding >> 31) & 1;
 
-    uint64_t op1 = state->guest.x[rn];
+    uint64_t op1 = state->host.x[rn];
     uint64_t imm = alu_decode_immediate(encoding, sf);
     uint64_t result = op1 - imm;
 
@@ -699,8 +699,8 @@ int translate_cmn_reg(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (encoding >> 16) & 0x1F;
     uint8_t sf = (encoding >> 31) & 1;
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = state->host.x[rm];
     uint64_t result = op1 + op2;
 
     alu_update_nzcv_add(state, result, op1, op2, sf);
@@ -724,8 +724,8 @@ int translate_tst_reg(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (encoding >> 16) & 0x1F;
     uint8_t sf = (encoding >> 31) & 1;
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = state->host.x[rm];
     uint64_t result = op1 & op2;
 
     alu_update_nzcv_logical(state, result, sf);

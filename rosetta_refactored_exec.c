@@ -98,39 +98,39 @@ void *translate_block(uint64_t guest_pc)
         uint64_t current_pc = guest_pc + (insn_ptr - (const uint32_t *)(uintptr_t)guest_pc - 1) * 4;
 
         /* Try modular dispatch first - ALU instructions */
-        if (translate_alu_dispatch(encoding, &code_buf, state->guest.x, &state->guest.pstate) == 0) {
+        if (translate_alu_dispatch(encoding, &code_buf, state->host.x, &state->host.pstate) == 0) {
             continue;
         }
 
         /* Try compare instructions */
-        if (translate_compare_dispatch(encoding, &code_buf, state->guest.x,
-                                       &state->guest.pstate) == 0) {
+        if (translate_compare_dispatch(encoding, &code_buf, state->host.x,
+                                       &state->host.pstate) == 0) {
             continue;
         }
 
         /* Try MOV instructions */
-        if (translate_mov_dispatch(encoding, &code_buf, state->guest.x) == 0) {
+        if (translate_mov_dispatch(encoding, &code_buf, state->host.x) == 0) {
             continue;
         }
 
         /* Try bitfield instructions */
-        if (translate_bitfield_dispatch(encoding, &code_buf, state->guest.x) == 0) {
+        if (translate_bitfield_dispatch(encoding, &code_buf, state->host.x) == 0) {
             continue;
         }
 
         /* Try memory instructions */
-        if (translate_mem_dispatch(encoding, &code_buf, state->guest.x) == 0) {
+        if (translate_mem_dispatch(encoding, &code_buf, state->host.x) == 0) {
             continue;
         }
 
         /* Try branch instructions */
-        if (translate_branch_dispatch(encoding, &code_buf, state->guest.x,
+        if (translate_branch_dispatch(encoding, &code_buf, state->host.x,
                                       current_pc, &terminated) == 0) {
             continue;
         }
 
         /* Try system instructions */
-        if (translate_system_dispatch(encoding, &code_buf, state->guest.x) == 0) {
+        if (translate_system_dispatch(encoding, &code_buf, state->host.x) == 0) {
             terminated = 1;  /* System calls typically terminate the block */
             continue;
         }
@@ -245,83 +245,83 @@ uint64_t rosetta_interpret(uint32_t insn, ThreadState *state, uint64_t pc)
 
     /* Decode and execute based on instruction class */
     if ((insn & 0x7F000000) == 0x0B000000) {  /* ADD */
-        state->guest.x[rd] = state->guest.x[rn] + state->guest.x[rm];
+        state->host.x[rd] = state->host.x[rn] + state->host.x[rm];
     } else if ((insn & 0x7F000000) == 0x4B000000) {  /* SUB */
-        state->guest.x[rd] = state->guest.x[rn] - state->guest.x[rm];
+        state->host.x[rd] = state->host.x[rn] - state->host.x[rm];
     } else if ((insn & 0x7F000000) == 0x0A000000) {  /* AND */
-        state->guest.x[rd] = state->guest.x[rn] & state->guest.x[rm];
+        state->host.x[rd] = state->host.x[rn] & state->host.x[rm];
     } else if ((insn & 0x7F000000) == 0x2A000000) {  /* ORR */
-        state->guest.x[rd] = state->guest.x[rn] | state->guest.x[rm];
+        state->host.x[rd] = state->host.x[rn] | state->host.x[rm];
     } else if ((insn & 0x7F000000) == 0x4A000000) {  /* EOR */
-        state->guest.x[rd] = state->guest.x[rn] ^ state->guest.x[rm];
+        state->host.x[rd] = state->host.x[rn] ^ state->host.x[rm];
     } else if ((insn & 0x7FE00000) == 0x2A200000) {  /* MVN */
-        state->guest.x[rd] = ~state->guest.x[rm];
+        state->host.x[rd] = ~state->host.x[rm];
     } else if ((insn & 0x7FE0FC00) == 0x1B007C00) {  /* MUL */
-        state->guest.x[rd] = state->guest.x[rn] * state->guest.x[rm];
+        state->host.x[rd] = state->host.x[rn] * state->host.x[rm];
     } else if ((insn & 0x7F000000) == 0xEB000000) {  /* CMP */
-        uint64_t op1 = state->guest.x[rn];
-        uint64_t op2 = state->guest.x[rm];
+        uint64_t op1 = state->host.x[rn];
+        uint64_t op2 = state->host.x[rm];
         uint64_t result = op1 - op2;
-        state->guest.pstate = 0;
-        if (result & (1ULL << 63)) state->guest.pstate |= (1ULL << 31);  /* N */
-        if (result == 0) state->guest.pstate |= (1ULL << 30);  /* Z */
-        if (op1 < op2) state->guest.pstate |= (1ULL << 29);  /* C */
+        state->host.pstate = 0;
+        if (result & (1ULL << 63)) state->host.pstate |= (1ULL << 31);  /* N */
+        if (result == 0) state->host.pstate |= (1ULL << 30);  /* Z */
+        if (op1 < op2) state->host.pstate |= (1ULL << 29);  /* C */
     } else if ((insn & 0xFF200000) == 0xEA000000) {  /* TST */
-        uint64_t result = state->guest.x[rn] & state->guest.x[rm];
-        state->guest.pstate = 0;
-        if (result & (1ULL << 63)) state->guest.pstate |= (1ULL << 31);  /* N */
-        if (result == 0) state->guest.pstate |= (1ULL << 30);  /* Z */
+        uint64_t result = state->host.x[rn] & state->host.x[rm];
+        state->host.pstate = 0;
+        if (result & (1ULL << 63)) state->host.pstate |= (1ULL << 31);  /* N */
+        if (result == 0) state->host.pstate |= (1ULL << 30);  /* Z */
     } else if ((insn & 0xFF800000) == 0xD2800000) {  /* MOVZ */
         uint16_t imm16 = (insn >> 5) & 0xFFFF;
         uint8_t shift = ((insn >> 21) & 0x03) * 16;
-        state->guest.x[rd] = (uint64_t)imm16 << shift;
+        state->host.x[rd] = (uint64_t)imm16 << shift;
     } else if ((insn & 0xFF800000) == 0xF2800000) {  /* MOVK */
         uint16_t imm16 = (insn >> 5) & 0xFFFF;
         uint8_t shift = ((insn >> 21) & 0x03) * 16;
-        state->guest.x[rd] = (state->guest.x[rd] & ~(0xFFFFULL << shift)) |
+        state->host.x[rd] = (state->host.x[rd] & ~(0xFFFFULL << shift)) |
                               ((uint64_t)imm16 << shift);
     } else if ((insn & 0xFF800000) == 0x12800000) {  /* MOVN */
         uint16_t imm16 = (insn >> 5) & 0xFFFF;
         uint8_t shift = ((insn >> 21) & 0x03) * 16;
-        state->guest.x[rd] = ~(uint64_t)imm16 << shift;
+        state->host.x[rd] = ~(uint64_t)imm16 << shift;
     } else if ((insn & 0xFC000000) == 0x14000000) {  /* B */
         int32_t imm26 = (int32_t)((insn & 0x03FFFFFF) << 6) >> 4;
-        state->guest.pc = pc + imm26;
+        state->host.pc = pc + imm26;
         return 4;
     } else if ((insn & 0xFC000000) == 0x94000000) {  /* BL */
         int32_t imm26 = (int32_t)((insn & 0x03FFFFFF) << 6) >> 4;
-        state->guest.x[30] = pc + 4;
-        state->guest.pc = pc + imm26;
+        state->host.x[30] = pc + 4;
+        state->host.pc = pc + imm26;
         return 4;
     } else if ((insn & 0xFFFFFBFF) == 0xD65F0000) {  /* RET */
-        state->guest.pc = state->guest.x[30];
+        state->host.pc = state->host.x[30];
         return 4;
     } else if ((insn & 0xFFFFFC00) == 0xD61F0000) {  /* BR */
-        state->guest.pc = state->guest.x[rn];
+        state->host.pc = state->host.x[rn];
         return 4;
     } else if ((insn & 0xFFC00000) == 0xF9400000) {  /* LDR */
         uint8_t size = (insn >> 2) & 0x03;
         uint16_t imm12 = ((insn >> 10) & 0xFFF) << size;
-        uint64_t addr = state->guest.x[rn] + imm12;
+        uint64_t addr = state->host.x[rn] + imm12;
         switch (size) {
-            case 0: state->guest.x[rd] = *(uint8_t *)(uintptr_t)addr; break;
-            case 1: state->guest.x[rd] = *(uint16_t *)(uintptr_t)addr; break;
-            case 2: state->guest.x[rd] = *(uint32_t *)(uintptr_t)addr; break;
-            case 3: state->guest.x[rd] = *(uint64_t *)(uintptr_t)addr; break;
+            case 0: state->host.x[rd] = *(uint8_t *)(uintptr_t)addr; break;
+            case 1: state->host.x[rd] = *(uint16_t *)(uintptr_t)addr; break;
+            case 2: state->host.x[rd] = *(uint32_t *)(uintptr_t)addr; break;
+            case 3: state->host.x[rd] = *(uint64_t *)(uintptr_t)addr; break;
         }
     } else if ((insn & 0xFF800000) == 0xF9000000) {  /* STR */
         uint8_t size = (insn >> 2) & 0x03;
         uint16_t imm12 = ((insn >> 10) & 0xFFF) << size;
-        uint64_t addr = state->guest.x[rn] + imm12;
+        uint64_t addr = state->host.x[rn] + imm12;
         switch (size) {
-            case 0: *(uint8_t *)(uintptr_t)addr = (uint8_t)state->guest.x[rd]; break;
-            case 1: *(uint16_t *)(uintptr_t)addr = (uint16_t)state->guest.x[rd]; break;
-            case 2: *(uint32_t *)(uintptr_t)addr = (uint32_t)state->guest.x[rd]; break;
-            case 3: *(uint64_t *)(uintptr_t)addr = state->guest.x[rd]; break;
+            case 0: *(uint8_t *)(uintptr_t)addr = (uint8_t)state->host.x[rd]; break;
+            case 1: *(uint16_t *)(uintptr_t)addr = (uint16_t)state->host.x[rd]; break;
+            case 2: *(uint32_t *)(uintptr_t)addr = (uint32_t)state->host.x[rd]; break;
+            case 3: *(uint64_t *)(uintptr_t)addr = state->host.x[rd]; break;
         }
     }
 
-    state->guest.pc = pc + 4;
+    state->host.pc = pc + 4;
     return 4;
 }
 
@@ -338,11 +338,11 @@ void rosetta_run_interpreter(uint64_t guest_pc, int max_insns)
     ThreadState *state = rosetta_get_state();
     int count = 0;
 
-    state->guest.pc = guest_pc;
+    state->host.pc = guest_pc;
 
     while (count < max_insns) {
-        uint32_t insn = *(uint32_t *)(uintptr_t)state->guest.pc;
-        rosetta_interpret(insn, state, state->guest.pc);
+        uint32_t insn = *(uint32_t *)(uintptr_t)state->host.pc;
+        rosetta_interpret(insn, state, state->host.pc);
 
         /* Check for exit conditions */
         if (insn == 0xD65F03C0) {  /* RET X30 */

@@ -36,67 +36,67 @@ int rosetta_decode_and_dispatch(uint32_t encoding, code_buf_t *code_buf,
     /* Try each translation module in order of frequency */
 
     /* 1. ALU instructions (most common) */
-    if (translate_alu_dispatch(encoding, code_buf, state->guest.x, &state->guest.pstate) == 0) {
+    if (translate_alu_dispatch(encoding, code_buf, state->host.x, &state->host.pstate) == 0) {
         rosetta_stats_record_alu("unknown");
         return 0;
     }
 
     /* 2. Compare instructions */
-    if (translate_compare_dispatch(encoding, code_buf, state->guest.x,
-                                   &state->guest.pstate) == 0) {
+    if (translate_compare_dispatch(encoding, code_buf, state->host.x,
+                                   &state->host.pstate) == 0) {
         rosetta_stats_record_alu("compare");
         return 0;
     }
 
     /* 3. MOV instructions */
-    if (translate_mov_dispatch(encoding, code_buf, state->guest.x) == 0) {
+    if (translate_mov_dispatch(encoding, code_buf, state->host.x) == 0) {
         rosetta_stats_record_alu("mov");
         return 0;
     }
 
     /* 4. Conditional instructions (CSEL, CSET, etc.) */
-    if (translate_cond_dispatch(encoding, code_buf, state->guest.x,
-                                (uint32_t *)&state->guest.pstate) == 0) {
+    if (translate_cond_dispatch(encoding, code_buf, state->host.x,
+                                (uint32_t *)&state->host.pstate) == 0) {
         rosetta_stats_record_alu("conditional");
         return 0;
     }
 
     /* 4b. Bitfield instructions (BFI, UBFX, SBFX, etc.) */
-    if (translate_bitfield_dispatch(encoding, code_buf, state->guest.x) == 0) {
+    if (translate_bitfield_dispatch(encoding, code_buf, state->host.x) == 0) {
         rosetta_stats_record_alu("bitfield");
         return 0;
     }
 
     /* 5. Memory instructions */
-    if (translate_mem_dispatch(encoding, code_buf, state->guest.x) == 0) {
+    if (translate_mem_dispatch(encoding, code_buf, state->host.x) == 0) {
         rosetta_stats_record_mem("unknown");
         return 0;
     }
 
     /* 6. Branch instructions */
-    if (translate_branch_dispatch(encoding, code_buf, state->guest.x,
+    if (translate_branch_dispatch(encoding, code_buf, state->host.x,
                                   pc, terminated) == 0) {
         rosetta_stats_record_branch("unknown");
         return 0;
     }
 
     /* 7. System instructions */
-    if (translate_system_dispatch(encoding, code_buf, state->guest.x) == 0) {
+    if (translate_system_dispatch(encoding, code_buf, state->host.x) == 0) {
         rosetta_stats_record_insn("SYSTEM");
         *terminated = 1;
         return 0;
     }
 
     /* 8. NEON/SIMD instructions */
-    if (translate_neon_dispatch(encoding, code_buf, (Vector128 *)state->guest.v,
-                                state->guest.x) == 0) {
+    if (translate_neon_dispatch(encoding, code_buf, (Vector128 *)state->host.v,
+                                state->host.x) == 0) {
         rosetta_stats_record_insn("NEON");
         return 0;
     }
 
     /* 9. Floating-Point instructions */
-    if (translate_fp_dispatch(encoding, code_buf, (Vector128 *)state->guest.v,
-                              state->guest.x, (uint32_t *)&state->guest.pstate) == 0) {
+    if (translate_fp_dispatch(encoding, code_buf, (Vector128 *)state->host.v,
+                              state->host.x, (uint32_t *)&state->host.pstate) == 0) {
         rosetta_stats_record_insn("FP");
         return 0;
     }

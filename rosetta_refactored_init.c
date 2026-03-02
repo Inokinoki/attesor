@@ -40,15 +40,35 @@ int rosetta_init(void)
     /* Clear thread state */
     memset(&g_thread_state, 0, sizeof(g_thread_state));
 
-    /* Initialize CPU context - uses 'guest' member per rosetta_types.h */
-    g_thread_state.guest.x[30] = 0;  /* LR */
-    g_thread_state.guest.sp = 0;
-    g_thread_state.guest.pc = 0;
-    g_thread_state.guest.pstate = 0;  /* NZCV flags */
+    /* Initialize x86_64 guest CPU context */
+    g_thread_state.guest.r[X86_RAX] = 0;
+    g_thread_state.guest.r[X86_RCX] = 0;
+    g_thread_state.guest.r[X86_RDX] = 0;
+    g_thread_state.guest.r[X86_RBX] = 0;
+    g_thread_state.guest.r[X86_RSI] = 0;
+    g_thread_state.guest.r[X86_RDI] = 0;
+    g_thread_state.guest.r[X86_RBP] = 0;
+    g_thread_state.guest.r[X86_RSP] = 0;
+    g_thread_state.guest.r[X86_R8] = 0;
+    g_thread_state.guest.r[X86_R9] = 0;
+    g_thread_state.guest.r[X86_R10] = 0;
+    g_thread_state.guest.r[X86_R11] = 0;
+    g_thread_state.guest.r[X86_R12] = 0;
+    g_thread_state.guest.r[X86_R13] = 0;
+    g_thread_state.guest.r[X86_R14] = 0;
+    g_thread_state.guest.r[X86_R15] = 0;
+    g_thread_state.guest.rip = 0;
+    g_thread_state.guest.rflags = 0;  /* EFLAGS */
+
+    /* Initialize ARM64 host CPU context */
+    g_thread_state.host.x[30] = 0;  /* LR */
+    g_thread_state.host.sp = 0;
+    g_thread_state.host.pc = 0;
+    g_thread_state.host.pstate = 0;  /* NZCV flags */
 
     /* Initialize FP context */
-    g_thread_state.guest.fpsr = 0;
-    g_thread_state.guest.fpcr = 0;
+    g_thread_state.host.fpsr = 0;
+    g_thread_state.host.fpcr = 0;
 
     /* Initialize translation cache */
     if (refactored_translation_cache_init() != 0) {

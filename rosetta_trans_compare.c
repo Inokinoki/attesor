@@ -55,7 +55,7 @@ void update_nzcv_flags_sub(ThreadState *state, uint64_t result,
         nzcv |= NZCV_V;
     }
 
-    state->guest.pstate = nzcv;
+    state->host.pstate = nzcv;
 }
 
 /**
@@ -98,7 +98,7 @@ void update_nzcv_flags_add(ThreadState *state, uint64_t result,
         nzcv |= NZCV_V;
     }
 
-    state->guest.pstate = nzcv;
+    state->host.pstate = nzcv;
 }
 
 /**
@@ -123,7 +123,7 @@ void update_nzcv_flags_and(ThreadState *state, uint64_t result)
     }
 
     /* C and V flags are unchanged for logical operations */
-    state->guest.pstate = nzcv;
+    state->host.pstate = nzcv;
 }
 
 /* ============================================================================
@@ -151,8 +151,8 @@ int translate_cmp(ThreadState *state, const uint8_t *insn)
     uint8_t rn = arm64_get_rn(encoding);
     uint8_t rm = arm64_get_rm(encoding);
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = state->host.x[rm];
     uint64_t result = op1 - op2;
 
     update_nzcv_flags_sub(state, result, op1, op2);
@@ -179,7 +179,7 @@ int translate_cmp_imm(ThreadState *state, const uint8_t *insn)
     uint8_t rn = arm64_get_rn(encoding);
     uint16_t imm12 = arm64_get_imm12(encoding);
 
-    uint64_t op1 = state->guest.x[rn];
+    uint64_t op1 = state->host.x[rn];
     uint64_t op2 = (uint64_t)imm12;
     uint64_t result = op1 - op2;
 
@@ -207,8 +207,8 @@ int translate_cmn(ThreadState *state, const uint8_t *insn)
     uint8_t rn = arm64_get_rn(encoding);
     uint8_t rm = arm64_get_rm(encoding);
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = state->host.x[rm];
     uint64_t result = op1 + op2;
 
     update_nzcv_flags_add(state, result, op1, op2);
@@ -232,7 +232,7 @@ int translate_cmn_imm(ThreadState *state, const uint8_t *insn)
     uint8_t rn = arm64_get_rn(encoding);
     uint16_t imm12 = arm64_get_imm12(encoding);
 
-    uint64_t op1 = state->guest.x[rn];
+    uint64_t op1 = state->host.x[rn];
     uint64_t op2 = (uint64_t)imm12;
     uint64_t result = op1 + op2;
 
@@ -260,8 +260,8 @@ int translate_tst(ThreadState *state, const uint8_t *insn)
     uint8_t rn = arm64_get_rn(encoding);
     uint8_t rm = arm64_get_rm(encoding);
 
-    uint64_t op1 = state->guest.x[rn];
-    uint64_t op2 = state->guest.x[rm];
+    uint64_t op1 = state->host.x[rn];
+    uint64_t op2 = state->host.x[rm];
     uint64_t result = op1 & op2;
 
     update_nzcv_flags_and(state, result);
@@ -285,7 +285,7 @@ int translate_tst_imm(ThreadState *state, const uint8_t *insn)
     uint8_t rn = arm64_get_rn(encoding);
     uint16_t imm12 = arm64_get_imm12(encoding);
 
-    uint64_t op1 = state->guest.x[rn];
+    uint64_t op1 = state->host.x[rn];
     uint64_t result = op1 & imm12;
 
     update_nzcv_flags_and(state, result);

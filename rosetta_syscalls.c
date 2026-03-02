@@ -2,12 +2,13 @@
  * Rosetta Binary Translator - Syscall Translation Implementation
  * ============================================================================
  *
- * This module translates ARM64 Linux syscalls to x86_64 Linux syscalls.
+ * This module translates x86_64 Linux syscalls to ARM64 Linux syscalls.
  * It handles:
- * - Syscall number translation
- * - Argument register remapping
+ * - Syscall number translation (x86_64 -> ARM64)
+ * - Argument register remapping (x86_64 -> ARM64)
  * - Syscall dispatch to handlers
  *
+ * Translation direction: x86_64 guest -> ARM64 host (like Apple's Rosetta 2)
  * ============================================================================ */
 
 #include "rosetta_syscalls.h"
@@ -47,68 +48,76 @@
  * Syscall Number Mapping Table
  * ============================================================================ */
 
-static const SyscallEntry syscall_table[] = {
+/* SyscallEntry: maps x86_64 guest syscall to ARM64 host syscall */
+typedef struct {
+    int x86_64_nr;        /* x86_64 syscall number (guest) */
+    int arm64_nr;         /* ARM64 syscall number (host) */
+    syscall_handler_t handler;
+} SyscallEntryLocal;
+
+static const SyscallEntryLocal syscall_table[] = {
     /* Basic I/O */
-    {ARM64_SYS_READ,        X86_64_SYS_READ,        syscall_read},
-    {ARM64_SYS_WRITE,       X86_64_SYS_WRITE,       syscall_write},
-    {ARM64_SYS_OPEN,        X86_64_SYS_OPEN,        syscall_open},
-    {ARM64_SYS_CLOSE,       X86_64_SYS_CLOSE,       syscall_close},
-    {ARM64_SYS_LSEEK,       X86_64_SYS_LSEEK,       syscall_lseek},
-    {ARM64_SYS_ACCESS,      X86_64_SYS_ACCESS,      syscall_access},
-    {ARM64_SYS_PIPE,        X86_64_SYS_PIPE,        syscall_pipe},
-    {ARM64_SYS_DUP2,        X86_64_SYS_DUP2,        syscall_dup2},
-    {ARM64_SYS_DUP3,        X86_64_SYS_DUP2,        syscall_dup3},
+    {X86_64_SYS_READ,         ARM64_SYS_READ,         syscall_read},
+    {X86_64_SYS_WRITE,        ARM64_SYS_WRITE,        syscall_write},
+    {X86_64_SYS_OPEN,         ARM64_SYS_OPEN,         syscall_open},
+    {X86_64_SYS_CLOSE,        ARM64_SYS_CLOSE,        syscall_close},
+    {X86_64_SYS_LSEEK,        ARM64_SYS_LSEEK,        syscall_lseek},
+    {X86_64_SYS_ACCESS,       ARM64_SYS_ACCESS,       syscall_access},
+    {X86_64_SYS_PIPE,         ARM64_SYS_PIPE,         syscall_pipe},
+    {X86_64_SYS_DUP,          ARM64_SYS_DUP,          syscall_dup},
+    {X86_64_SYS_DUP2,         ARM64_SYS_DUP2,         syscall_dup2},
+    {X86_64_SYS_DUP3,         ARM64_SYS_DUP3,         syscall_dup3},
 
     /* Memory */
-    {ARM64_SYS_MMAP,        X86_64_SYS_MMAP,        syscall_mmap},
-    {ARM64_SYS_MUNMAP,      X86_64_SYS_MUNMAP,      syscall_munmap},
-    {ARM64_SYS_MPROTECT,    X86_64_SYS_MPROTECT,    syscall_mprotect},
-    {ARM64_SYS_BRK,         X86_64_SYS_BRK,         syscall_brk},
+    {X86_64_SYS_MMAP,         ARM64_SYS_MMAP,         syscall_mmap},
+    {X86_64_SYS_MUNMAP,       ARM64_SYS_MUNMAP,       syscall_munmap},
+    {X86_64_SYS_MPROTECT,     ARM64_SYS_MPROTECT,     syscall_mprotect},
+    {X86_64_SYS_BRK,          ARM64_SYS_BRK,          syscall_brk},
 
     /* File Status */
-    {ARM64_SYS_STAT,        X86_64_SYS_STAT,        syscall_stat},
-    {ARM64_SYS_FSTAT,       X86_64_SYS_FSTAT,       syscall_fstat},
-    {ARM64_SYS_LSTAT,       X86_64_SYS_LSTAT,       syscall_lstat},
+    {X86_64_SYS_STAT,         ARM64_SYS_STAT,         syscall_stat},
+    {X86_64_SYS_FSTAT,        ARM64_SYS_FSTAT,        syscall_fstat},
+    {X86_64_SYS_LSTAT,        ARM64_SYS_LSTAT,        syscall_lstat},
 
     /* Process */
-    {ARM64_SYS_GETPID,      X86_64_SYS_GETPID,      syscall_getpid},
-    {ARM64_SYS_GETTID,      X86_64_SYS_GETTID,      syscall_gettid},
-    {ARM64_SYS_UNAME,       X86_64_SYS_UNAME,       syscall_uname},
-    {ARM64_SYS_FCNTL,       X86_64_SYS_FCNTL,       syscall_fcntl},
-    {ARM64_SYS_SET_TID_ADDRESS, X86_64_SYS_SET_TID_ADDRESS, syscall_set_tid_address},
-    {ARM64_SYS_EXIT,        X86_64_SYS_EXIT,        (syscall_handler_t)syscall_exit},
-    {ARM64_SYS_EXIT_GROUP,  X86_64_SYS_EXIT_GROUP,  (syscall_handler_t)syscall_exit_group},
-    {ARM64_SYS_WAIT4,       X86_64_SYS_WAIT4,       syscall_wait4},
-    {ARM64_SYS_KILL,        X86_64_SYS_KILL,        syscall_kill},
+    {X86_64_SYS_GETPID,       ARM64_SYS_GETPID,       syscall_getpid},
+    {X86_64_SYS_GETTID,       ARM64_SYS_GETTID,       syscall_gettid},
+    {X86_64_SYS_UNAME,        ARM64_SYS_UNAME,        syscall_uname},
+    {X86_64_SYS_FCNTL,        ARM64_SYS_FCNTL,        syscall_fcntl},
+    {X86_64_SYS_SET_TID_ADDRESS, ARM64_SYS_SET_TID_ADDRESS, syscall_set_tid_address},
+    {X86_64_SYS_EXIT,         ARM64_SYS_EXIT,         (syscall_handler_t)syscall_exit},
+    {X86_64_SYS_EXIT_GROUP,   ARM64_SYS_EXIT_GROUP,   (syscall_handler_t)syscall_exit_group},
+    {X86_64_SYS_WAIT4,        ARM64_SYS_WAIT4,        syscall_wait4},
+    {X86_64_SYS_KILL,         ARM64_SYS_KILL,         syscall_kill},
 
     /* Time */
-    {ARM64_SYS_GETTIMEOFDAY, X86_64_SYS_GETTIMEOFDAY, syscall_gettimeofday},
-    {ARM64_SYS_CLOCK_GETTIME, X86_64_SYS_CLOCK_GETTIME, syscall_clock_gettime},
-    {ARM64_SYS_NANOSLEEP,   X86_64_SYS_NANOSLEEP,   syscall_nanosleep},
+    {X86_64_SYS_GETTIMEOFDAY, ARM64_SYS_GETTIMEOFDAY, syscall_gettimeofday},
+    {X86_64_SYS_CLOCK_GETTIME, ARM64_SYS_CLOCK_GETTIME, syscall_clock_gettime},
+    {X86_64_SYS_NANOSLEEP,    ARM64_SYS_NANOSLEEP,    syscall_nanosleep},
 
     /* Signal */
-    {ARM64_SYS_RT_SIGACTION, X86_64_SYS_RT_SIGACTION, syscall_rt_sigaction},
-    {ARM64_SYS_RT_SIGPROCMASK, X86_64_SYS_RT_SIGPROCMASK, syscall_rt_sigprocmask},
-    {ARM64_SYS_SCHED_YIELD, X86_64_SYS_SCHED_YIELD, syscall_sched_yield},
+    {X86_64_SYS_RT_SIGACTION, ARM64_SYS_RT_SIGACTION, syscall_rt_sigaction},
+    {X86_64_SYS_RT_SIGPROCMASK, ARM64_SYS_RT_SIGPROCMASK, syscall_rt_sigprocmask},
+    {X86_64_SYS_SCHED_YIELD,  ARM64_SYS_SCHED_YIELD,  syscall_sched_yield},
 
     /* IPC/Sync */
-    {ARM64_SYS_FUTEX,       X86_64_SYS_FUTEX,       syscall_futex},
-    {ARM64_SYS_ARCH_PRCTL,  -1,                     syscall_arch_prctl},  /* Architecture-specific */
+    {X86_64_SYS_FUTEX,        ARM64_SYS_FUTEX,        syscall_futex},
+    {X86_64_SYS_ARCH_PRCTL,   -1,                     syscall_arch_prctl},  /* Architecture-specific */
 
     /* Network */
-    {ARM64_SYS_SOCKET,      X86_64_SYS_SOCKET,      syscall_socket},
-    {ARM64_SYS_CONNECT,     X86_64_SYS_CONNECT,     syscall_connect},
-    {ARM64_SYS_SENDTO,      X86_64_SYS_SENDTO,      syscall_sendto},
-    {ARM64_SYS_RECVFROM,    X86_64_SYS_RECVFROM,    syscall_recvfrom},
-    {ARM64_SYS_EPOLL_CREATE1, X86_64_SYS_EPOLL_CREATE1, syscall_epoll_create},
-    {ARM64_SYS_EPOLL_CTL,   X86_64_SYS_EPOLL_CTL,   syscall_epoll_ctl},
+    {X86_64_SYS_SOCKET,       ARM64_SYS_SOCKET,       syscall_socket},
+    {X86_64_SYS_CONNECT,      ARM64_SYS_CONNECT,      syscall_connect},
+    {X86_64_SYS_SENDTO,       ARM64_SYS_SENDTO,       syscall_sendto},
+    {X86_64_SYS_RECVFROM,     ARM64_SYS_RECVFROM,     syscall_recvfrom},
+    {X86_64_SYS_EPOLL_CREATE1, ARM64_SYS_EPOLL_CREATE1, syscall_epoll_create},
+    {X86_64_SYS_EPOLL_CTL,    ARM64_SYS_EPOLL_CTL,    syscall_epoll_ctl},
 
     /* Additional */
-    {ARM64_SYS_IOCTL,       X86_64_SYS_IOCTL,       syscall_ioctl},
-    {ARM64_SYS_READV,       X86_64_SYS_READV,       syscall_readv},
-    {ARM64_SYS_WRITEV,      X86_64_SYS_WRITEV,      syscall_writev},
-    {ARM64_SYS_GETCWD,      X86_64_SYS_GETCWD,      syscall_getcwd},
-    {ARM64_SYS_CHDIR,       X86_64_SYS_CHDIR,       syscall_chdir},
+    {X86_64_SYS_IOCTL,        ARM64_SYS_IOCTL,        syscall_ioctl},
+    {X86_64_SYS_READV,        ARM64_SYS_READV,        syscall_readv},
+    {X86_64_SYS_WRITEV,       ARM64_SYS_WRITEV,       syscall_writev},
+    {X86_64_SYS_GETCWD,       ARM64_SYS_GETCWD,       syscall_getcwd},
+    {X86_64_SYS_CHDIR,        ARM64_SYS_CHDIR,        syscall_chdir},
 };
 
 static int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_table[0]);
@@ -118,31 +127,31 @@ static int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_table[0])
  * ============================================================================ */
 
 /**
- * Translate ARM64 syscall number to x86_64
+ * Translate x86_64 syscall number to ARM64
  */
-int translate_syscall_number(int arm64_nr)
+int translate_syscall_number(int x86_64_nr)
 {
     int i;
 
     for (i = 0; i < syscall_table_size; i++) {
-        if (syscall_table[i].arm64_nr == arm64_nr) {
-            return syscall_table[i].x86_64_nr;
+        if (syscall_table[i].x86_64_nr == x86_64_nr) {
+            return syscall_table[i].arm64_nr;
         }
     }
 
-    /* Unknown syscall - return as-is (may still work for some syscalls) */
-    return arm64_nr;
+    /* Unknown syscall - return -1 (not supported) */
+    return -1;
 }
 
 /**
- * Get syscall handler for ARM64 syscall
+ * Get syscall handler for x86_64 syscall
  */
-syscall_handler_t get_syscall_handler(int arm64_nr)
+syscall_handler_t get_syscall_handler(int x86_64_nr)
 {
     int i;
 
     for (i = 0; i < syscall_table_size; i++) {
-        if (syscall_table[i].arm64_nr == arm64_nr) {
+        if (syscall_table[i].x86_64_nr == x86_64_nr) {
             return syscall_table[i].handler;
         }
     }
@@ -155,19 +164,16 @@ syscall_handler_t get_syscall_handler(int arm64_nr)
  * ============================================================================ */
 
 /**
- * Remap ARM64 syscall arguments to x86_64 calling convention
+ * Remap x86_64 syscall arguments to ARM64 calling convention
  *
- * ARM64: x0, x1, x2, x3, x4, x5
- * x86_64: rdi, rsi, rdx, rcx, r8, r9
+ * x86_64: rdi, rsi, rdx, r10, r8, r9  (syscall convention)
+ * ARM64:  x0, x1, x2, x3, x4, x5
  *
- * For Linux syscalls, the arguments are passed in the same order,
- * just in different registers. However, since we're translating
- * at the syscall number level (not intercepting at the register level),
- * we just need to ensure the arguments in memory are correctly interpreted.
+ * Both use the same order for the first 6 arguments, just in different registers.
  */
 void remap_syscall_args(ThreadState *state)
 {
-    /* ARM64 and x86_64 Linux use the same argument passing for syscalls
+    /* x86_64 and ARM64 Linux use the same argument passing for syscalls
      * when the arguments are in memory. The difference is only in which
      * registers are used. Since we're handling syscalls in C, the
      * arguments are already in the correct order in the ThreadState. */
@@ -207,14 +213,24 @@ void init_syscall_table(void)
  * Basic I/O Syscall Handlers
  * ============================================================================ */
 
+/* Helper macros for x86_64 guest syscall arguments */
+#define GUEST_RDI(state) ((state)->guest.r[X86_RDI])
+#define GUEST_RSI(state) ((state)->guest.r[X86_RSI])
+#define GUEST_RDX(state) ((state)->guest.r[X86_RDX])
+#define GUEST_R10(state) ((state)->guest.r[X86_R10])
+#define GUEST_R8(state)  ((state)->guest.r[X86_R8])
+#define GUEST_R9(state)  ((state)->guest.r[X86_R9])
+#define GUEST_RAX(state) ((state)->guest.r[X86_RAX])
+
 /**
  * syscall_read - Read from file descriptor
+ * x86_64: rdi=fd, rsi=buf, rdx=count
  */
 int syscall_read(ThreadState *state)
 {
-    int fd = (int)state->guest.x[0];
-    void *buf = (void *)(uintptr_t)state->guest.x[1];
-    size_t count = (size_t)state->guest.x[2];
+    int fd = (int)GUEST_RDI(state);
+    void *buf = (void *)(uintptr_t)GUEST_RSI(state);
+    size_t count = (size_t)GUEST_RDX(state);
 
     ssize_t ret = read(fd, buf, count);
     if (ret < 0) {
@@ -227,12 +243,13 @@ int syscall_read(ThreadState *state)
 
 /**
  * syscall_write - Write to file descriptor
+ * x86_64: rdi=fd, rsi=buf, rdx=count
  */
 int syscall_write(ThreadState *state)
 {
-    int fd = (int)state->guest.x[0];
-    const void *buf = (const void *)(uintptr_t)state->guest.x[1];
-    size_t count = (size_t)state->guest.x[2];
+    int fd = (int)GUEST_RDI(state);
+    const void *buf = (const void *)(uintptr_t)GUEST_RSI(state);
+    size_t count = (size_t)GUEST_RDX(state);
 
     ssize_t ret = write(fd, buf, count);
     if (ret < 0) {
@@ -248,9 +265,9 @@ int syscall_write(ThreadState *state)
  */
 int syscall_open(ThreadState *state)
 {
-    const char *pathname = (const char *)(uintptr_t)state->guest.x[0];
-    int flags = (int)state->guest.x[1];
-    mode_t mode = (mode_t)state->guest.x[2];
+    const char *pathname = (const char *)(uintptr_t)GUEST_RDI(state);
+    int flags = (int)GUEST_RSI(state);
+    mode_t mode = (mode_t)GUEST_RDX(state);
 
     int fd = open(pathname, flags, mode);
     if (fd < 0) {
@@ -266,7 +283,7 @@ int syscall_open(ThreadState *state)
  */
 int syscall_close(ThreadState *state)
 {
-    int fd = (int)state->guest.x[0];
+    int fd = (int)GUEST_RDI(state);
 
     int ret = close(fd);
     if (ret < 0) {
@@ -282,9 +299,9 @@ int syscall_close(ThreadState *state)
  */
 int syscall_lseek(ThreadState *state)
 {
-    int fd = (int)state->guest.x[0];
-    off_t offset = (off_t)state->guest.x[1];
-    int whence = (int)state->guest.x[2];
+    int fd = (int)GUEST_RDI(state);
+    off_t offset = (off_t)GUEST_RSI(state);
+    int whence = (int)GUEST_RDX(state);
 
     off_t ret = lseek(fd, offset, whence);
     if (ret == (off_t)-1) {
@@ -300,8 +317,8 @@ int syscall_lseek(ThreadState *state)
  */
 int syscall_access(ThreadState *state)
 {
-    const char *pathname = (const char *)(uintptr_t)state->guest.x[0];
-    int mode = (int)state->guest.x[1];
+    const char *pathname = (const char *)(uintptr_t)GUEST_RDI(state);
+    int mode = (int)GUEST_RSI(state);
 
     int ret = access(pathname, mode);
     if (ret < 0) {
@@ -324,19 +341,37 @@ int syscall_pipe(ThreadState *state)
         return -1;
     }
     /* Store pipe file descriptors in x0 and x1 */
-    state->guest.x[0] = pipefd[0];
-    state->guest.x[1] = pipefd[1];
+    GUEST_RDI(state) = pipefd[0];
+    GUEST_RSI(state) = pipefd[1];
     state->syscall_result = 0;
     return 0;
 }
 
 /**
+ * syscall_dup - Duplicate file descriptor
+ * x86_64: rdi=fd
+ */
+int syscall_dup(ThreadState *state)
+{
+    int oldfd = (int)GUEST_RDI(state);
+
+    int ret = dup(oldfd);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = ret;
+    return 0;
+}
+
+/**
  * syscall_dup2 - Duplicate file descriptor
+ * x86_64: rdi=oldfd, rsi=newfd
  */
 int syscall_dup2(ThreadState *state)
 {
-    int oldfd = (int)state->guest.x[0];
-    int newfd = (int)state->guest.x[1];
+    int oldfd = (int)GUEST_RDI(state);
+    int newfd = (int)GUEST_RSI(state);
 
     int ret = dup2(oldfd, newfd);
     if (ret < 0) {
@@ -349,12 +384,13 @@ int syscall_dup2(ThreadState *state)
 
 /**
  * syscall_dup3 - Duplicate file descriptor with flags
+ * x86_64: rdi=oldfd, rsi=newfd, rdx=flags
  */
 int syscall_dup3(ThreadState *state)
 {
-    int oldfd = (int)state->guest.x[0];
-    int newfd = (int)state->guest.x[1];
-    int flags = (int)state->guest.x[2];
+    int oldfd = (int)GUEST_RDI(state);
+    int newfd = (int)GUEST_RSI(state);
+    int flags = (int)GUEST_RDX(state);
 
 #ifdef __linux__
     int ret = dup3(oldfd, newfd, flags);
@@ -381,12 +417,12 @@ int syscall_dup3(ThreadState *state)
  */
 int syscall_mmap(ThreadState *state)
 {
-    void *addr = (void *)(uintptr_t)state->guest.x[0];
-    size_t length = (size_t)state->guest.x[1];
-    int prot = (int)state->guest.x[2];
-    int flags = (int)state->guest.x[3];
-    int fd = (int)state->guest.x[4];
-    off_t offset = (off_t)state->guest.x[5];
+    void *addr = (void *)(uintptr_t)GUEST_RDI(state);
+    size_t length = (size_t)GUEST_RSI(state);
+    int prot = (int)GUEST_RDX(state);
+    int flags = (int)GUEST_R10(state);
+    int fd = (int)GUEST_R8(state);
+    off_t offset = (off_t)GUEST_R9(state);
 
     void *ret = mmap(addr, length, prot, flags, fd, offset);
     if (ret == MAP_FAILED) {
@@ -402,8 +438,8 @@ int syscall_mmap(ThreadState *state)
  */
 int syscall_munmap(ThreadState *state)
 {
-    void *addr = (void *)(uintptr_t)state->guest.x[0];
-    size_t length = (size_t)state->guest.x[1];
+    void *addr = (void *)(uintptr_t)GUEST_RDI(state);
+    size_t length = (size_t)GUEST_RSI(state);
 
     int ret = munmap(addr, length);
     if (ret < 0) {
@@ -419,9 +455,9 @@ int syscall_munmap(ThreadState *state)
  */
 int syscall_mprotect(ThreadState *state)
 {
-    void *addr = (void *)(uintptr_t)state->guest.x[0];
-    size_t length = (size_t)state->guest.x[1];
-    int prot = (int)state->guest.x[2];
+    void *addr = (void *)(uintptr_t)GUEST_RDI(state);
+    size_t length = (size_t)GUEST_RSI(state);
+    int prot = (int)GUEST_RDX(state);
 
     int ret = mprotect(addr, length, prot);
     if (ret < 0) {
@@ -440,7 +476,7 @@ int syscall_mprotect(ThreadState *state)
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 int syscall_brk(ThreadState *state)
 {
-    void *addr = (void *)(uintptr_t)state->guest.x[0];
+    void *addr = (void *)(uintptr_t)GUEST_RDI(state);
 
     /* Get current break */
     void *current_brk = sbrk(0);
@@ -472,8 +508,8 @@ int syscall_brk(ThreadState *state)
  */
 int syscall_stat(ThreadState *state)
 {
-    const char *pathname = (const char *)(uintptr_t)state->guest.x[0];
-    struct stat *statbuf = (struct stat *)(uintptr_t)state->guest.x[1];
+    const char *pathname = (const char *)(uintptr_t)GUEST_RDI(state);
+    struct stat *statbuf = (struct stat *)(uintptr_t)GUEST_RSI(state);
 
     int ret = stat(pathname, statbuf);
     if (ret < 0) {
@@ -489,8 +525,8 @@ int syscall_stat(ThreadState *state)
  */
 int syscall_fstat(ThreadState *state)
 {
-    int fd = (int)state->guest.x[0];
-    struct stat *statbuf = (struct stat *)(uintptr_t)state->guest.x[1];
+    int fd = (int)GUEST_RDI(state);
+    struct stat *statbuf = (struct stat *)(uintptr_t)GUEST_RSI(state);
 
     int ret = fstat(fd, statbuf);
     if (ret < 0) {
@@ -506,8 +542,8 @@ int syscall_fstat(ThreadState *state)
  */
 int syscall_lstat(ThreadState *state)
 {
-    const char *pathname = (const char *)(uintptr_t)state->guest.x[0];
-    struct stat *statbuf = (struct stat *)(uintptr_t)state->guest.x[1];
+    const char *pathname = (const char *)(uintptr_t)GUEST_RDI(state);
+    struct stat *statbuf = (struct stat *)(uintptr_t)GUEST_RSI(state);
 
     int ret = lstat(pathname, statbuf);
     if (ret < 0) {
@@ -551,7 +587,7 @@ int syscall_gettid(ThreadState *state)
  */
 int syscall_uname(ThreadState *state)
 {
-    struct utsname *buf = (struct utsname *)(uintptr_t)state->guest.x[0];
+    struct utsname *buf = (struct utsname *)(uintptr_t)GUEST_RDI(state);
 
     int ret = uname(buf);
     if (ret < 0) {
@@ -567,9 +603,9 @@ int syscall_uname(ThreadState *state)
  */
 int syscall_fcntl(ThreadState *state)
 {
-    int fd = (int)state->guest.x[0];
-    int cmd = (int)state->guest.x[1];
-    long arg = (long)state->guest.x[2];
+    int fd = (int)GUEST_RDI(state);
+    int cmd = (int)GUEST_RSI(state);
+    long arg = (long)GUEST_RDX(state);
 
     long ret = fcntl(fd, cmd, arg);
     if (ret < 0) {
@@ -585,7 +621,7 @@ int syscall_fcntl(ThreadState *state)
  */
 int syscall_set_tid_address(ThreadState *state)
 {
-    int *tidptr = (int *)(uintptr_t)state->guest.x[0];
+    int *tidptr = (int *)(uintptr_t)GUEST_RDI(state);
 
     /* On Linux, this sets the tidptr and returns the thread ID */
     /* For simplicity, just return current thread ID */
@@ -604,7 +640,7 @@ int syscall_set_tid_address(ThreadState *state)
  */
 noreturn int syscall_exit(ThreadState *state)
 {
-    int status = (int)state->guest.x[0];
+    int status = (int)GUEST_RDI(state);
     exit(status);
 }
 
@@ -615,7 +651,7 @@ noreturn int syscall_exit(ThreadState *state)
  */
 noreturn int syscall_exit_group(ThreadState *state)
 {
-    int status = (int)state->guest.x[0];
+    int status = (int)GUEST_RDI(state);
     _exit(status);
 }
 
@@ -624,10 +660,10 @@ noreturn int syscall_exit_group(ThreadState *state)
  */
 int syscall_wait4(ThreadState *state)
 {
-    pid_t pid = (pid_t)state->guest.x[0];
-    int *wstatus = (int *)(uintptr_t)state->guest.x[1];
-    int options = (int)state->guest.x[2];
-    struct rusage *rusage = (struct rusage *)(uintptr_t)state->guest.x[3];
+    pid_t pid = (pid_t)GUEST_RDI(state);
+    int *wstatus = (int *)(uintptr_t)GUEST_RSI(state);
+    int options = (int)GUEST_RDX(state);
+    struct rusage *rusage = (struct rusage *)(uintptr_t)GUEST_R10(state);
 
     pid_t ret = wait4(pid, wstatus, options, rusage);
     if (ret < 0) {
@@ -643,8 +679,8 @@ int syscall_wait4(ThreadState *state)
  */
 int syscall_kill(ThreadState *state)
 {
-    pid_t pid = (pid_t)state->guest.x[0];
-    int sig = (int)state->guest.x[1];
+    pid_t pid = (pid_t)GUEST_RDI(state);
+    int sig = (int)GUEST_RSI(state);
 
     int ret = kill(pid, sig);
     if (ret < 0) {
@@ -664,8 +700,8 @@ int syscall_kill(ThreadState *state)
  */
 int syscall_gettimeofday(ThreadState *state)
 {
-    struct timeval *tv = (struct timeval *)(uintptr_t)state->guest.x[0];
-    struct timezone *tz = (struct timezone *)(uintptr_t)state->guest.x[1];
+    struct timeval *tv = (struct timeval *)(uintptr_t)GUEST_RDI(state);
+    struct timezone *tz = (struct timezone *)(uintptr_t)GUEST_RSI(state);
 
     int ret = gettimeofday(tv, tz);
     if (ret < 0) {
@@ -681,8 +717,8 @@ int syscall_gettimeofday(ThreadState *state)
  */
 int syscall_clock_gettime(ThreadState *state)
 {
-    clockid_t clk_id = (clockid_t)state->guest.x[0];
-    struct timespec *tp = (struct timespec *)(uintptr_t)state->guest.x[1];
+    clockid_t clk_id = (clockid_t)GUEST_RDI(state);
+    struct timespec *tp = (struct timespec *)(uintptr_t)GUEST_RSI(state);
 
     int ret = clock_gettime(clk_id, tp);
     if (ret < 0) {
@@ -698,8 +734,8 @@ int syscall_clock_gettime(ThreadState *state)
  */
 int syscall_nanosleep(ThreadState *state)
 {
-    const struct timespec *req = (const struct timespec *)(uintptr_t)state->guest.x[0];
-    struct timespec *rem = (struct timespec *)(uintptr_t)state->guest.x[1];
+    const struct timespec *req = (const struct timespec *)(uintptr_t)GUEST_RDI(state);
+    struct timespec *rem = (struct timespec *)(uintptr_t)GUEST_RSI(state);
 
     int ret = nanosleep(req, rem);
     if (ret < 0) {
@@ -719,10 +755,10 @@ int syscall_nanosleep(ThreadState *state)
  */
 int syscall_rt_sigaction(ThreadState *state)
 {
-    int signum = (int)state->guest.x[0];
-    const struct sigaction *act = (const struct sigaction *)(uintptr_t)state->guest.x[1];
-    struct sigaction *oldact = (struct sigaction *)(uintptr_t)state->guest.x[2];
-    size_t sigsetsize = (size_t)state->guest.x[3];
+    int signum = (int)GUEST_RDI(state);
+    const struct sigaction *act = (const struct sigaction *)(uintptr_t)GUEST_RSI(state);
+    struct sigaction *oldact = (struct sigaction *)(uintptr_t)GUEST_RDX(state);
+    size_t sigsetsize = (size_t)GUEST_R10(state);
 
     (void)sigsetsize;  /* Ignored on Linux */
 
@@ -740,10 +776,10 @@ int syscall_rt_sigaction(ThreadState *state)
  */
 int syscall_rt_sigprocmask(ThreadState *state)
 {
-    int how = (int)state->guest.x[0];
-    const sigset_t *set = (const sigset_t *)(uintptr_t)state->guest.x[1];
-    sigset_t *oldset = (sigset_t *)(uintptr_t)state->guest.x[2];
-    size_t sigsetsize = (size_t)state->guest.x[3];
+    int how = (int)GUEST_RDI(state);
+    const sigset_t *set = (const sigset_t *)(uintptr_t)GUEST_RSI(state);
+    sigset_t *oldset = (sigset_t *)(uintptr_t)GUEST_RDX(state);
+    size_t sigsetsize = (size_t)GUEST_R10(state);
 
     (void)sigsetsize;  /* Ignored on Linux */
 
@@ -779,12 +815,12 @@ int syscall_sched_yield(ThreadState *state)
  */
 int syscall_futex(ThreadState *state)
 {
-    uint32_t *uaddr = (uint32_t *)(uintptr_t)state->guest.x[0];
-    int futex_op = (int)state->guest.x[1];
-    uint32_t val = (uint32_t)state->guest.x[2];
-    void *timeout = (void *)(uintptr_t)state->guest.x[3];
-    uint32_t *uaddr2 = (uint32_t *)(uintptr_t)state->guest.x[4];
-    uint32_t val3 = (uint32_t)state->guest.x[5];
+    uint32_t *uaddr = (uint32_t *)(uintptr_t)GUEST_RDI(state);
+    int futex_op = (int)GUEST_RSI(state);
+    uint32_t val = (uint32_t)GUEST_RDX(state);
+    void *timeout = (void *)(uintptr_t)GUEST_R10(state);
+    uint32_t *uaddr2 = (uint32_t *)(uintptr_t)GUEST_R8(state);
+    uint32_t val3 = (uint32_t)GUEST_R9(state);
 
 #ifdef __linux__
     long ret = syscall(SYS_futex, uaddr, futex_op, val, timeout, uaddr2, val3);
@@ -809,8 +845,8 @@ int syscall_futex(ThreadState *state)
  */
 int syscall_arch_prctl(ThreadState *state)
 {
-    int code = (int)state->guest.x[0];
-    unsigned long addr = (unsigned long)state->guest.x[1];
+    int code = (int)GUEST_RDI(state);
+    unsigned long addr = (unsigned long)GUEST_RSI(state);
 
 #ifdef __linux__
     long ret = syscall(SYS_arch_prctl, code, addr);
@@ -838,9 +874,9 @@ int syscall_arch_prctl(ThreadState *state)
  */
 int syscall_socket(ThreadState *state)
 {
-    int domain = (int)state->guest.x[0];
-    int type = (int)state->guest.x[1];
-    int protocol = (int)state->guest.x[2];
+    int domain = (int)GUEST_RDI(state);
+    int type = (int)GUEST_RSI(state);
+    int protocol = (int)GUEST_RDX(state);
 
     int ret = socket(domain, type, protocol);
     if (ret < 0) {
@@ -856,9 +892,9 @@ int syscall_socket(ThreadState *state)
  */
 int syscall_connect(ThreadState *state)
 {
-    int sockfd = (int)state->guest.x[0];
-    const struct sockaddr *addr = (const struct sockaddr *)(uintptr_t)state->guest.x[1];
-    socklen_t addrlen = (socklen_t)state->guest.x[2];
+    int sockfd = (int)GUEST_RDI(state);
+    const struct sockaddr *addr = (const struct sockaddr *)(uintptr_t)GUEST_RSI(state);
+    socklen_t addrlen = (socklen_t)GUEST_RDX(state);
 
     int ret = connect(sockfd, addr, addrlen);
     if (ret < 0) {
@@ -874,12 +910,12 @@ int syscall_connect(ThreadState *state)
  */
 int syscall_sendto(ThreadState *state)
 {
-    int sockfd = (int)state->guest.x[0];
-    const void *buf = (const void *)(uintptr_t)state->guest.x[1];
-    size_t len = (size_t)state->guest.x[2];
-    int flags = (int)state->guest.x[3];
-    const struct sockaddr *dest_addr = (const struct sockaddr *)(uintptr_t)state->guest.x[4];
-    socklen_t addrlen = (socklen_t)state->guest.x[5];
+    int sockfd = (int)GUEST_RDI(state);
+    const void *buf = (const void *)(uintptr_t)GUEST_RSI(state);
+    size_t len = (size_t)GUEST_RDX(state);
+    int flags = (int)GUEST_R10(state);
+    const struct sockaddr *dest_addr = (const struct sockaddr *)(uintptr_t)GUEST_R8(state);
+    socklen_t addrlen = (socklen_t)GUEST_R9(state);
 
     ssize_t ret = sendto(sockfd, buf, len, flags, dest_addr, addrlen);
     if (ret < 0) {
@@ -895,12 +931,12 @@ int syscall_sendto(ThreadState *state)
  */
 int syscall_recvfrom(ThreadState *state)
 {
-    int sockfd = (int)state->guest.x[0];
-    void *buf = (void *)(uintptr_t)state->guest.x[1];
-    size_t len = (size_t)state->guest.x[2];
-    int flags = (int)state->guest.x[3];
-    struct sockaddr *src_addr = (struct sockaddr *)(uintptr_t)state->guest.x[4];
-    socklen_t *addrlen = (socklen_t *)(uintptr_t)state->guest.x[5];
+    int sockfd = (int)GUEST_RDI(state);
+    void *buf = (void *)(uintptr_t)GUEST_RSI(state);
+    size_t len = (size_t)GUEST_RDX(state);
+    int flags = (int)GUEST_R10(state);
+    struct sockaddr *src_addr = (struct sockaddr *)(uintptr_t)GUEST_R8(state);
+    socklen_t *addrlen = (socklen_t *)(uintptr_t)GUEST_R9(state);
 
     ssize_t ret = recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
     if (ret < 0) {
@@ -916,7 +952,7 @@ int syscall_recvfrom(ThreadState *state)
  */
 int syscall_epoll_create(ThreadState *state)
 {
-    int flags = (int)state->guest.x[0];
+    int flags = (int)GUEST_RDI(state);
 
     int ret = epoll_create1(flags);
     if (ret < 0) {
@@ -932,10 +968,10 @@ int syscall_epoll_create(ThreadState *state)
  */
 int syscall_epoll_ctl(ThreadState *state)
 {
-    int epfd = (int)state->guest.x[0];
-    int op = (int)state->guest.x[1];
-    int fd = (int)state->guest.x[2];
-    struct epoll_event *event = (struct epoll_event *)(uintptr_t)state->guest.x[3];
+    int epfd = (int)GUEST_RDI(state);
+    int op = (int)GUEST_RSI(state);
+    int fd = (int)GUEST_RDX(state);
+    struct epoll_event *event = (struct epoll_event *)(uintptr_t)GUEST_R10(state);
 
     int ret = epoll_ctl(epfd, op, fd, event);
     if (ret < 0) {
@@ -955,9 +991,9 @@ int syscall_epoll_ctl(ThreadState *state)
  */
 int syscall_ioctl(ThreadState *state)
 {
-    int fd = (int)state->guest.x[0];
-    unsigned long request = (unsigned long)state->guest.x[1];
-    void *arg = (void *)(uintptr_t)state->guest.x[2];
+    int fd = (int)GUEST_RDI(state);
+    unsigned long request = (unsigned long)GUEST_RSI(state);
+    void *arg = (void *)(uintptr_t)GUEST_RDX(state);
 
     int ret = ioctl(fd, request, arg);
     if (ret < 0) {
@@ -973,9 +1009,9 @@ int syscall_ioctl(ThreadState *state)
  */
 int syscall_readv(ThreadState *state)
 {
-    int fd = (int)state->guest.x[0];
-    const struct iovec *iov = (const struct iovec *)(uintptr_t)state->guest.x[1];
-    int iovcnt = (int)state->guest.x[2];
+    int fd = (int)GUEST_RDI(state);
+    const struct iovec *iov = (const struct iovec *)(uintptr_t)GUEST_RSI(state);
+    int iovcnt = (int)GUEST_RDX(state);
 
     ssize_t ret = readv(fd, iov, iovcnt);
     if (ret < 0) {
@@ -991,9 +1027,9 @@ int syscall_readv(ThreadState *state)
  */
 int syscall_writev(ThreadState *state)
 {
-    int fd = (int)state->guest.x[0];
-    const struct iovec *iov = (const struct iovec *)(uintptr_t)state->guest.x[1];
-    int iovcnt = (int)state->guest.x[2];
+    int fd = (int)GUEST_RDI(state);
+    const struct iovec *iov = (const struct iovec *)(uintptr_t)GUEST_RSI(state);
+    int iovcnt = (int)GUEST_RDX(state);
 
     ssize_t ret = writev(fd, iov, iovcnt);
     if (ret < 0) {
@@ -1009,8 +1045,8 @@ int syscall_writev(ThreadState *state)
  */
 int syscall_getcwd(ThreadState *state)
 {
-    char *buf = (char *)(uintptr_t)state->guest.x[0];
-    size_t size = (size_t)state->guest.x[1];
+    char *buf = (char *)(uintptr_t)GUEST_RDI(state);
+    size_t size = (size_t)GUEST_RSI(state);
 
     char *ret = getcwd(buf, size);
     if (ret == NULL) {
@@ -1026,7 +1062,7 @@ int syscall_getcwd(ThreadState *state)
  */
 int syscall_chdir(ThreadState *state)
 {
-    const char *path = (const char *)(uintptr_t)state->guest.x[0];
+    const char *path = (const char *)(uintptr_t)GUEST_RDI(state);
 
     int ret = chdir(path);
     if (ret < 0) {

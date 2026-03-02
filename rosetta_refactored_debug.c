@@ -342,24 +342,24 @@ void rosetta_debug_dump_guest_state(ThreadState *state, uint64_t mask)
     int i;
 
     printf("=== GUEST STATE ===\n");
-    printf("PC: 0x%016llx\n", (unsigned long long)state->guest.pc);
-    printf("SP: 0x%016llx\n", (unsigned long long)state->guest.sp);
+    printf("PC: 0x%016llx\n", (unsigned long long)state->host.pc);
+    printf("SP: 0x%016llx\n", (unsigned long long)state->host.sp);
     printf("\n");
 
     for (i = 0; i < 32; i++) {
         if (mask == 0 || (mask & (1ULL << i))) {
             printf("X%-2d: 0x%016llx%s", i,
-                   (unsigned long long)state->guest.x[i],
+                   (unsigned long long)state->host.x[i],
                    (i % 4 == 3) ? "\n" : "  ");
         }
     }
 
     printf("\nFlags: 0x%08llx (N=%d Z=%d C=%d V=%d)\n",
-           (unsigned long long)state->guest.pstate,
-           (int)((state->guest.pstate >> 31) & 1),
-           (int)((state->guest.pstate >> 30) & 1),
-           (int)((state->guest.pstate >> 29) & 1),
-           (int)((state->guest.pstate >> 28) & 1));
+           (unsigned long long)state->host.pstate,
+           (int)((state->host.pstate >> 31) & 1),
+           (int)((state->host.pstate >> 30) & 1),
+           (int)((state->host.pstate >> 29) & 1),
+           (int)((state->host.pstate >> 28) & 1));
 }
 
 /**

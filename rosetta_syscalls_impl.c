@@ -3,12 +3,13 @@
  * ============================================================================
  *
  * This module implements syscall handling functions for the Rosetta
- * binary translation layer. It translates Linux ARM64 syscalls to
- * host OS equivalents.
+ * binary translation layer. It translates x86_64 Linux syscalls to
+ * host OS (macOS/ARM64) equivalents.
  * ============================================================================ */
 
 #include "rosetta_syscalls_impl.h"
 #include "rosetta_refactored_helpers.h"
+#include "rosetta_types.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -31,6 +32,14 @@
 #include <mach/mach_time.h>
 #endif
 
+/* x86_64 syscall argument registers */
+#define GUEST_ARG0(st) ((st)->guest.r[X86_RDI])
+#define GUEST_ARG1(st) ((st)->guest.r[X86_RSI])
+#define GUEST_ARG2(st) ((st)->guest.r[X86_RDX])
+#define GUEST_ARG3(st) ((st)->guest.r[X86_R10])
+#define GUEST_ARG4(st) ((st)->guest.r[X86_R8])
+#define GUEST_ARG5(st) ((st)->guest.r[X86_R9])
+
 /* ============================================================================
  * Basic I/O Syscalls
  * ============================================================================ */
@@ -40,9 +49,9 @@
  */
 int syscall_read(ThreadState *state)
 {
-    int fd = state->guest.x[0];
-    void *buf = (void *)state->guest.x[1];
-    size_t count = state->guest.x[2];
+    int fd = GUEST_ARG0(state);
+    void *buf = (void *)GUEST_ARG1(state);
+    size_t count = GUEST_ARG2(state);
 
     ssize_t ret = read(fd, buf, count);
     if (ret < 0) {
@@ -58,9 +67,9 @@ int syscall_read(ThreadState *state)
  */
 int syscall_write(ThreadState *state)
 {
-    int fd = state->guest.x[0];
-    const void *buf = (const void *)state->guest.x[1];
-    size_t count = state->guest.x[2];
+    int fd = GUEST_ARG0(state);
+    const void *buf = (const void *)GUEST_ARG1(state);
+    size_t count = GUEST_ARG2(state);
 
     ssize_t ret = write(fd, buf, count);
     if (ret < 0) {
@@ -76,9 +85,9 @@ int syscall_write(ThreadState *state)
  */
 int syscall_open(ThreadState *state)
 {
-    const char *pathname = (const char *)state->guest.x[0];
-    int flags = state->guest.x[1];
-    mode_t mode = state->guest.x[2];
+    const char *pathname = (const char *)GUEST_ARG0(state);
+    int flags = GUEST_ARG1(state);
+    mode_t mode = GUEST_ARG2(state);
 
     int fd = open(pathname, flags, mode);
     if (fd < 0) {
@@ -94,7 +103,7 @@ int syscall_open(ThreadState *state)
  */
 int syscall_close(ThreadState *state)
 {
-    int fd = state->guest.x[0];
+    int fd = GUEST_ARG0(state);
 
     int ret = close(fd);
     if (ret < 0) {
@@ -110,9 +119,9 @@ int syscall_close(ThreadState *state)
  */
 int syscall_lseek(ThreadState *state)
 {
-    int fd = state->guest.x[0];
-    off_t offset = state->guest.x[1];
-    int whence = state->guest.x[2];
+    int fd = GUEST_ARG0(state);
+    off_t offset = GUEST_ARG1(state);
+    int whence = GUEST_ARG2(state);
 
     off_t ret = lseek(fd, offset, whence);
     if (ret == (off_t)-1) {
@@ -128,8 +137,8 @@ int syscall_lseek(ThreadState *state)
  */
 int syscall_access(ThreadState *state)
 {
-    const char *pathname = (const char *)state->guest.x[0];
-    int mode = state->guest.x[1];
+    const char *pathname = (const char *)GUEST_ARG0(state);
+    int mode = GUEST_ARG1(state);
 
     int ret = access(pathname, mode);
     if (ret < 0) {
@@ -151,8 +160,8 @@ int syscall_pipe(ThreadState *state)
         state->syscall_result = -errno;
         return -1;
     }
-    state->guest.x[0] = pipefd[0];
-    state->guest.x[1] = pipefd[1];
+    GUEST_ARG0(state) = pipefd[0];
+    GUEST_ARG1(state) = pipefd[1];
     state->syscall_result = 0;
     return 0;
 }
@@ -166,12 +175,12 @@ int syscall_pipe(ThreadState *state)
  */
 int syscall_mmap(ThreadState *state)
 {
-    void *addr = (void *)state->guest.x[0];
-    size_t length = state->guest.x[1];
-    int prot = state->guest.x[2];
-    int flags = state->guest.x[3];
-    int fd = state->guest.x[4];
-    off_t offset = state->guest.x[5];
+    void *addr = (void *)GUEST_ARG0(state);
+    size_t length = GUEST_ARG1(state);
+    int prot = GUEST_ARG2(state);
+    int flags = GUEST_ARG3(state);
+    int fd = GUEST_ARG4(state);
+    off_t offset = GUEST_ARG5(state);
 
     void *ret = mmap(addr, length, prot, flags, fd, offset);
     if (ret == MAP_FAILED) {
@@ -187,8 +196,8 @@ int syscall_mmap(ThreadState *state)
  */
 int syscall_munmap(ThreadState *state)
 {
-    void *addr = (void *)state->guest.x[0];
-    size_t length = state->guest.x[1];
+    void *addr = (void *)GUEST_ARG0(state);
+    size_t length = GUEST_ARG1(state);
 
     int ret = munmap(addr, length);
     if (ret < 0) {
@@ -204,9 +213,9 @@ int syscall_munmap(ThreadState *state)
  */
 int syscall_mprotect(ThreadState *state)
 {
-    void *addr = (void *)state->guest.x[0];
-    size_t length = state->guest.x[1];
-    int prot = state->guest.x[2];
+    void *addr = (void *)GUEST_ARG0(state);
+    size_t length = GUEST_ARG1(state);
+    int prot = GUEST_ARG2(state);
 
     int ret = mprotect(addr, length, prot);
     if (ret < 0) {
@@ -224,7 +233,7 @@ int syscall_mprotect(ThreadState *state)
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 int syscall_brk(ThreadState *state)
 {
-    void *addr = (void *)state->guest.x[0];
+    void *addr = (void *)GUEST_ARG0(state);
 
     void *ret = sbrk(0);
     if (addr != NULL) {
@@ -244,8 +253,8 @@ int syscall_brk(ThreadState *state)
  */
 int syscall_stat(ThreadState *state)
 {
-    const char *pathname = (const char *)state->guest.x[0];
-    struct stat *statbuf = (struct stat *)state->guest.x[1];
+    const char *pathname = (const char *)GUEST_ARG0(state);
+    struct stat *statbuf = (struct stat *)GUEST_ARG1(state);
 
     int ret = stat(pathname, statbuf);
     if (ret < 0) {
@@ -261,8 +270,8 @@ int syscall_stat(ThreadState *state)
  */
 int syscall_fstat(ThreadState *state)
 {
-    int fd = state->guest.x[0];
-    struct stat *statbuf = (struct stat *)state->guest.x[1];
+    int fd = GUEST_ARG0(state);
+    struct stat *statbuf = (struct stat *)GUEST_ARG1(state);
 
     int ret = fstat(fd, statbuf);
     if (ret < 0) {
@@ -278,8 +287,8 @@ int syscall_fstat(ThreadState *state)
  */
 int syscall_lstat(ThreadState *state)
 {
-    const char *pathname = (const char *)state->guest.x[0];
-    struct stat *statbuf = (struct stat *)state->guest.x[1];
+    const char *pathname = (const char *)GUEST_ARG0(state);
+    struct stat *statbuf = (struct stat *)GUEST_ARG1(state);
 
     int ret = lstat(pathname, statbuf);
     if (ret < 0) {
@@ -322,7 +331,7 @@ int syscall_gettid(ThreadState *state)
  */
 int syscall_uname(ThreadState *state)
 {
-    struct utsname *buf = (struct utsname *)state->guest.x[0];
+    struct utsname *buf = (struct utsname *)GUEST_ARG0(state);
 
     int ret = uname(buf);
     if (ret < 0) {
@@ -338,9 +347,9 @@ int syscall_uname(ThreadState *state)
  */
 int syscall_fcntl(ThreadState *state)
 {
-    int fd = state->guest.x[0];
-    int cmd = state->guest.x[1];
-    long arg = state->guest.x[2];
+    int fd = GUEST_ARG0(state);
+    int cmd = GUEST_ARG1(state);
+    long arg = GUEST_ARG2(state);
 
     int ret = fcntl(fd, cmd, arg);
     if (ret < 0) {
@@ -358,7 +367,7 @@ int syscall_fcntl(ThreadState *state)
  */
 noreturn int syscall_exit(ThreadState *state)
 {
-    int status = state->guest.x[0];
+    int status = GUEST_ARG0(state);
     _exit(status);
 }
 
@@ -369,7 +378,7 @@ noreturn int syscall_exit(ThreadState *state)
  */
 noreturn int syscall_exit_group(ThreadState *state)
 {
-    int status = state->guest.x[0];
+    int status = GUEST_ARG0(state);
     _exit(status);
 }
 
@@ -378,7 +387,7 @@ noreturn int syscall_exit_group(ThreadState *state)
  */
 int syscall_set_tid_address(ThreadState *state)
 {
-    int *tidptr = (int *)state->guest.x[0];
+    int *tidptr = (int *)GUEST_ARG0(state);
     (void)tidptr;
     state->syscall_result = (int64_t)getpid();
     return 0;
@@ -389,8 +398,8 @@ int syscall_set_tid_address(ThreadState *state)
  */
 int syscall_getcpu(ThreadState *state)
 {
-    unsigned *cpu = (unsigned *)state->guest.x[0];
-    unsigned *node = (unsigned *)state->guest.x[1];
+    unsigned *cpu = (unsigned *)GUEST_ARG0(state);
+    unsigned *node = (unsigned *)GUEST_ARG1(state);
 
 #ifdef __linux__
     int ret = syscall(SYS_getcpu, cpu, node, NULL);
@@ -417,8 +426,8 @@ int syscall_getcpu(ThreadState *state)
  */
 int syscall_gettimeofday(ThreadState *state)
 {
-    struct timeval *tv = (struct timeval *)state->guest.x[0];
-    struct timezone *tz = (struct timezone *)state->guest.x[1];
+    struct timeval *tv = (struct timeval *)GUEST_ARG0(state);
+    struct timezone *tz = (struct timezone *)GUEST_ARG1(state);
 
     int ret = gettimeofday(tv, tz);
     if (ret < 0) {
@@ -434,8 +443,8 @@ int syscall_gettimeofday(ThreadState *state)
  */
 int syscall_clock_gettime(ThreadState *state)
 {
-    clockid_t clk_id = state->guest.x[0];
-    struct timespec *tp = (struct timespec *)state->guest.x[1];
+    clockid_t clk_id = GUEST_ARG0(state);
+    struct timespec *tp = (struct timespec *)GUEST_ARG1(state);
 
     int ret = clock_gettime(clk_id, tp);
     if (ret < 0) {
@@ -451,8 +460,8 @@ int syscall_clock_gettime(ThreadState *state)
  */
 int syscall_nanosleep(ThreadState *state)
 {
-    const struct timespec *req = (const struct timespec *)state->guest.x[0];
-    struct timespec *rem = (struct timespec *)state->guest.x[1];
+    const struct timespec *req = (const struct timespec *)GUEST_ARG0(state);
+    struct timespec *rem = (struct timespec *)GUEST_ARG1(state);
 
     int ret = nanosleep(req, rem);
     if (ret < 0) {
@@ -468,8 +477,8 @@ int syscall_nanosleep(ThreadState *state)
  */
 int syscall_clock_getres(ThreadState *state)
 {
-    clockid_t clk_id = state->guest.x[0];
-    struct timespec *tp = (struct timespec *)state->guest.x[1];
+    clockid_t clk_id = GUEST_ARG0(state);
+    struct timespec *tp = (struct timespec *)GUEST_ARG1(state);
 
     int ret = clock_getres(clk_id, tp);
     if (ret < 0) {
@@ -485,8 +494,8 @@ int syscall_clock_getres(ThreadState *state)
  */
 int syscall_settimeofday(ThreadState *state)
 {
-    const struct timeval *tv = (const struct timeval *)state->guest.x[0];
-    const struct timezone *tz = (const struct timezone *)state->guest.x[1];
+    const struct timeval *tv = (const struct timeval *)GUEST_ARG0(state);
+    const struct timezone *tz = (const struct timezone *)GUEST_ARG1(state);
 
     int ret = settimeofday(tv, tz);
     if (ret < 0) {
@@ -506,10 +515,10 @@ int syscall_settimeofday(ThreadState *state)
  */
 int syscall_rt_sigaction(ThreadState *state)
 {
-    int signum = state->guest.x[0];
-    const struct sigaction *act = (const struct sigaction *)state->guest.x[1];
-    struct sigaction *oact = (struct sigaction *)state->guest.x[2];
-    size_t sigsetsize = state->guest.x[3];
+    int signum = GUEST_ARG0(state);
+    const struct sigaction *act = (const struct sigaction *)GUEST_ARG1(state);
+    struct sigaction *oact = (struct sigaction *)GUEST_ARG2(state);
+    size_t sigsetsize = GUEST_ARG3(state);
 
     int ret = sigaction(signum, act, oact);
     if (ret < 0) {
@@ -525,10 +534,10 @@ int syscall_rt_sigaction(ThreadState *state)
  */
 int syscall_rt_sigprocmask(ThreadState *state)
 {
-    int how = state->guest.x[0];
-    const sigset_t *set = (const sigset_t *)state->guest.x[1];
-    sigset_t *oldset = (sigset_t *)state->guest.x[2];
-    size_t sigsetsize = state->guest.x[3];
+    int how = GUEST_ARG0(state);
+    const sigset_t *set = (const sigset_t *)GUEST_ARG1(state);
+    sigset_t *oldset = (sigset_t *)GUEST_ARG2(state);
+    size_t sigsetsize = GUEST_ARG3(state);
 
     int ret = sigprocmask(how, set, oldset);
     if (ret < 0) {
@@ -558,8 +567,8 @@ int syscall_sched_yield(ThreadState *state)
  */
 int syscall_kill(ThreadState *state)
 {
-    pid_t pid = (pid_t)state->guest.x[0];
-    int sig = state->guest.x[1];
+    pid_t pid = (pid_t)GUEST_ARG0(state);
+    int sig = GUEST_ARG1(state);
 
     int ret = kill(pid, sig);
     if (ret < 0) {
@@ -579,12 +588,12 @@ int syscall_kill(ThreadState *state)
  */
 int syscall_futex(ThreadState *state)
 {
-    uint32_t *uaddr = (uint32_t *)state->guest.x[0];
-    int futex_op = state->guest.x[1];
-    uint32_t val = state->guest.x[2];
-    struct timespec *timeout = (struct timespec *)state->guest.x[3];
-    uint32_t *uaddr2 = (uint32_t *)state->guest.x[4];
-    uint32_t val3 = state->guest.x[5];
+    uint32_t *uaddr = (uint32_t *)GUEST_ARG0(state);
+    int futex_op = GUEST_ARG1(state);
+    uint32_t val = GUEST_ARG2(state);
+    struct timespec *timeout = (struct timespec *)GUEST_ARG3(state);
+    uint32_t *uaddr2 = (uint32_t *)GUEST_ARG4(state);
+    uint32_t val3 = GUEST_ARG5(state);
 
     (void)uaddr;
     (void)futex_op;
@@ -601,8 +610,8 @@ int syscall_futex(ThreadState *state)
  */
 int syscall_arch_prctl(ThreadState *state)
 {
-    int code = state->guest.x[0];
-    unsigned long addr = state->guest.x[1];
+    int code = GUEST_ARG0(state);
+    unsigned long addr = GUEST_ARG1(state);
 
     (void)code;
     (void)addr;
@@ -619,9 +628,9 @@ int syscall_arch_prctl(ThreadState *state)
  */
 int syscall_ioctl(ThreadState *state)
 {
-    int fd = state->guest.x[0];
-    unsigned long request = state->guest.x[1];
-    void *arg = (void *)state->guest.x[2];
+    int fd = GUEST_ARG0(state);
+    unsigned long request = GUEST_ARG1(state);
+    void *arg = (void *)GUEST_ARG2(state);
 
     int ret = ioctl(fd, request, arg);
     if (ret < 0) {
@@ -637,8 +646,8 @@ int syscall_ioctl(ThreadState *state)
  */
 int syscall_dup2(ThreadState *state)
 {
-    int oldfd = state->guest.x[0];
-    int newfd = state->guest.x[1];
+    int oldfd = GUEST_ARG0(state);
+    int newfd = GUEST_ARG1(state);
 
     int ret = dup2(oldfd, newfd);
     if (ret < 0) {
@@ -654,9 +663,9 @@ int syscall_dup2(ThreadState *state)
  */
 int syscall_dup3(ThreadState *state)
 {
-    int oldfd = state->guest.x[0];
-    int newfd = state->guest.x[1];
-    int flags = state->guest.x[2];
+    int oldfd = GUEST_ARG0(state);
+    int newfd = GUEST_ARG1(state);
+    int flags = GUEST_ARG2(state);
 
 #ifdef __linux__
     int ret = dup3(oldfd, newfd, flags);
@@ -677,9 +686,9 @@ int syscall_dup3(ThreadState *state)
  */
 int syscall_poll(ThreadState *state)
 {
-    struct pollfd *fds = (struct pollfd *)state->guest.x[0];
-    nfds_t nfds = state->guest.x[1];
-    int timeout = state->guest.x[2];
+    struct pollfd *fds = (struct pollfd *)GUEST_ARG0(state);
+    nfds_t nfds = GUEST_ARG1(state);
+    int timeout = GUEST_ARG2(state);
 
     int ret = poll(fds, nfds, timeout);
     if (ret < 0) {
@@ -695,11 +704,11 @@ int syscall_poll(ThreadState *state)
  */
 int syscall_select(ThreadState *state)
 {
-    int nfds = state->guest.x[0];
-    fd_set *readfds = (fd_set *)state->guest.x[1];
-    fd_set *writefds = (fd_set *)state->guest.x[2];
-    fd_set *exceptfds = (fd_set *)state->guest.x[3];
-    struct timeval *timeout = (struct timeval *)state->guest.x[4];
+    int nfds = GUEST_ARG0(state);
+    fd_set *readfds = (fd_set *)GUEST_ARG1(state);
+    fd_set *writefds = (fd_set *)GUEST_ARG2(state);
+    fd_set *exceptfds = (fd_set *)GUEST_ARG3(state);
+    struct timeval *timeout = (struct timeval *)GUEST_ARG4(state);
 
     int ret = select(nfds, readfds, writefds, exceptfds, timeout);
     if (ret < 0) {
@@ -715,9 +724,9 @@ int syscall_select(ThreadState *state)
  */
 int syscall_readv(ThreadState *state)
 {
-    int fd = state->guest.x[0];
-    const struct iovec *iov = (const struct iovec *)state->guest.x[1];
-    int iovcnt = state->guest.x[2];
+    int fd = GUEST_ARG0(state);
+    const struct iovec *iov = (const struct iovec *)GUEST_ARG1(state);
+    int iovcnt = GUEST_ARG2(state);
 
     ssize_t ret = readv(fd, iov, iovcnt);
     if (ret < 0) {
@@ -733,9 +742,9 @@ int syscall_readv(ThreadState *state)
  */
 int syscall_writev(ThreadState *state)
 {
-    int fd = state->guest.x[0];
-    const struct iovec *iov = (const struct iovec *)state->guest.x[1];
-    int iovcnt = state->guest.x[2];
+    int fd = GUEST_ARG0(state);
+    const struct iovec *iov = (const struct iovec *)GUEST_ARG1(state);
+    int iovcnt = GUEST_ARG2(state);
 
     ssize_t ret = writev(fd, iov, iovcnt);
     if (ret < 0) {
@@ -755,8 +764,8 @@ int syscall_writev(ThreadState *state)
  */
 int syscall_getcwd(ThreadState *state)
 {
-    char *buf = (char *)state->guest.x[0];
-    size_t size = state->guest.x[1];
+    char *buf = (char *)GUEST_ARG0(state);
+    size_t size = GUEST_ARG1(state);
 
     char *ret = getcwd(buf, size);
     if (ret == NULL) {
@@ -772,7 +781,7 @@ int syscall_getcwd(ThreadState *state)
  */
 int syscall_chdir(ThreadState *state)
 {
-    const char *path = (const char *)state->guest.x[0];
+    const char *path = (const char *)GUEST_ARG0(state);
 
     int ret = chdir(path);
     if (ret < 0) {
@@ -788,8 +797,8 @@ int syscall_chdir(ThreadState *state)
  */
 int syscall_rename(ThreadState *state)
 {
-    const char *oldpath = (const char *)state->guest.x[0];
-    const char *newpath = (const char *)state->guest.x[1];
+    const char *oldpath = (const char *)GUEST_ARG0(state);
+    const char *newpath = (const char *)GUEST_ARG1(state);
 
     int ret = rename(oldpath, newpath);
     if (ret < 0) {
@@ -805,8 +814,8 @@ int syscall_rename(ThreadState *state)
  */
 int syscall_mkdir(ThreadState *state)
 {
-    const char *pathname = (const char *)state->guest.x[0];
-    mode_t mode = state->guest.x[1];
+    const char *pathname = (const char *)GUEST_ARG0(state);
+    mode_t mode = GUEST_ARG1(state);
 
     int ret = mkdir(pathname, mode);
     if (ret < 0) {
@@ -822,7 +831,7 @@ int syscall_mkdir(ThreadState *state)
  */
 int syscall_rmdir(ThreadState *state)
 {
-    const char *pathname = (const char *)state->guest.x[0];
+    const char *pathname = (const char *)GUEST_ARG0(state);
 
     int ret = rmdir(pathname);
     if (ret < 0) {
@@ -838,7 +847,7 @@ int syscall_rmdir(ThreadState *state)
  */
 int syscall_unlink(ThreadState *state)
 {
-    const char *pathname = (const char *)state->guest.x[0];
+    const char *pathname = (const char *)GUEST_ARG0(state);
 
     int ret = unlink(pathname);
     if (ret < 0) {
@@ -854,8 +863,8 @@ int syscall_unlink(ThreadState *state)
  */
 int syscall_symlink(ThreadState *state)
 {
-    const char *target = (const char *)state->guest.x[0];
-    const char *linkpath = (const char *)state->guest.x[1];
+    const char *target = (const char *)GUEST_ARG0(state);
+    const char *linkpath = (const char *)GUEST_ARG1(state);
 
     int ret = symlink(target, linkpath);
     if (ret < 0) {
@@ -871,9 +880,9 @@ int syscall_symlink(ThreadState *state)
  */
 int syscall_readlink(ThreadState *state)
 {
-    const char *pathname = (const char *)state->guest.x[0];
-    char *buf = (char *)state->guest.x[1];
-    size_t bufsize = state->guest.x[2];
+    const char *pathname = (const char *)GUEST_ARG0(state);
+    char *buf = (char *)GUEST_ARG1(state);
+    size_t bufsize = GUEST_ARG2(state);
 
     ssize_t ret = readlink(pathname, buf, bufsize);
     if (ret < 0) {
@@ -889,8 +898,8 @@ int syscall_readlink(ThreadState *state)
  */
 int syscall_chmod(ThreadState *state)
 {
-    const char *pathname = (const char *)state->guest.x[0];
-    mode_t mode = state->guest.x[1];
+    const char *pathname = (const char *)GUEST_ARG0(state);
+    mode_t mode = GUEST_ARG1(state);
 
     int ret = chmod(pathname, mode);
     if (ret < 0) {
@@ -906,9 +915,9 @@ int syscall_chmod(ThreadState *state)
  */
 int syscall_lchown(ThreadState *state)
 {
-    const char *pathname = (const char *)state->guest.x[0];
-    uid_t owner = state->guest.x[1];
-    gid_t group = state->guest.x[2];
+    const char *pathname = (const char *)GUEST_ARG0(state);
+    uid_t owner = GUEST_ARG1(state);
+    gid_t group = GUEST_ARG2(state);
 
     int ret = lchown(pathname, owner, group);
     if (ret < 0) {
@@ -924,9 +933,9 @@ int syscall_lchown(ThreadState *state)
  */
 int syscall_getdents(ThreadState *state)
 {
-    int fd = state->guest.x[0];
-    void *dirp = (void *)state->guest.x[1];
-    size_t count = state->guest.x[2];
+    int fd = GUEST_ARG0(state);
+    void *dirp = (void *)GUEST_ARG1(state);
+    size_t count = GUEST_ARG2(state);
 
 #ifdef __linux__
     int ret = syscall(SYS_getdents, fd, dirp, count);
@@ -954,10 +963,10 @@ int syscall_getdents(ThreadState *state)
  */
 int syscall_wait4(ThreadState *state)
 {
-    pid_t pid = (pid_t)state->guest.x[0];
-    int *wstatus = (int *)state->guest.x[1];
-    int options = state->guest.x[2];
-    struct rusage *rusage = (struct rusage *)state->guest.x[3];
+    pid_t pid = (pid_t)GUEST_ARG0(state);
+    int *wstatus = (int *)GUEST_ARG1(state);
+    int options = GUEST_ARG2(state);
+    struct rusage *rusage = (struct rusage *)GUEST_ARG3(state);
 
     pid_t ret = wait4(pid, wstatus, options, rusage);
     if (ret < 0) {
@@ -991,9 +1000,9 @@ int syscall_capset(ThreadState *state)
  */
 int syscall_mincore(ThreadState *state)
 {
-    void *addr = (void *)state->guest.x[0];
-    size_t length = state->guest.x[1];
-    unsigned char *vec = (unsigned char *)state->guest.x[2];
+    void *addr = (void *)GUEST_ARG0(state);
+    size_t length = GUEST_ARG1(state);
+    unsigned char *vec = (unsigned char *)GUEST_ARG2(state);
 
 #ifdef __linux__
     int ret = mincore(addr, length, vec);
@@ -1017,10 +1026,10 @@ int syscall_mincore(ThreadState *state)
  */
 int syscall_prlimit(ThreadState *state)
 {
-    pid_t pid = (pid_t)state->guest.x[0];
-    int resource = state->guest.x[1];
-    const void *new_limit = (const void *)state->guest.x[2];
-    void *old_limit = (void *)state->guest.x[3];
+    pid_t pid = (pid_t)GUEST_ARG0(state);
+    int resource = GUEST_ARG1(state);
+    const void *new_limit = (const void *)GUEST_ARG2(state);
+    void *old_limit = (void *)GUEST_ARG3(state);
 
 #ifdef __linux__
     int ret = syscall(SYS_prlimit, pid, resource, new_limit, old_limit);
@@ -1055,9 +1064,9 @@ int syscall_clone(ThreadState *state)
  */
 int syscall_execve(ThreadState *state)
 {
-    const char *pathname = (const char *)state->guest.x[0];
-    char *const *argv = (char *const *)state->guest.x[1];
-    char *const *envp = (char *const *)state->guest.x[2];
+    const char *pathname = (const char *)GUEST_ARG0(state);
+    char *const *argv = (char *const *)GUEST_ARG1(state);
+    char *const *envp = (char *const *)GUEST_ARG2(state);
 
     int ret = execve(pathname, argv, envp);
     if (ret < 0) {
@@ -1097,9 +1106,9 @@ int syscall_get_robust_list(ThreadState *state)
  */
 int syscall_socket(ThreadState *state)
 {
-    int domain = state->guest.x[0];
-    int type = state->guest.x[1];
-    int protocol = state->guest.x[2];
+    int domain = GUEST_ARG0(state);
+    int type = GUEST_ARG1(state);
+    int protocol = GUEST_ARG2(state);
 
     int ret = socket(domain, type, protocol);
     if (ret < 0) {
@@ -1115,9 +1124,9 @@ int syscall_socket(ThreadState *state)
  */
 int syscall_connect(ThreadState *state)
 {
-    int sockfd = state->guest.x[0];
-    const struct sockaddr *addr = (const struct sockaddr *)state->guest.x[1];
-    socklen_t addrlen = state->guest.x[2];
+    int sockfd = GUEST_ARG0(state);
+    const struct sockaddr *addr = (const struct sockaddr *)GUEST_ARG1(state);
+    socklen_t addrlen = GUEST_ARG2(state);
 
     int ret = connect(sockfd, addr, addrlen);
     if (ret < 0) {
@@ -1133,12 +1142,12 @@ int syscall_connect(ThreadState *state)
  */
 int syscall_sendto(ThreadState *state)
 {
-    int sockfd = state->guest.x[0];
-    const void *buf = (const void *)state->guest.x[1];
-    size_t len = state->guest.x[2];
-    int flags = state->guest.x[3];
-    const struct sockaddr *dest_addr = (const struct sockaddr *)state->guest.x[4];
-    socklen_t addrlen = state->guest.x[5];
+    int sockfd = GUEST_ARG0(state);
+    const void *buf = (const void *)GUEST_ARG1(state);
+    size_t len = GUEST_ARG2(state);
+    int flags = GUEST_ARG3(state);
+    const struct sockaddr *dest_addr = (const struct sockaddr *)GUEST_ARG4(state);
+    socklen_t addrlen = GUEST_ARG5(state);
 
     ssize_t ret = sendto(sockfd, buf, len, flags, dest_addr, addrlen);
     if (ret < 0) {
@@ -1154,12 +1163,12 @@ int syscall_sendto(ThreadState *state)
  */
 int syscall_recvfrom(ThreadState *state)
 {
-    int sockfd = state->guest.x[0];
-    void *buf = (void *)state->guest.x[1];
-    size_t len = state->guest.x[2];
-    int flags = state->guest.x[3];
-    struct sockaddr *src_addr = (struct sockaddr *)state->guest.x[4];
-    socklen_t *addrlen = (socklen_t *)state->guest.x[5];
+    int sockfd = GUEST_ARG0(state);
+    void *buf = (void *)GUEST_ARG1(state);
+    size_t len = GUEST_ARG2(state);
+    int flags = GUEST_ARG3(state);
+    struct sockaddr *src_addr = (struct sockaddr *)GUEST_ARG4(state);
+    socklen_t *addrlen = (socklen_t *)GUEST_ARG5(state);
 
     ssize_t ret = recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
     if (ret < 0) {
@@ -1175,7 +1184,7 @@ int syscall_recvfrom(ThreadState *state)
  */
 int syscall_epoll_create(ThreadState *state)
 {
-    int size = state->guest.x[0];
+    int size = GUEST_ARG0(state);
 
 #ifdef __linux__
     int ret = epoll_create(size);
@@ -1197,10 +1206,10 @@ int syscall_epoll_create(ThreadState *state)
  */
 int syscall_epoll_ctl(ThreadState *state)
 {
-    int epfd = state->guest.x[0];
-    int op = state->guest.x[1];
-    int fd = state->guest.x[2];
-    struct epoll_event *event = (struct epoll_event *)state->guest.x[3];
+    int epfd = GUEST_ARG0(state);
+    int op = GUEST_ARG1(state);
+    int fd = GUEST_ARG2(state);
+    struct epoll_event *event = (struct epoll_event *)GUEST_ARG3(state);
 
 #ifdef __linux__
     int ret = epoll_ctl(epfd, op, fd, event);
@@ -1225,10 +1234,10 @@ int syscall_epoll_ctl(ThreadState *state)
  */
 int syscall_epoll_wait(ThreadState *state)
 {
-    int epfd = state->guest.x[0];
-    struct epoll_event *events = (struct epoll_event *)state->guest.x[1];
-    int maxevents = state->guest.x[2];
-    int timeout = state->guest.x[3];
+    int epfd = GUEST_ARG0(state);
+    struct epoll_event *events = (struct epoll_event *)GUEST_ARG1(state);
+    int maxevents = GUEST_ARG2(state);
+    int timeout = GUEST_ARG3(state);
 
 #ifdef __linux__
     int ret = epoll_wait(epfd, events, maxevents, timeout);

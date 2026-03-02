@@ -43,7 +43,7 @@ uint64_t rosetta_get_reg(uint8_t reg)
     if (reg > 30) {
         return 0;
     }
-    return state->guest.x[reg];
+    return state->host.x[reg];
 }
 
 /**
@@ -58,7 +58,7 @@ void rosetta_set_reg(uint8_t reg, uint64_t value)
     if (reg > 30) {
         return;
     }
-    state->guest.x[reg] = value;
+    state->host.x[reg] = value;
 }
 
 /**
@@ -68,7 +68,7 @@ void rosetta_set_reg(uint8_t reg, uint64_t value)
 uint64_t rosetta_get_lr(void)
 {
     ThreadState *state = rosetta_get_state();
-    return state->guest.x[30];
+    return state->host.x[30];
 }
 
 /**
@@ -78,7 +78,7 @@ uint64_t rosetta_get_lr(void)
 void rosetta_set_lr(uint64_t value)
 {
     ThreadState *state = rosetta_get_state();
-    state->guest.x[30] = value;
+    state->host.x[30] = value;
 }
 
 /* ============================================================================
@@ -92,7 +92,7 @@ void rosetta_set_lr(uint64_t value)
 uint64_t rosetta_get_pc(void)
 {
     ThreadState *state = rosetta_get_state();
-    return state->guest.pc;
+    return state->host.pc;
 }
 
 /**
@@ -102,7 +102,7 @@ uint64_t rosetta_get_pc(void)
 void rosetta_set_pc(uint64_t pc)
 {
     ThreadState *state = rosetta_get_state();
-    state->guest.pc = pc;
+    state->host.pc = pc;
 }
 
 /**
@@ -112,7 +112,7 @@ void rosetta_set_pc(uint64_t pc)
 uint64_t rosetta_get_sp(void)
 {
     ThreadState *state = rosetta_get_state();
-    return state->guest.sp;
+    return state->host.sp;
 }
 
 /**
@@ -122,7 +122,7 @@ uint64_t rosetta_get_sp(void)
 void rosetta_set_sp(uint64_t sp)
 {
     ThreadState *state = rosetta_get_state();
-    state->guest.sp = sp;
+    state->host.sp = sp;
 }
 
 /* ============================================================================
@@ -136,7 +136,7 @@ void rosetta_set_sp(uint64_t sp)
 uint64_t rosetta_get_flags(void)
 {
     ThreadState *state = rosetta_get_state();
-    return state->guest.pstate;
+    return state->host.pstate;
 }
 
 /**
@@ -146,7 +146,7 @@ uint64_t rosetta_get_flags(void)
 void rosetta_set_flags(uint64_t flags)
 {
     ThreadState *state = rosetta_get_state();
-    state->guest.pstate = flags;
+    state->host.pstate = flags;
 }
 
 /**
@@ -156,7 +156,7 @@ void rosetta_set_flags(uint64_t flags)
 bool rosetta_get_n_flag(void)
 {
     ThreadState *state = rosetta_get_state();
-    return (state->guest.pstate & FLAG_N_MASK) != 0;
+    return (state->host.pstate & FLAG_N_MASK) != 0;
 }
 
 /**
@@ -166,7 +166,7 @@ bool rosetta_get_n_flag(void)
 bool rosetta_get_z_flag(void)
 {
     ThreadState *state = rosetta_get_state();
-    return (state->guest.pstate & FLAG_Z_MASK) != 0;
+    return (state->host.pstate & FLAG_Z_MASK) != 0;
 }
 
 /**
@@ -176,7 +176,7 @@ bool rosetta_get_z_flag(void)
 bool rosetta_get_c_flag(void)
 {
     ThreadState *state = rosetta_get_state();
-    return (state->guest.pstate & FLAG_C_MASK) != 0;
+    return (state->host.pstate & FLAG_C_MASK) != 0;
 }
 
 /**
@@ -186,7 +186,7 @@ bool rosetta_get_c_flag(void)
 bool rosetta_get_v_flag(void)
 {
     ThreadState *state = rosetta_get_state();
-    return (state->guest.pstate & FLAG_V_MASK) != 0;
+    return (state->host.pstate & FLAG_V_MASK) != 0;
 }
 
 /**
@@ -197,9 +197,9 @@ void rosetta_set_n_flag(bool value)
 {
     ThreadState *state = rosetta_get_state();
     if (value) {
-        state->guest.pstate |= FLAG_N_MASK;
+        state->host.pstate |= FLAG_N_MASK;
     } else {
-        state->guest.pstate &= ~FLAG_N_MASK;
+        state->host.pstate &= ~FLAG_N_MASK;
     }
 }
 
@@ -211,9 +211,9 @@ void rosetta_set_z_flag(bool value)
 {
     ThreadState *state = rosetta_get_state();
     if (value) {
-        state->guest.pstate |= FLAG_Z_MASK;
+        state->host.pstate |= FLAG_Z_MASK;
     } else {
-        state->guest.pstate &= ~FLAG_Z_MASK;
+        state->host.pstate &= ~FLAG_Z_MASK;
     }
 }
 
@@ -225,9 +225,9 @@ void rosetta_set_c_flag(bool value)
 {
     ThreadState *state = rosetta_get_state();
     if (value) {
-        state->guest.pstate |= FLAG_C_MASK;
+        state->host.pstate |= FLAG_C_MASK;
     } else {
-        state->guest.pstate &= ~FLAG_C_MASK;
+        state->host.pstate &= ~FLAG_C_MASK;
     }
 }
 
@@ -239,9 +239,9 @@ void rosetta_set_v_flag(bool value)
 {
     ThreadState *state = rosetta_get_state();
     if (value) {
-        state->guest.pstate |= FLAG_V_MASK;
+        state->host.pstate |= FLAG_V_MASK;
     } else {
-        state->guest.pstate &= ~FLAG_V_MASK;
+        state->host.pstate &= ~FLAG_V_MASK;
     }
 }
 
@@ -251,7 +251,7 @@ void rosetta_set_v_flag(bool value)
 void rosetta_clear_flags(void)
 {
     ThreadState *state = rosetta_get_state();
-    state->guest.pstate &= ~FLAG_NZCV_MASK;
+    state->host.pstate &= ~FLAG_NZCV_MASK;
 }
 
 /* ============================================================================
@@ -271,8 +271,8 @@ void rosetta_get_vreg(uint8_t reg, uint64_t *lo, uint64_t *hi)
     if (reg > 31 || !lo || !hi) {
         return;
     }
-    *lo = state->guest.v[reg].u64[0];
-    *hi = state->guest.v[reg].u64[1];
+    *lo = state->host.v[reg].u64[0];
+    *hi = state->host.v[reg].u64[1];
 }
 
 /**
@@ -288,8 +288,8 @@ void rosetta_set_vreg(uint8_t reg, uint64_t lo, uint64_t hi)
     if (reg > 31) {
         return;
     }
-    state->guest.v[reg].u64[0] = lo;
-    state->guest.v[reg].u64[1] = hi;
+    state->host.v[reg].u64[0] = lo;
+    state->host.v[reg].u64[1] = hi;
 }
 
 /**
@@ -304,7 +304,7 @@ uint64_t rosetta_get_vreg_lo(uint8_t reg)
     if (reg > 31) {
         return 0;
     }
-    return state->guest.v[reg].u64[0];
+    return state->host.v[reg].u64[0];
 }
 
 /**
@@ -319,7 +319,7 @@ uint64_t rosetta_get_vreg_hi(uint8_t reg)
     if (reg > 31) {
         return 0;
     }
-    return state->guest.v[reg].u64[1];
+    return state->host.v[reg].u64[1];
 }
 
 /* ============================================================================
@@ -333,7 +333,7 @@ uint64_t rosetta_get_vreg_hi(uint8_t reg)
 uint32_t rosetta_get_fpcr(void)
 {
     ThreadState *state = rosetta_get_state();
-    return state->guest.fpcr;
+    return state->host.fpcr;
 }
 
 /**
@@ -343,7 +343,7 @@ uint32_t rosetta_get_fpcr(void)
 void rosetta_set_fpcr(uint32_t val)
 {
     ThreadState *state = rosetta_get_state();
-    state->guest.fpcr = val;
+    state->host.fpcr = val;
 }
 
 /**
@@ -353,7 +353,7 @@ void rosetta_set_fpcr(uint32_t val)
 uint32_t rosetta_get_fpsr(void)
 {
     ThreadState *state = rosetta_get_state();
-    return state->guest.fpsr;
+    return state->host.fpsr;
 }
 
 /**
@@ -363,7 +363,7 @@ uint32_t rosetta_get_fpsr(void)
 void rosetta_set_fpsr(uint32_t val)
 {
     ThreadState *state = rosetta_get_state();
-    state->guest.fpsr = val;
+    state->host.fpsr = val;
 }
 
 /* ============================================================================
@@ -379,15 +379,15 @@ void rosetta_print_state(void)
     int i;
 
     printf("=== Rosetta Thread State ===\n");
-    printf("PC:   0x%016llx\n", (unsigned long long)state->guest.pc);
-    printf("SP:   0x%016llx\n", (unsigned long long)state->guest.sp);
-    printf("LR:   0x%016llx\n", (unsigned long long)state->guest.x[30]);
-    printf("PSTATE: 0x%08llx\n", (unsigned long long)state->guest.pstate);
+    printf("PC:   0x%016llx\n", (unsigned long long)state->host.pc);
+    printf("SP:   0x%016llx\n", (unsigned long long)state->host.sp);
+    printf("LR:   0x%016llx\n", (unsigned long long)state->host.x[30]);
+    printf("PSTATE: 0x%08llx\n", (unsigned long long)state->host.pstate);
     printf("\nGeneral Purpose Registers:\n");
     for (i = 0; i < 16; i++) {
         printf("X%-2d: 0x%016llx  X%-2d: 0x%016llx\n",
-               i, (unsigned long long)state->guest.x[i],
-               i + 16, (unsigned long long)state->guest.x[i + 16]);
+               i, (unsigned long long)state->host.x[i],
+               i + 16, (unsigned long long)state->host.x[i + 16]);
     }
 }
 
@@ -401,23 +401,23 @@ void rosetta_dump_regs(void)
 
     printf("=== Register Dump ===\n");
     printf("PC   = 0x%016llx  SP   = 0x%016llx  LR   = 0x%016llx\n",
-           (unsigned long long)state->guest.pc,
-           (unsigned long long)state->guest.sp,
-           (unsigned long long)state->guest.x[30]);
+           (unsigned long long)state->host.pc,
+           (unsigned long long)state->host.sp,
+           (unsigned long long)state->host.x[30]);
     printf("PSTATE = 0x%08llx  (N=%d Z=%d C=%d V=%d)\n",
-           (unsigned long long)state->guest.pstate,
-           (int)((state->guest.pstate >> 31) & 1),
-           (int)((state->guest.pstate >> 30) & 1),
-           (int)((state->guest.pstate >> 29) & 1),
-           (int)((state->guest.pstate >> 28) & 1));
+           (unsigned long long)state->host.pstate,
+           (int)((state->host.pstate >> 31) & 1),
+           (int)((state->host.pstate >> 30) & 1),
+           (int)((state->host.pstate >> 29) & 1),
+           (int)((state->host.pstate >> 28) & 1));
     printf("\n");
 
     for (i = 0; i < 30; i += 4) {
         printf("X%-2d: 0x%016llx  X%-2d: 0x%016llx  X%-2d: 0x%016llx  X%-2d: 0x%016llx\n",
-               i, (unsigned long long)state->guest.x[i],
-               i + 1, (unsigned long long)state->guest.x[i + 1],
-               i + 2, (unsigned long long)state->guest.x[i + 2],
-               i + 3, (unsigned long long)state->guest.x[i + 3]);
+               i, (unsigned long long)state->host.x[i],
+               i + 1, (unsigned long long)state->host.x[i + 1],
+               i + 2, (unsigned long long)state->host.x[i + 2],
+               i + 3, (unsigned long long)state->host.x[i + 3]);
     }
 }
 

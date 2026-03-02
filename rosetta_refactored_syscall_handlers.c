@@ -3,11 +3,10 @@
  * ============================================================================
  *
  * This module implements syscall handlers for the Rosetta translation layer.
- * These handlers translate ARM64 Linux syscalls to x86_64/macOS equivalents.
+ * These handlers translate x86_64 Linux syscalls to ARM64/macOS equivalents.
  * ============================================================================ */
 
 #include "rosetta_refactored_syscall_handlers.h"
-#include "rosetta_refactored.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,28 +28,32 @@
  * syscall_get_nr - Get syscall number from thread state
  * @st: Thread state
  * Returns: Syscall number
+ *
+ * For x86_64 guest: syscall number is in RAX register
  */
 s32 syscall_get_nr(ThreadState *st)
 {
     if (st == NULL) {
         return -1;
     }
-    /* Syscall number is typically in X8 on ARM64 */
-    return (s32)st->guest.x[8];
+    /* Syscall number is in RAX on x86_64 */
+    return (s32)st->guest.r[X86_RAX];
 }
 
 /**
  * syscall_set_result - Set syscall result in thread state
  * @st: Thread state
  * @res: Result value
+ *
+ * For x86_64 guest: result is returned in RAX register
  */
 void syscall_set_result(ThreadState *st, s64 res)
 {
     if (st == NULL) {
         return;
     }
-    /* Result is typically returned in X0 on ARM64 */
-    st->guest.x[0] = (u64)res;
+    /* Result is returned in RAX on x86_64 */
+    st->guest.r[X86_RAX] = (u64)res;
 }
 
 /**
@@ -61,28 +64,29 @@ void syscall_set_result(ThreadState *st, s64 res)
 s64 syscall_dispatch(ThreadState *st)
 {
     s32 nr;
-    syscall_handler_func_t handler;
+    syscall_handler_t handler;
     s64 result;
 
     if (st == NULL) {
         return -EFAULT;
     }
 
-    /* Get syscall number */
+    /* Get syscall number from guest x86_64 state */
     nr = syscall_get_nr(st);
 
-    /* Validate syscall number */
-    if (nr < 0 || nr >= SYSCALL_HANDLER_MAX) {
+    /* Translate x86_64 syscall number to ARM64 */
+    s32 arm64_nr = translate_syscall_number(nr);
+    if (arm64_nr < 0) {
         return -ENOSYS;
     }
 
-    /* Get handler */
-    handler = syscall_handler_table[nr];
+    /* Get handler for this syscall */
+    handler = get_syscall_handler(nr);
     if (handler == NULL) {
         return -ENOSYS;
     }
 
-    /* Call handler */
+    /* Call handler and get result */
     result = handler(st);
 
     return result;
@@ -92,12 +96,13 @@ s64 syscall_dispatch(ThreadState *st)
  * Syscall Argument Helpers
  * ============================================================================ */
 
-#define GET_ARG0(st) ((st)->guest.x[0])
-#define GET_ARG1(st) ((st)->guest.x[1])
-#define GET_ARG2(st) ((st)->guest.x[2])
-#define GET_ARG3(st) ((st)->guest.x[3])
-#define GET_ARG4(st) ((st)->guest.x[4])
-#define GET_ARG5(st) ((st)->guest.x[5])
+/* x86_64 syscall argument registers (in order) */
+#define GET_ARG0(st) ((st)->guest.r[X86_RDI])  /* 1st arg: rdi */
+#define GET_ARG1(st) ((st)->guest.r[X86_RSI])  /* 2nd arg: rsi */
+#define GET_ARG2(st) ((st)->guest.r[X86_RDX])  /* 3rd arg: rdx */
+#define GET_ARG3(st) ((st)->guest.r[X86_R10])  /* 4th arg: r10 (not rcx!) */
+#define GET_ARG4(st) ((st)->guest.r[X86_R8])   /* 5th arg: r8 */
+#define GET_ARG5(st) ((st)->guest.r[X86_R9])   /* 6th arg: r9 */
 
 /* ============================================================================
  * Basic Syscall Handlers

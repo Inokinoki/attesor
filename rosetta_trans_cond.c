@@ -86,12 +86,12 @@ int translate_csel(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t cond = (insn[0] >> 12) & 0x0F;
 
-    bool cond_true = check_condition_code(cond, state->guest.pstate);
+    bool cond_true = check_condition_code(cond, state->host.pstate);
 
     if (cond_true) {
-        state->guest.x[rd] = state->guest.x[rn];
+        state->host.x[rd] = state->host.x[rn];
     } else {
-        state->guest.x[rd] = state->guest.x[rm];
+        state->host.x[rd] = state->host.x[rm];
     }
 
     return 0;
@@ -112,12 +112,12 @@ int translate_csinc(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t cond = (insn[0] >> 12) & 0x0F;
 
-    bool cond_true = check_condition_code(cond, state->guest.pstate);
+    bool cond_true = check_condition_code(cond, state->host.pstate);
 
     if (cond_true) {
-        state->guest.x[rd] = state->guest.x[rn];
+        state->host.x[rd] = state->host.x[rn];
     } else {
-        state->guest.x[rd] = state->guest.x[rm] + 1;
+        state->host.x[rd] = state->host.x[rm] + 1;
     }
 
     return 0;
@@ -138,12 +138,12 @@ int translate_csinv(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t cond = (insn[0] >> 12) & 0x0F;
 
-    bool cond_true = check_condition_code(cond, state->guest.pstate);
+    bool cond_true = check_condition_code(cond, state->host.pstate);
 
     if (cond_true) {
-        state->guest.x[rd] = state->guest.x[rn];
+        state->host.x[rd] = state->host.x[rn];
     } else {
-        state->guest.x[rd] = ~state->guest.x[rm];
+        state->host.x[rd] = ~state->host.x[rm];
     }
 
     return 0;
@@ -164,12 +164,12 @@ int translate_csneg(ThreadState *state, const uint8_t *insn)
     uint8_t rm = (insn[2] >> 16) & 0x1F;
     uint8_t cond = (insn[0] >> 12) & 0x0F;
 
-    bool cond_true = check_condition_code(cond, state->guest.pstate);
+    bool cond_true = check_condition_code(cond, state->host.pstate);
 
     if (cond_true) {
-        state->guest.x[rd] = state->guest.x[rn];
+        state->host.x[rd] = state->host.x[rn];
     } else {
-        state->guest.x[rd] = -state->guest.x[rm];
+        state->host.x[rd] = -state->host.x[rm];
     }
 
     return 0;
@@ -193,9 +193,9 @@ int translate_cset(ThreadState *state, const uint8_t *insn)
     uint8_t rd = (insn[0] >> 0) & 0x1F;
     uint8_t cond = (insn[0] >> 12) & 0x0F;
 
-    bool cond_true = check_condition_code(cond, state->guest.pstate);
+    bool cond_true = check_condition_code(cond, state->host.pstate);
 
-    state->guest.x[rd] = cond_true ? 1 : 0;
+    state->host.x[rd] = cond_true ? 1 : 0;
 
     return 0;
 }
@@ -214,9 +214,9 @@ int translate_csetm(ThreadState *state, const uint8_t *insn)
     uint8_t rd = (insn[0] >> 0) & 0x1F;
     uint8_t cond = (insn[0] >> 12) & 0x0F;
 
-    bool cond_true = check_condition_code(cond, state->guest.pstate);
+    bool cond_true = check_condition_code(cond, state->host.pstate);
 
-    state->guest.x[rd] = cond_true ? ~0ULL : 0;
+    state->host.x[rd] = cond_true ? ~0ULL : 0;
 
     return 0;
 }
@@ -240,12 +240,12 @@ int translate_cinc(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t cond = (insn[0] >> 12) & 0x0F;
 
-    bool cond_true = check_condition_code(cond, state->guest.pstate);
+    bool cond_true = check_condition_code(cond, state->host.pstate);
 
     if (cond_true) {
-        state->guest.x[rd] = state->guest.x[rn] + 1;
+        state->host.x[rd] = state->host.x[rn] + 1;
     } else {
-        state->guest.x[rd] = state->guest.x[rn];
+        state->host.x[rd] = state->host.x[rn];
     }
 
     return 0;
@@ -266,12 +266,12 @@ int translate_cinvert(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t cond = (insn[0] >> 12) & 0x0F;
 
-    bool cond_true = check_condition_code(cond, state->guest.pstate);
+    bool cond_true = check_condition_code(cond, state->host.pstate);
 
     if (cond_true) {
-        state->guest.x[rd] = ~state->guest.x[rn];
+        state->host.x[rd] = ~state->host.x[rn];
     } else {
-        state->guest.x[rd] = state->guest.x[rn];
+        state->host.x[rd] = state->host.x[rn];
     }
 
     return 0;
@@ -292,12 +292,12 @@ int translate_cneg(ThreadState *state, const uint8_t *insn)
     uint8_t rn = (insn[1] >> 5) & 0x1F;
     uint8_t cond = (insn[0] >> 12) & 0x0F;
 
-    bool cond_true = check_condition_code(cond, state->guest.pstate);
+    bool cond_true = check_condition_code(cond, state->host.pstate);
 
     if (cond_true) {
-        state->guest.x[rd] = -state->guest.x[rn];
+        state->host.x[rd] = -state->host.x[rn];
     } else {
-        state->guest.x[rd] = state->guest.x[rn];
+        state->host.x[rd] = state->host.x[rn];
     }
 
     return 0;

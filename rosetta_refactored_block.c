@@ -396,39 +396,39 @@ void *rosetta_block_translate(uint64_t guest_pc, int max_insns)
         uint64_t current_pc = guest_pc + (insn_count * 4);
 
         /* Try modular dispatch - ALU instructions */
-        if (translate_alu_dispatch(encoding, &code_buf, state->guest.x) == 0) {
+        if (translate_alu_dispatch(encoding, &code_buf, state->host.x) == 0) {
             insn_count++;
             continue;
         }
 
         /* Try compare instructions */
-        if (translate_compare_dispatch(encoding, &code_buf, state->guest.x,
-                                       &state->guest.pstate) == 0) {
+        if (translate_compare_dispatch(encoding, &code_buf, state->host.x,
+                                       &state->host.pstate) == 0) {
             insn_count++;
             continue;
         }
 
         /* Try MOV instructions */
-        if (translate_mov_dispatch(encoding, &code_buf, state->guest.x) == 0) {
+        if (translate_mov_dispatch(encoding, &code_buf, state->host.x) == 0) {
             insn_count++;
             continue;
         }
 
         /* Try memory instructions */
-        if (translate_mem_dispatch(encoding, &code_buf, state->guest.x) == 0) {
+        if (translate_mem_dispatch(encoding, &code_buf, state->host.x) == 0) {
             insn_count++;
             continue;
         }
 
         /* Try branch instructions */
-        if (translate_branch_dispatch(encoding, &code_buf, state->guest.x,
+        if (translate_branch_dispatch(encoding, &code_buf, state->host.x,
                                       current_pc, &terminated) == 0) {
             insn_count++;
             continue;
         }
 
         /* Try system instructions */
-        if (translate_system_dispatch(encoding, &code_buf, state->guest.x) == 0) {
+        if (translate_system_dispatch(encoding, &code_buf, state->host.x) == 0) {
             terminated = 1;
             insn_count++;
             continue;

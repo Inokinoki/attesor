@@ -39,7 +39,7 @@ void translate_b(uint32_t encoding, ThreadState *state)
     int64_t offset = imm26 * 4;
 
     /* Update program counter */
-    state->guest.pc = state->guest.pc + offset;
+    state->host.pc = state->host.pc + offset;
 }
 
 /**
@@ -60,10 +60,10 @@ void translate_bl(uint32_t encoding, ThreadState *state)
     int64_t offset = imm26 * 4;
 
     /* Link: save return address in LR (X30) */
-    state->guest.x[30] = state->guest.pc + 4;
+    state->host.x[30] = state->host.pc + 4;
 
     /* Update program counter */
-    state->guest.pc = state->guest.pc + offset;
+    state->host.pc = state->host.pc + offset;
 }
 
 /* ============================================================================
@@ -82,7 +82,7 @@ void translate_br(uint32_t encoding, ThreadState *state)
     uint8_t rn = (encoding >> 5) & 0x1F;
 
     /* Branch to address in register */
-    state->guest.pc = state->guest.x[rn];
+    state->host.pc = state->host.x[rn];
 }
 
 /**
@@ -97,10 +97,10 @@ void translate_blr(uint32_t encoding, ThreadState *state)
     uint8_t rn = (encoding >> 5) & 0x1F;
 
     /* Link: save return address in LR (X30) */
-    state->guest.x[30] = state->guest.pc + 4;
+    state->host.x[30] = state->host.pc + 4;
 
     /* Branch to address in register */
-    state->guest.pc = state->guest.x[rn];
+    state->host.pc = state->host.x[rn];
 }
 
 /**
@@ -115,7 +115,7 @@ void translate_ret(uint32_t encoding, ThreadState *state)
     uint8_t rn = (encoding >> 5) & 0x1F;
 
     /* Return to address in register (default LR/X30) */
-    state->guest.pc = state->guest.x[rn];
+    state->host.pc = state->host.x[rn];
 }
 
 /* ============================================================================
@@ -159,10 +159,10 @@ void translate_bcond(uint32_t encoding, ThreadState *state)
     int64_t offset = imm19 * 4;
 
     /* Extract flags */
-    uint8_t Z = (state->guest.pstate >> 30) & 1;
-    uint8_t N = (state->guest.pstate >> 31) & 1;
-    uint8_t C = (state->guest.pstate >> 29) & 1;
-    uint8_t V = (state->guest.pstate >> 28) & 1;
+    uint8_t Z = (state->host.pstate >> 30) & 1;
+    uint8_t N = (state->host.pstate >> 31) & 1;
+    uint8_t C = (state->host.pstate >> 29) & 1;
+    uint8_t V = (state->host.pstate >> 28) & 1;
 
     int taken = 0;
 
@@ -218,7 +218,7 @@ void translate_bcond(uint32_t encoding, ThreadState *state)
     }
 
     if (taken) {
-        state->guest.pc = state->guest.pc + offset;
+        state->host.pc = state->host.pc + offset;
     } else {
         /* Fall through - PC already points to next instruction */
     }
@@ -250,13 +250,13 @@ void translate_cbz(uint32_t encoding, ThreadState *state)
     /* Check if register is zero */
     int is_zero;
     if (sf) {
-        is_zero = (state->guest.x[rt] == 0);
+        is_zero = (state->host.x[rt] == 0);
     } else {
-        is_zero = ((uint32_t)state->guest.x[rt] == 0);
+        is_zero = ((uint32_t)state->host.x[rt] == 0);
     }
 
     if (is_zero) {
-        state->guest.pc = state->guest.pc + offset;
+        state->host.pc = state->host.pc + offset;
     }
 }
 
@@ -282,13 +282,13 @@ void translate_cbnz(uint32_t encoding, ThreadState *state)
     /* Check if register is not zero */
     int is_not_zero;
     if (sf) {
-        is_not_zero = (state->guest.x[rt] != 0);
+        is_not_zero = (state->host.x[rt] != 0);
     } else {
-        is_not_zero = ((uint32_t)state->guest.x[rt] != 0);
+        is_not_zero = ((uint32_t)state->host.x[rt] != 0);
     }
 
     if (is_not_zero) {
-        state->guest.pc = state->guest.pc + offset;
+        state->host.pc = state->host.pc + offset;
     }
 }
 
@@ -320,11 +320,11 @@ void translate_tbz(uint32_t encoding, ThreadState *state)
     int64_t offset = imm14 * 4;
 
     /* Test the bit */
-    uint64_t value = state->guest.x[rt];
+    uint64_t value = state->host.x[rt];
     int bit_is_zero = !((value >> bit_pos) & 1);
 
     if (bit_is_zero) {
-        state->guest.pc = state->guest.pc + offset;
+        state->host.pc = state->host.pc + offset;
     }
 }
 
@@ -352,11 +352,11 @@ void translate_tbnz(uint32_t encoding, ThreadState *state)
     int64_t offset = imm14 * 4;
 
     /* Test the bit */
-    uint64_t value = state->guest.x[rt];
+    uint64_t value = state->host.x[rt];
     int bit_is_set = ((value >> bit_pos) & 1);
 
     if (bit_is_set) {
-        state->guest.pc = state->guest.pc + offset;
+        state->host.pc = state->host.pc + offset;
     }
 }
 
@@ -372,10 +372,10 @@ void translate_tbnz(uint32_t encoding, ThreadState *state)
  */
 int check_condition(uint8_t cond, ThreadState *state)
 {
-    uint8_t Z = (state->guest.pstate >> 30) & 1;
-    uint8_t N = (state->guest.pstate >> 31) & 1;
-    uint8_t C = (state->guest.pstate >> 29) & 1;
-    uint8_t V = (state->guest.pstate >> 28) & 1;
+    uint8_t Z = (state->host.pstate >> 30) & 1;
+    uint8_t N = (state->host.pstate >> 31) & 1;
+    uint8_t C = (state->host.pstate >> 29) & 1;
+    uint8_t V = (state->host.pstate >> 28) & 1;
 
     switch (cond) {
         case 0x0: return (Z == 1);                    /* EQ */

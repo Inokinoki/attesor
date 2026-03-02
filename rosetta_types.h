@@ -148,8 +148,8 @@ typedef enum {
 #define TRANSLATION_CACHE_MASK  (TRANSLATION_CACHE_SIZE - 1)
 
 typedef struct translation_entry {
-    u64 guest_pc;                   /* Guest ARM64 PC */
-    u64 host_addr;                  /* Host x86_64 address */
+    u64 guest_pc;                   /* Guest x86_64 PC (RIP) */
+    u64 host_addr;                  /* Host ARM64 translated address */
     u32 block_size;                 /* Size of translated block */
     u32 flags;                      /* Block flags */
     struct translation_entry *next; /* Next entry (chaining) */
@@ -177,16 +177,21 @@ typedef struct code_buffer {
  * Thread State
  * ============================================================================ */
 
-/* Use RosettaThreadState to avoid conflict with macOS mach/thread_status.h */
+/* Use RosettaThreadState to avoid conflict with macOS mach/thread_status.h
+ *
+ * Translation direction: x86_64 guest -> ARM64 host (like Apple's Rosetta 2)
+ * - Guest: x86_64 binary being translated
+ * - Host: ARM64 native execution
+ */
 typedef struct RosettaThreadState {
-    /* Guest ARM64 state */
-    arm64_context_t guest;
+    /* Guest x86_64 state (the translated binary) */
+    x86_context_t guest;
 
-    /* Host x86_64 state */
-    x86_context_t host;
+    /* Host ARM64 state (native execution) */
+    arm64_context_t host;
 
     /* Translation state */
-    u64 current_pc;                 /* Current guest PC */
+    u64 current_pc;                 /* Current guest PC (x86_64 RIP) */
     void *current_block;            /* Current translated block */
 
     /* Syscall state */

@@ -10,6 +10,7 @@
 #define ROSETTA_REFACTORED_SYSCALL_HANDLERS_H
 
 #include "rosetta_types.h"
+#include "rosetta_syscalls.h"
 #include "rosetta_refactored.h"
 #include <stdint.h>
 

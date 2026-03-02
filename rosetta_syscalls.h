@@ -5,10 +5,13 @@
  * Rosetta Binary Translator - Syscall Translation Layer
  * ============================================================================
  *
- * This module handles ARM64 to x86_64 syscall translation including:
- * - Syscall number mapping (ARM64 Linux -> x86_64 Linux)
- * - Argument register remapping
+ * This module handles x86_64 to ARM64 syscall translation including:
+ * - Syscall number mapping (x86_64 Linux -> ARM64 Linux)
+ * - Argument register remapping (x86_64 -> ARM64)
  * - Syscall handler dispatch
+ *
+ * Translation direction: x86_64 guest binary running on ARM64 host
+ * (Same as Apple's Rosetta 2)
  *
  * ============================================================================ */
 
@@ -20,10 +23,106 @@
 #endif
 
 /* ============================================================================
- * Syscall Number Mapping (ARM64 -> x86_64)
+ * Syscall Number Mapping (x86_64 -> ARM64)
  * ============================================================================ */
 
-/* ARM64 syscall numbers (Linux ABI) */
+/* x86_64 syscall numbers (Linux ABI) - Guest */
+#define X86_64_SYS_READ         0
+#define X86_64_SYS_WRITE        1
+#define X86_64_SYS_OPEN         2
+#define X86_64_SYS_CLOSE        3
+#define X86_64_SYS_STAT         4
+#define X86_64_SYS_FSTAT        5
+#define X86_64_SYS_LSTAT        6
+#define X86_64_SYS_POLL         7
+#define X86_64_SYS_LSEEK        8
+#define X86_64_SYS_MMAP         9
+#define X86_64_SYS_MPROTECT     10
+#define X86_64_SYS_MUNMAP       11
+#define X86_64_SYS_BRK          12
+#define X86_64_SYS_IOCTL        16
+#define X86_64_SYS_ACCESS       21
+#define X86_64_SYS_PIPE         22
+#define X86_64_SYS_DUP          32
+#define X86_64_SYS_DUP2         33
+#define X86_64_SYS_DUP3         292
+#define X86_64_SYS_NANOSLEEP    35
+#define X86_64_SYS_GETPID       39
+#define X86_64_SYS_UNAME        63
+#define X86_64_SYS_FCNTL        72
+#define X86_64_SYS_GETCWD       79
+#define X86_64_SYS_CHDIR        80
+#define X86_64_SYS_GETUID       102
+#define X86_64_SYS_GETTID       186
+#define X86_64_SYS_EXIT         60
+#define X86_64_SYS_EXIT_GROUP   231
+#define X86_64_SYS_WAIT4        61
+#define X86_64_SYS_KILL         62
+#define X86_64_SYS_CLONE        56
+#define X86_64_SYS_EXECVE       59
+#define X86_64_SYS_RT_SIGACTION 13
+#define X86_64_SYS_RT_SIGPROCMASK 14
+#define X86_64_SYS_SET_TID_ADDRESS 218
+#define X86_64_SYS_FUTEX        202
+#define X86_64_SYS_CLOCK_GETTIME 228
+#define X86_64_SYS_EPOLL_CREATE1 291
+#define X86_64_SYS_EPOLL_CTL    233
+#define X86_64_SYS_EPOLL_PWAIT  281
+#define X86_64_SYS_READV        19
+#define X86_64_SYS_WRITEV       20
+#define X86_64_SYS_SCHED_YIELD  24
+#define X86_64_SYS_ARCH_PRCTL   158
+#define X86_64_SYS_CONNECT      42
+#define X86_64_SYS_SENDTO       44
+#define X86_64_SYS_RECVFROM     45
+#define X86_64_SYS_SOCKET       41
+#define X86_64_SYS_GETTIMEOFDAY 96
+#define X86_64_SYS_GETRLIMIT    97
+#define X86_64_SYS_GETRUSAGE    98
+#define X86_64_SYS_TIMES        100
+#define X86_64_SYS_SYSINFO      99
+#define X86_64_SYS_MADVISE      28
+#define X86_64_SYS_EVENTFD2     290
+#define X86_64_SYS_SIGNALFD4    289
+#define X86_64_SYS_ACCEPT4      288
+#define X86_64_SYS_GETSOCKOPT   55
+#define X86_64_SYS_SETSOCKOPT   54
+#define X86_64_SYS_GETEGID      108
+#define X86_64_SYS_GETEUID      107
+#define X86_64_SYS_GETGID       104
+#define X86_64_SYS_FLOCK        73
+#define X86_64_SYS_FSYNC        74
+#define X86_64_SYS_FDATASYNC    75
+#define X86_64_SYS_RENAME       82
+#define X86_64_SYS_MKDIR        83
+#define X86_64_SYS_RMDIR        84
+#define X86_64_SYS_CREAT        85
+#define X86_64_SYS_LINK         86
+#define X86_64_SYS_UNLINK       87
+#define X86_64_SYS_SYMLINK      88
+#define X86_64_SYS_READLINK     89
+#define X86_64_SYS_CHMOD        90
+#define X86_64_SYS_FCHMOD       91
+#define X86_64_SYS_CHOWN        92
+#define X86_64_SYS_FCHOWN       93
+#define X86_64_SYS_LCHOWN       94
+#define X86_64_SYS_UMASK        95
+#define X86_64_SYS_GETPGID      121
+#define X86_64_SYS_GETSID       124
+#define X86_64_SYS_SETSID       112
+#define X86_64_SYS_GETGROUPS    115
+#define X86_64_SYS_SETGROUPS    116
+#define X86_64_SYS_SETHOSTNAME  170
+#define X86_64_SYS_SETDOMAINNAME 171
+#define X86_64_SYS_SETDOMAINNAME 171
+#define X86_64_SYS_PRCTL        157
+#define X86_64_SYS_SET_ROBUST_LIST 273
+#define X86_64_SYS_GET_ROBUST_LIST 274
+#define X86_64_SYS_CLOCK_GETRES 229
+#define X86_64_SYS_CLOCK_NANOSLEEP 287
+#define X86_64_SYS_TIMERFD_CREATE 283
+
+/* ARM64 syscall numbers (Linux ABI) - Host */
 #define ARM64_SYS_READ          63
 #define ARM64_SYS_WRITE         64
 #define ARM64_SYS_OPEN          56
@@ -42,7 +141,7 @@
 #define ARM64_SYS_PIPE          40
 #define ARM64_SYS_DUP           23
 #define ARM64_SYS_DUP2          24
-#define ARM64_SYS_DUP3          24  /* Same as dup2 on ARM64 */
+#define ARM64_SYS_DUP3          24
 #define ARM64_SYS_PAUSE         179
 #define ARM64_SYS_NANOSLEEP     35
 #define ARM64_SYS_GETPID        177
@@ -111,57 +210,14 @@
 #define ARM64_SYS_SETSOCKOPT    210
 #define ARM64_SYS_SCHED_YIELD   124
 #define ARM64_SYS_ARCH_PRCTL    160
-
-/* x86_64 syscall numbers (Linux ABI) */
-#define X86_64_SYS_READ         0
-#define X86_64_SYS_WRITE        1
-#define X86_64_SYS_OPEN         2
-#define X86_64_SYS_CLOSE        3
-#define X86_64_SYS_STAT         4
-#define X86_64_SYS_FSTAT        5
-#define X86_64_SYS_LSTAT        6
-#define X86_64_SYS_POLL         7
-#define X86_64_SYS_LSEEK        8
-#define X86_64_SYS_MMAP         9
-#define X86_64_SYS_MPROTECT     10
-#define X86_64_SYS_MUNMAP       11
-#define X86_64_SYS_BRK          12
-#define X86_64_SYS_IOCTL        16
-#define X86_64_SYS_ACCESS       21
-#define X86_64_SYS_PIPE         22
-#define X86_64_SYS_DUP          32
-#define X86_64_SYS_DUP2         33
-#define X86_64_SYS_NANOSLEEP    35
-#define X86_64_SYS_GETPID       39
-#define X86_64_SYS_UNAME        63
-#define X86_64_SYS_FCNTL        72
-#define X86_64_SYS_GETCWD       79
-#define X86_64_SYS_CHDIR        80
-#define X86_64_SYS_GETUID       102
-#define X86_64_SYS_GETTID       186
-#define X86_64_SYS_EXIT         60
-#define X86_64_SYS_EXIT_GROUP   231
-#define X86_64_SYS_WAIT4        61
-#define X86_64_SYS_KILL         62
-#define X86_64_SYS_CLONE        56
-#define X86_64_SYS_EXECVE       59
-#define X86_64_SYS_RT_SIGACTION 13
-#define X86_64_SYS_RT_SIGPROCMASK 14
-#define X86_64_SYS_SET_TID_ADDRESS 218
-#define X86_64_SYS_FUTEX        202
-#define X86_64_SYS_CLOCK_GETTIME 228
-#define X86_64_SYS_EPOLL_CREATE1 291
-#define X86_64_SYS_EPOLL_CTL    233
-#define X86_64_SYS_EPOLL_PWAIT  281
-#define X86_64_SYS_READV        19
-#define X86_64_SYS_WRITEV       20
-#define X86_64_SYS_SCHED_YIELD  24
-#define X86_64_SYS_ARCH_PRCTL   158
-#define X86_64_SYS_SOCKET       41
-#define X86_64_SYS_CONNECT      42
-#define X86_64_SYS_SENDTO       44
-#define X86_64_SYS_RECVFROM     45
-#define X86_64_SYS_GETTIMEOFDAY 78
+#define ARM64_SYS_GETPGID       155
+#define ARM64_SYS_GETSID        156
+#define ARM64_SYS_SETSID        157
+#define ARM64_SYS_GETGROUPS     158
+#define ARM64_SYS_SETGROUPS     159
+#define ARM64_SYS_SETHOSTNAME   161
+#define ARM64_SYS_SETDOMAINNAME 162
+#define ARM64_SYS_PRCTL         167
 
 /* ============================================================================
  * Syscall Handler Function Types
@@ -174,18 +230,8 @@
  */
 typedef int (*syscall_handler_t)(ThreadState *state);
 
-/* ============================================================================
- * Syscall Mapping Structure
- * ============================================================================ */
-
-/**
- * Syscall mapping entry
- */
-typedef struct {
-    int arm64_nr;           /* ARM64 syscall number */
-    int x86_64_nr;          /* x86_64 syscall number */
-    syscall_handler_t handler;  /* Handler function */
-} SyscallEntry;
+/* Forward declaration for syscall handler function */
+int syscall_dup(ThreadState *state);
 
 /* ============================================================================
  * Basic I/O Syscall Handlers
