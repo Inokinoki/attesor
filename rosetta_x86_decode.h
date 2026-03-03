@@ -32,6 +32,7 @@ typedef struct {
     uint8_t mod;            /* ModR/M mod field */
     uint8_t reg;            /* ModR/M reg field */
     uint8_t rm;             /* ModR/M rm field */
+    uint8_t simd_prefix;    /* SIMD prefix: 0x66, 0xF2, 0xF3 */
     int has_modrm;          /* Has ModR/M byte */
     int is_64bit;           /* 64-bit operand size */
 } x86_insn_t;
@@ -127,6 +128,149 @@ static inline int x86_is_cqo(const x86_insn_t *i);
 static inline int x86_is_cli(const x86_insn_t *i);
 static inline int x86_is_sti(const x86_insn_t *i);
 static inline int x86_is_cli_sti(const x86_insn_t *i);
+
+/* P5 - SIMD/Floating Point instructions (SSE, SSE2, SSE4, AVX) */
+static inline int x86_is_movaps(const x86_insn_t *i);
+static inline int x86_is_movups(const x86_insn_t *i);
+static inline int x86_is_movss(const x86_insn_t *i);
+static inline int x86_is_movsd(const x86_insn_t *i);
+static inline int x86_is_movapd(const x86_insn_t *i);
+static inline int x86_is_movupd(const x86_insn_t *i);
+static inline int x86_is_movhlps(const x86_insn_t *i);
+static inline int x86_is_movlhps(const x86_insn_t *i);
+static inline int x86_is_movhps(const x86_insn_t *i);
+static inline int x86_is_movhpd(const x86_insn_t *i);
+static inline int x86_is_movlps(const x86_insn_t *i);
+static inline int x86_is_movlpd(const x86_insn_t *i);
+static inline int x86_is_addps(const x86_insn_t *i);
+static inline int x86_is_addpd(const x86_insn_t *i);
+static inline int x86_is_addss(const x86_insn_t *i);
+static inline int x86_is_addsd(const x86_insn_t *i);
+static inline int x86_is_subps(const x86_insn_t *i);
+static inline int x86_is_subpd(const x86_insn_t *i);
+static inline int x86_is_subss(const x86_insn_t *i);
+static inline int x86_is_subsd(const x86_insn_t *i);
+static inline int x86_is_mulps(const x86_insn_t *i);
+static inline int x86_is_mulpd(const x86_insn_t *i);
+static inline int x86_is_mulss(const x86_insn_t *i);
+static inline int x86_is_mulsd(const x86_insn_t *i);
+static inline int x86_is_divps(const x86_insn_t *i);
+static inline int x86_is_divpd(const x86_insn_t *i);
+static inline int x86_is_divss(const x86_insn_t *i);
+static inline int x86_is_divsd(const x86_insn_t *i);
+static inline int x86_is_maxps(const x86_insn_t *i);
+static inline int x86_is_maxpd(const x86_insn_t *i);
+static inline int x86_is_maxss(const x86_insn_t *i);
+static inline int x86_is_maxsd(const x86_insn_t *i);
+static inline int x86_is_minps(const x86_insn_t *i);
+static inline int x86_is_minpd(const x86_insn_t *i);
+static inline int x86_is_minss(const x86_insn_t *i);
+static inline int x86_is_minsd(const x86_insn_t *i);
+static inline int x86_is_andps(const x86_insn_t *i);
+static inline int x86_is_andpd(const x86_insn_t *i);
+static inline int x86_is_andnps(const x86_insn_t *i);
+static inline int x86_is_andnpd(const x86_insn_t *i);
+static inline int x86_is_orps(const x86_insn_t *i);
+static inline int x86_is_orpd(const x86_insn_t *i);
+static inline int x86_is_xorps(const x86_insn_t *i);
+static inline int x86_is_xorpd(const x86_insn_t *i);
+static inline int x86_is_cmpps(const x86_insn_t *i);
+static inline int x86_is_cmppd(const x86_insn_t *i);
+static inline int x86_is_cmpss(const x86_insn_t *i);
+static inline int x86_is_cmpsd(const x86_insn_t *i);
+static inline int x86_is_cvtps2pd(const x86_insn_t *i);
+static inline int x86_is_cvtpd2ps(const x86_insn_t *i);
+static inline int x86_is_cvtss2sd(const x86_insn_t *i);
+static inline int x86_is_cvtsd2ss(const x86_insn_t *i);
+static inline int x86_is_cvtdq2ps(const x86_insn_t *i);
+static inline int x86_is_cvtps2dq(const x86_insn_t *i);
+static inline int x86_is_cvttps2dq(const x86_insn_t *i);
+static inline int x86_is_cvtdq2pd(const x86_insn_t *i);
+static inline int x86_is_cvtpd2dq(const x86_insn_t *i);
+static inline int x86_is_cvttpd2dq(const x86_insn_t *i);
+static inline int x86_is_cvtsi2ss(const x86_insn_t *i);
+static inline int x86_is_cvtsi2sd(const x86_insn_t *i);
+static inline int x86_is_cvtss2si(const x86_insn_t *i);
+static inline int x86_is_cvtsd2si(const x86_insn_t *i);
+static inline int x86_is_cvttss2si(const x86_insn_t *i);
+static inline int x86_is_cvttsd2si(const x86_insn_t *i);
+static inline int x86_is_sqrtps(const x86_insn_t *i);
+static inline int x86_is_sqrtpd(const x86_insn_t *i);
+static inline int x86_is_sqrtss(const x86_insn_t *i);
+static inline int x86_is_sqrtsd(const x86_insn_t *i);
+static inline int x86_is_rsqrtps(const x86_insn_t *i);
+static inline int x86_is_rsqrtss(const x86_insn_t *i);
+static inline int x86_is_rcpps(const x86_insn_t *i);
+static inline int x86_is_rcpss(const x86_insn_t *i);
+static inline int x86_is_ucomiss(const x86_insn_t *i);
+static inline int x86_is_ucomisd(const x86_insn_t *i);
+static inline int x86_is_comiss(const x86_insn_t *i);
+static inline int x86_is_comisd(const x86_insn_t *i);
+static inline int x86_is_ldmxcsr(const x86_insn_t *i);
+static inline int x86_is_stmxcsr(const x86_insn_t *i);
+static inline int x86_is_pshufd(const x86_insn_t *i);
+static inline int x86_is_pshuflw(const x86_insn_t *i);
+static inline int x86_is_pshufhw(const x86_insn_t *i);
+static inline int x86_is_punpckldq(const x86_insn_t *i);
+static inline int x86_is_punpckhdq(const x86_insn_t *i);
+static inline int x86_is_punpcklqdq(const x86_insn_t *i);
+static inline int x86_is_punpckhqdq(const x86_insn_t *i);
+static inline int x86_is_movdqu(const x86_insn_t *i);
+static inline int x86_is_movdqa(const x86_insn_t *i);
+static inline int x86_is_movq(const x86_insn_t *i);
+static inline int x86_is_movdq2q(const x86_insn_t *i);
+static inline int x86_is_movq2dq(const x86_insn_t *i);
+static inline int x86_is_pmovmskb(const x86_insn_t *i);
+static inline int x86_is_pextrw(const x86_insn_t *i);
+static inline int x86_is_pinsrw(const x86_insn_t *i);
+static inline int x86_is_pshufw(const x86_insn_t *i);
+static inline int x86_is_paddb(const x86_insn_t *i);
+static inline int x86_is_paddw(const x86_insn_t *i);
+static inline int x86_is_paddd(const x86_insn_t *i);
+static inline int x86_is_paddq(const x86_insn_t *i);
+static inline int x86_is_psubb(const x86_insn_t *i);
+static inline int x86_is_psubw(const x86_insn_t *i);
+static inline int x86_is_psubd(const x86_insn_t *i);
+static inline int x86_is_psubq(const x86_insn_t *i);
+static inline int x86_is_pand(const x86_insn_t *i);
+static inline int x86_is_pandn(const x86_insn_t *i);
+static inline int x86_is_por(const x86_insn_t *i);
+static inline int x86_is_pxor(const x86_insn_t *i);
+static inline int x86_is_pcmpgtb(const x86_insn_t *i);
+static inline int x86_is_pcmpgtw(const x86_insn_t *i);
+static inline int x86_is_pcmpgtd(const x86_insn_t *i);
+static inline int x86_is_pcmpeq(const x86_insn_t *i);
+static inline int x86_is_pminub(const x86_insn_t *i);
+static inline int x86_is_pmaxub(const x86_insn_t *i);
+static inline int x86_is_pminsw(const x86_insn_t *i);
+static inline int x86_is_pmaxsw(const x86_insn_t *i);
+static inline int x86_is_pmullw(const x86_insn_t *i);
+static inline int x86_is_pmulhw(const x86_insn_t *i);
+static inline int x86_is_pmulhuw(const x86_insn_t *i);
+static inline int x86_is_pavgb(const x86_insn_t *i);
+static inline int x86_is_pavgw(const x86_insn_t *i);
+static inline int x86_is_psadbw(const x86_insn_t *i);
+static inline int x86_is_pmovmskb2(const x86_insn_t *i);
+static inline int x86_is_pextrb(const x86_insn_t *i);
+static inline int x86_is_pextrd(const x86_insn_t *i);
+static inline int x86_is_insertps(const x86_insn_t *i);
+static inline int x86_is_roundps(const x86_insn_t *i);
+static inline int x86_is_roundpd(const x86_insn_t *i);
+static inline int x86_is_roundss(const x86_insn_t *i);
+static inline int x86_is_roundsd(const x86_insn_t *i);
+static inline int x86_is_blendvps(const x86_insn_t *i);
+static inline int x86_is_blendvpd(const x86_insn_t *i);
+static inline int x86_is_dppd(const x86_insn_t *i);
+static inline int x86_is_dpps(const x86_insn_t *i);
+
+/* Helper predicates for SIMD/FP classification */
+static inline int x86_is_simd(const x86_insn_t *i);
+static inline int x86_is_fp(const x86_insn_t *i);
+static inline int x86_is_simd_mov(const x86_insn_t *i);
+static inline int x86_is_simd_arith(const x86_insn_t *i);
+static inline int x86_is_simd_cmp(const x86_insn_t *i);
+static inline int x86_is_simd_convert(const x86_insn_t *i);
+static inline int x86_is_simd_shuffle(const x86_insn_t *i);
 
 /* ============================================================================
  * Inline Implementations
@@ -352,6 +496,471 @@ static inline int x86_is_sti(const x86_insn_t *i) {
 }
 static inline int x86_is_cli_sti(const x86_insn_t *i) {
     return i->opcode == 0xFA || i->opcode == 0xFB;
+}
+
+/* ============================================================================
+ * SIMD/Floating Point Predicate Implementations
+ * ============================================================================ */
+
+/* Check if instruction has SIMD prefix */
+static inline int x86_has_simd_prefix(const x86_insn_t *i) {
+    return i->simd_prefix == 0x66 || i->simd_prefix == 0xF2 || i->simd_prefix == 0xF3;
+}
+
+/* SSE/SSE2 SIMD instructions (0F opcode escape) */
+static inline int x86_is_movaps(const x86_insn_t *i) {
+    return i->opcode2 == 0x28 || i->opcode2 == 0x29;
+}
+static inline int x86_is_movups(const x86_insn_t *i) {
+    return i->opcode2 == 0x10 || i->opcode2 == 0x11;
+}
+static inline int x86_is_movss(const x86_insn_t *i) {
+    return i->opcode2 == 0x10 && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_movsd(const x86_insn_t *i) {
+    return i->opcode2 == 0x10 && i->simd_prefix == 0xF2;
+}
+static inline int x86_is_movapd(const x86_insn_t *i) {
+    return i->opcode2 == 0x28 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_movupd(const x86_insn_t *i) {
+    return i->opcode2 == 0x10 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_movhlps(const x86_insn_t *i) {
+    return i->opcode2 == 0x12;
+}
+static inline int x86_is_movlhps(const x86_insn_t *i) {
+    return i->opcode2 == 0x16;
+}
+static inline int x86_is_movhps(const x86_insn_t *i) {
+    return i->opcode2 == 0x16;
+}
+static inline int x86_is_movhpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x16 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_movlps(const x86_insn_t *i) {
+    return i->opcode2 == 0x12 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_movlpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x12 && i->simd_prefix == 0x66;
+}
+
+/* Arithmetic SIMD instructions */
+static inline int x86_is_addps(const x86_insn_t *i) {
+    return i->opcode2 == 0x58 && i->simd_prefix == 0x00;
+}
+static inline int x86_is_addpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x58 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_addss(const x86_insn_t *i) {
+    return i->opcode2 == 0x58 && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_addsd(const x86_insn_t *i) {
+    return i->opcode2 == 0x58 && i->simd_prefix == 0xF2;
+}
+static inline int x86_is_subps(const x86_insn_t *i) {
+    return i->opcode2 == 0x5C && i->simd_prefix == 0x00;
+}
+static inline int x86_is_subpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x5C && i->simd_prefix == 0x66;
+}
+static inline int x86_is_subss(const x86_insn_t *i) {
+    return i->opcode2 == 0x5C && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_subsd(const x86_insn_t *i) {
+    return i->opcode2 == 0x5C && i->simd_prefix == 0xF2;
+}
+static inline int x86_is_mulps(const x86_insn_t *i) {
+    return i->opcode2 == 0x59 && i->simd_prefix == 0x00;
+}
+static inline int x86_is_mulpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x59 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_mulss(const x86_insn_t *i) {
+    return i->opcode2 == 0x59 && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_mulsd(const x86_insn_t *i) {
+    return i->opcode2 == 0x59 && i->simd_prefix == 0xF2;
+}
+static inline int x86_is_divps(const x86_insn_t *i) {
+    return i->opcode2 == 0x5E && i->simd_prefix == 0x00;
+}
+static inline int x86_is_divpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x5E && i->simd_prefix == 0x66;
+}
+static inline int x86_is_divss(const x86_insn_t *i) {
+    return i->opcode2 == 0x5E && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_divsd(const x86_insn_t *i) {
+    return i->opcode2 == 0x5E && i->simd_prefix == 0xF2;
+}
+static inline int x86_is_maxps(const x86_insn_t *i) {
+    return i->opcode2 == 0x5F && i->simd_prefix == 0x00;
+}
+static inline int x86_is_maxpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x5F && i->simd_prefix == 0x66;
+}
+static inline int x86_is_maxss(const x86_insn_t *i) {
+    return i->opcode2 == 0x5F && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_maxsd(const x86_insn_t *i) {
+    return i->opcode2 == 0x5F && i->simd_prefix == 0xF2;
+}
+static inline int x86_is_minps(const x86_insn_t *i) {
+    return i->opcode2 == 0x5D && i->simd_prefix == 0x00;
+}
+static inline int x86_is_minpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x5D && i->simd_prefix == 0x66;
+}
+static inline int x86_is_minss(const x86_insn_t *i) {
+    return i->opcode2 == 0x5D && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_minsd(const x86_insn_t *i) {
+    return i->opcode2 == 0x5D && i->simd_prefix == 0xF2;
+}
+
+/* Logical SIMD instructions */
+static inline int x86_is_andps(const x86_insn_t *i) {
+    return i->opcode2 == 0x54;
+}
+static inline int x86_is_andpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x54 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_andnps(const x86_insn_t *i) {
+    return i->opcode2 == 0x55;
+}
+static inline int x86_is_andnpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x55 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_orps(const x86_insn_t *i) {
+    return i->opcode2 == 0x56;
+}
+static inline int x86_is_orpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x56 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_xorps(const x86_insn_t *i) {
+    return i->opcode2 == 0x57;
+}
+static inline int x86_is_xorpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x57 && i->simd_prefix == 0x66;
+}
+
+/* Comparison SIMD instructions */
+static inline int x86_is_cmpps(const x86_insn_t *i) {
+    return i->opcode2 == 0xC2 && i->simd_prefix == 0x00;
+}
+static inline int x86_is_cmppd(const x86_insn_t *i) {
+    return i->opcode2 == 0xC2 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_cmpss(const x86_insn_t *i) {
+    return i->opcode2 == 0xC2 && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_cmpsd(const x86_insn_t *i) {
+    return i->opcode2 == 0xC2 && i->simd_prefix == 0xF2;
+}
+static inline int x86_is_ucomiss(const x86_insn_t *i) {
+    return i->opcode2 == 0x2E;
+}
+static inline int x86_is_ucomisd(const x86_insn_t *i) {
+    return i->opcode2 == 0x2E && i->simd_prefix == 0x66;
+}
+static inline int x86_is_comiss(const x86_insn_t *i) {
+    return i->opcode2 == 0x2F;
+}
+static inline int x86_is_comisd(const x86_insn_t *i) {
+    return i->opcode2 == 0x2F && i->simd_prefix == 0x66;
+}
+
+/* Conversion instructions */
+static inline int x86_is_cvtps2pd(const x86_insn_t *i) {
+    return i->opcode2 == 0x5A && i->simd_prefix == 0x00;
+}
+static inline int x86_is_cvtpd2ps(const x86_insn_t *i) {
+    return i->opcode2 == 0x5A && i->simd_prefix == 0x66;
+}
+static inline int x86_is_cvtss2sd(const x86_insn_t *i) {
+    return i->opcode2 == 0x5A && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_cvtsd2ss(const x86_insn_t *i) {
+    return i->opcode2 == 0x5A && i->simd_prefix == 0xF2;
+}
+static inline int x86_is_cvtdq2ps(const x86_insn_t *i) {
+    return i->opcode2 == 0x5B && i->simd_prefix == 0x00;
+}
+static inline int x86_is_cvtps2dq(const x86_insn_t *i) {
+    return i->opcode2 == 0x5B && i->simd_prefix == 0x66;
+}
+static inline int x86_is_cvttps2dq(const x86_insn_t *i) {
+    return i->opcode2 == 0x5B && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_cvtdq2pd(const x86_insn_t *i) {
+    return i->opcode2 == 0xE6 && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_cvtpd2dq(const x86_insn_t *i) {
+    return i->opcode2 == 0xE6 && i->simd_prefix == 0xF2;
+}
+static inline int x86_is_cvttpd2dq(const x86_insn_t *i) {
+    return i->opcode2 == 0xE6 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_cvtsi2ss(const x86_insn_t *i) {
+    return i->opcode2 == 0x2C && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_cvtsi2sd(const x86_insn_t *i) {
+    return i->opcode2 == 0x2C && i->simd_prefix == 0xF2;
+}
+static inline int x86_is_cvtss2si(const x86_insn_t *i) {
+    return i->opcode2 == 0x2D && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_cvtsd2si(const x86_insn_t *i) {
+    return i->opcode2 == 0x2D && i->simd_prefix == 0xF2;
+}
+static inline int x86_is_cvttss2si(const x86_insn_t *i) {
+    return i->opcode2 == 0x2C && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_cvttsd2si(const x86_insn_t *i) {
+    return i->opcode2 == 0x2C && i->simd_prefix == 0xF2;
+}
+
+/* Square root and reciprocal */
+static inline int x86_is_sqrtps(const x86_insn_t *i) {
+    return i->opcode2 == 0x51 && i->simd_prefix == 0x00;
+}
+static inline int x86_is_sqrtpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x51 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_sqrtss(const x86_insn_t *i) {
+    return i->opcode2 == 0x51 && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_sqrtsd(const x86_insn_t *i) {
+    return i->opcode2 == 0x51 && i->simd_prefix == 0xF2;
+}
+static inline int x86_is_rsqrtps(const x86_insn_t *i) {
+    return i->opcode2 == 0x52;
+}
+static inline int x86_is_rsqrtss(const x86_insn_t *i) {
+    return i->opcode2 == 0x52 && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_rcpps(const x86_insn_t *i) {
+    return i->opcode2 == 0x53;
+}
+static inline int x86_is_rcpss(const x86_insn_t *i) {
+    return i->opcode2 == 0x53 && i->simd_prefix == 0xF3;
+}
+
+/* MXCSR control */
+static inline int x86_is_ldmxcsr(const x86_insn_t *i) {
+    return i->opcode2 == 0xAE && i->modrm == 0x1A;
+}
+static inline int x86_is_stmxcsr(const x86_insn_t *i) {
+    return i->opcode2 == 0xAE && i->modrm == 0x1E;
+}
+
+/* Integer SIMD instructions */
+static inline int x86_is_movdqu(const x86_insn_t *i) {
+    return i->opcode2 == 0x6F && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_movdqa(const x86_insn_t *i) {
+    return i->opcode2 == 0x6F && i->simd_prefix == 0x66;
+}
+static inline int x86_is_movq(const x86_insn_t *i) {
+    return i->opcode2 == 0x7E && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_pshufd(const x86_insn_t *i) {
+    return i->opcode2 == 0x70 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pshuflw(const x86_insn_t *i) {
+    return i->opcode2 == 0x70 && i->simd_prefix == 0xF2;
+}
+static inline int x86_is_pshufhw(const x86_insn_t *i) {
+    return i->opcode2 == 0x70 && i->simd_prefix == 0xF3;
+}
+static inline int x86_is_punpckldq(const x86_insn_t *i) {
+    return i->opcode2 == 0x6C && i->simd_prefix == 0x66;
+}
+static inline int x86_is_punpckhdq(const x86_insn_t *i) {
+    return i->opcode2 == 0x6D && i->simd_prefix == 0x66;
+}
+static inline int x86_is_punpcklqdq(const x86_insn_t *i) {
+    return i->opcode2 == 0x6C && i->simd_prefix == 0x66;
+}
+static inline int x86_is_punpckhqdq(const x86_insn_t *i) {
+    return i->opcode2 == 0x6D && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pmovmskb(const x86_insn_t *i) {
+    return i->opcode2 == 0xD7;
+}
+static inline int x86_is_pextrw(const x86_insn_t *i) {
+    return i->opcode2 == 0xC5;
+}
+static inline int x86_is_pinsrw(const x86_insn_t *i) {
+    return i->opcode2 == 0xC4;
+}
+static inline int x86_is_pshufw(const x86_insn_t *i) {
+    return i->opcode2 == 0x70 && i->simd_prefix == 0x00;
+}
+static inline int x86_is_paddb(const x86_insn_t *i) {
+    return i->opcode2 == 0xFC && i->simd_prefix == 0x66;
+}
+static inline int x86_is_paddw(const x86_insn_t *i) {
+    return i->opcode2 == 0xFD && i->simd_prefix == 0x66;
+}
+static inline int x86_is_paddd(const x86_insn_t *i) {
+    return i->opcode2 == 0xFE && i->simd_prefix == 0x66;
+}
+static inline int x86_is_paddq(const x86_insn_t *i) {
+    return i->opcode2 == 0xD4 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_psubb(const x86_insn_t *i) {
+    return i->opcode2 == 0xF8 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_psubw(const x86_insn_t *i) {
+    return i->opcode2 == 0xF9 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_psubd(const x86_insn_t *i) {
+    return i->opcode2 == 0xFA && i->simd_prefix == 0x66;
+}
+static inline int x86_is_psubq(const x86_insn_t *i) {
+    return i->opcode2 == 0xFB && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pand(const x86_insn_t *i) {
+    return i->opcode2 == 0xDB && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pandn(const x86_insn_t *i) {
+    return i->opcode2 == 0xDF && i->simd_prefix == 0x66;
+}
+static inline int x86_is_por(const x86_insn_t *i) {
+    return i->opcode2 == 0xEB && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pxor(const x86_insn_t *i) {
+    return i->opcode2 == 0xEF && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pcmpgtb(const x86_insn_t *i) {
+    return i->opcode2 == 0x64 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pcmpgtw(const x86_insn_t *i) {
+    return i->opcode2 == 0x65 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pcmpgtd(const x86_insn_t *i) {
+    return i->opcode2 == 0x66 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pcmpeq(const x86_insn_t *i) {
+    return i->opcode2 == 0x74 || i->opcode2 == 0x75 || i->opcode2 == 0x76;
+}
+static inline int x86_is_pminub(const x86_insn_t *i) {
+    return i->opcode2 == 0xDA;
+}
+static inline int x86_is_pmaxub(const x86_insn_t *i) {
+    return i->opcode2 == 0xDE;
+}
+static inline int x86_is_pminsw(const x86_insn_t *i) {
+    return i->opcode2 == 0xEA;
+}
+static inline int x86_is_pmaxsw(const x86_insn_t *i) {
+    return i->opcode2 == 0xEE;
+}
+static inline int x86_is_pmullw(const x86_insn_t *i) {
+    return i->opcode2 == 0xD5 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pmulhw(const x86_insn_t *i) {
+    return i->opcode2 == 0xE5 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pmulhuw(const x86_insn_t *i) {
+    return i->opcode2 == 0xE4 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pavgb(const x86_insn_t *i) {
+    return i->opcode2 == 0xE0;
+}
+static inline int x86_is_pavgw(const x86_insn_t *i) {
+    return i->opcode2 == 0xE3;
+}
+static inline int x86_is_psadbw(const x86_insn_t *i) {
+    return i->opcode2 == 0xF6;
+}
+
+/* SSE4 instructions */
+static inline int x86_is_pmovmskb2(const x86_insn_t *i) {
+    return i->opcode2 == 0xD7 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pextrb(const x86_insn_t *i) {
+    return i->opcode2 == 0x14 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_pextrd(const x86_insn_t *i) {
+    return i->opcode2 == 0x16 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_insertps(const x86_insn_t *i) {
+    return i->opcode2 == 0x21 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_roundps(const x86_insn_t *i) {
+    return i->opcode2 == 0x0C && i->simd_prefix == 0x66;
+}
+static inline int x86_is_roundpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x0D && i->simd_prefix == 0x66;
+}
+static inline int x86_is_roundss(const x86_insn_t *i) {
+    return i->opcode2 == 0x0A && i->simd_prefix == 0x66;
+}
+static inline int x86_is_roundsd(const x86_insn_t *i) {
+    return i->opcode2 == 0x0B && i->simd_prefix == 0x66;
+}
+static inline int x86_is_blendvps(const x86_insn_t *i) {
+    return i->opcode2 == 0x50 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_blendvpd(const x86_insn_t *i) {
+    return i->opcode2 == 0x50 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_dppd(const x86_insn_t *i) {
+    return i->opcode2 == 0x41 && i->simd_prefix == 0x66;
+}
+static inline int x86_is_dpps(const x86_insn_t *i) {
+    return i->opcode2 == 0x40 && i->simd_prefix == 0x66;
+}
+
+/* Helper predicates */
+static inline int x86_is_simd(const x86_insn_t *i) {
+    return i->opcode2 >= 0x10 && i->opcode2 <= 0x7F;
+}
+
+static inline int x86_is_fp(const x86_insn_t *i) {
+    return x86_is_addps(i) || x86_is_addpd(i) || x86_is_addss(i) || x86_is_addsd(i) ||
+           x86_is_subps(i) || x86_is_subpd(i) || x86_is_subss(i) || x86_is_subsd(i) ||
+           x86_is_mulps(i) || x86_is_mulpd(i) || x86_is_mulss(i) || x86_is_mulsd(i) ||
+           x86_is_divps(i) || x86_is_divpd(i) || x86_is_divss(i) || x86_is_divsd(i) ||
+           x86_is_sqrtps(i) || x86_is_sqrtpd(i) || x86_is_sqrtss(i) || x86_is_sqrtsd(i);
+}
+
+static inline int x86_is_simd_mov(const x86_insn_t *i) {
+    return x86_is_movaps(i) || x86_is_movups(i) || x86_is_movss(i) || x86_is_movsd(i) ||
+           x86_is_movapd(i) || x86_is_movupd(i) || x86_is_movhlps(i) || x86_is_movlhps(i) ||
+           x86_is_movhps(i) || x86_is_movhpd(i) || x86_is_movlps(i) || x86_is_movlpd(i) ||
+           x86_is_movdqu(i) || x86_is_movdqa(i) || x86_is_movq(i);
+}
+
+static inline int x86_is_simd_arith(const x86_insn_t *i) {
+    return x86_is_addps(i) || x86_is_addpd(i) || x86_is_addss(i) || x86_is_addsd(i) ||
+           x86_is_subps(i) || x86_is_subpd(i) || x86_is_subss(i) || x86_is_subsd(i) ||
+           x86_is_mulps(i) || x86_is_mulpd(i) || x86_is_mulss(i) || x86_is_mulsd(i) ||
+           x86_is_divps(i) || x86_is_divpd(i) || x86_is_divss(i) || x86_is_divsd(i) ||
+           x86_is_maxps(i) || x86_is_maxpd(i) || x86_is_maxss(i) || x86_is_maxsd(i) ||
+           x86_is_minps(i) || x86_is_minpd(i) || x86_is_minss(i) || x86_is_minsd(i);
+}
+
+static inline int x86_is_simd_cmp(const x86_insn_t *i) {
+    return x86_is_cmpps(i) || x86_is_cmppd(i) || x86_is_cmpss(i) || x86_is_cmpsd(i) ||
+           x86_is_ucomiss(i) || x86_is_ucomisd(i) || x86_is_comiss(i) || x86_is_comisd(i);
+}
+
+static inline int x86_is_simd_convert(const x86_insn_t *i) {
+    return x86_is_cvtps2pd(i) || x86_is_cvtpd2ps(i) || x86_is_cvtss2sd(i) || x86_is_cvtsd2ss(i) ||
+           x86_is_cvtdq2ps(i) || x86_is_cvtps2dq(i) || x86_is_cvttps2dq(i) ||
+           x86_is_cvtdq2pd(i) || x86_is_cvtpd2dq(i) || x86_is_cvttpd2dq(i) ||
+           x86_is_cvtsi2ss(i) || x86_is_cvtsi2sd(i) || x86_is_cvtss2si(i) || x86_is_cvtsd2si(i) ||
+           x86_is_cvttss2si(i) || x86_is_cvttsd2si(i);
+}
+
+static inline int x86_is_simd_shuffle(const x86_insn_t *i) {
+    return x86_is_pshufd(i) || x86_is_pshuflw(i) || x86_is_pshufhw(i) ||
+           x86_is_pshufw(i) || x86_is_punpckldq(i) || x86_is_punpckhdq(i) ||
+           x86_is_punpcklqdq(i) || x86_is_punpckhqdq(i);
 }
 
 /**

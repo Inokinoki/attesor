@@ -145,22 +145,6 @@ void init_syscall_table(void)
 }
 
 /**
- * init_signal_handlers - Initialize signal handlers
- * Sets up signal handlers for fault handling.
- */
-void init_signal_handlers(void)
-{
-    struct sigaction sa;
-
-    /* Setup handler for segmentation faults */
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_sigaction = signal_handler_fault;
-    sa.sa_flags = SA_SIGINFO | SA_RESTART;
-    sigaction(SIGSEGV, &sa, NULL);
-    sigaction(SIGBUS, &sa, NULL);
-}
-
-/**
  * setup_signal_tramp - Setup signal trampoline
  * Sets up the signal trampoline for signal handling.
  */

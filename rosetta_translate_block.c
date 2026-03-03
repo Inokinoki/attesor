@@ -26,8 +26,10 @@ extern uint8_t map_x86_to_arm(uint8_t x86_reg);
 
 /* ============================================================================
  * Block Translation Implementation
+ * NOTE: This function is deprecated. Use translate_block from rosetta_refactored_exec.c
  * ============================================================================ */
 
+#if 0  /* Disabled - duplicate definition conflicts with rosetta_refactored_exec.c */
 TranslationResult translate_block(uint64_t guest_pc)
 {
     TranslationResult result = {
@@ -128,7 +130,9 @@ TranslationResult translate_block(uint64_t guest_pc)
 
     return result;
 }
+#endif  /* Disabled - duplicate definition conflicts with rosetta_refactored_exec.c */
 
+#if 0  /* Disabled - depends on disabled translate_block */
 void *translate_block_fast(uint64_t guest_pc)
 {
     /* Check cache with faster lookup */
@@ -141,6 +145,7 @@ void *translate_block_fast(uint64_t guest_pc)
     TranslationResult result = translate_block(guest_pc);
     return result.code;
 }
+#endif  /* Disabled - depends on disabled translate_block */
 
 void execute_translated_block(void *state, void *block)
 {

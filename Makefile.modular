@@ -31,6 +31,7 @@ SRCS += rosetta_translate_branch.c
 SRCS += rosetta_translate_bit.c
 SRCS += rosetta_translate_string.c
 SRCS += rosetta_translate_special.c
+SRCS += rosetta_translate_simd.c
 SRCS += rosetta_syscalls.c
 SRCS += rosetta_cache.c
 SRCS += rosetta_context.c
@@ -145,6 +146,9 @@ SRCS += rosetta_refactored_syscall_handlers.c
 SRCS += rosetta_optimizer.c
 SRCS += rosetta_info.c
 SRCS += rosetta_peephole.c
+
+# Source files - Mach-O Binary Loader
+SRCS += rosetta_macho_loader.c
 
 # Source files - Rosetta Daemon (rosettad)
 SRCS += rosettad_refactored.c
@@ -288,6 +292,9 @@ HDRS += rosetta_optimizer.h
 HDRS += rosetta_info.h
 HDRS += rosetta_peephole.h
 
+# Mach-O Binary Loader header
+HDRS += rosetta_macho_loader.h
+
 # Rosetta Daemon headers
 HDRS += rosettad.h
 
@@ -335,12 +342,15 @@ install: $(TARGET)
 	cp $(TARGET) ../build/
 
 # Test targets
-test: test_jit test_translate
+test: test_jit test_translate test_e2e
 	@echo "Running JIT unit tests..."
 	./test_jit
 	@echo ""
 	@echo "Running Translation unit tests..."
 	./test_translate
+	@echo ""
+	@echo "Running End-to-End tests..."
+	./test_e2e
 
 test_jit: test_jit.c rosetta_jit.c rosetta_codegen.c $(HDRS)
 	$(CC) $(CFLAGS) -o test_jit test_jit.c rosetta_jit.c rosetta_codegen.c -lm
@@ -348,9 +358,12 @@ test_jit: test_jit.c rosetta_jit.c rosetta_codegen.c $(HDRS)
 test_translate: test_translate.c rosetta_translate.c rosetta_codegen.c $(HDRS)
 	$(CC) $(CFLAGS) -o test_translate test_translate.c rosetta_translate.c rosetta_codegen.c -lm
 
+test_e2e: test_e2e.c $(LIB) $(HDRS)
+	$(CC) $(CFLAGS) -o test_e2e test_e2e.c -L. -lrosetta -lm
+
 # Clean
 clean:
-	rm -f $(OBJS) $(TARGET) $(LIB) test_jit test_translate rosettad $(LIBROSETTAD)
+	rm -f $(OBJS) $(TARGET) $(LIB) test_jit test_translate test_e2e rosettad $(LIBROSETTAD)
 
 # Rosetta Daemon target
 rosettad: rosettad_refactored.c $(LIB)

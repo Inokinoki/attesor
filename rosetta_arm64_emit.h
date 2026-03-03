@@ -186,4 +186,61 @@ void emit_sti(code_buffer_t *buf);
 void emit_cpuid(code_buffer_t *buf);
 void emit_rdtsc(code_buffer_t *buf);
 
+/* ============================================================================
+ * SIMD/NEON Instructions
+ * ============================================================================ */
+
+/* SIMD MOV */
+void emit_simd_mov(code_buffer_t *buf, uint8_t vd, uint8_t vn);
+void emit_simd_mov_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double);
+void emit_simd_movhl(code_buffer_t *buf, uint8_t vd, uint8_t vn);
+void emit_simd_movh(code_buffer_t *buf, uint8_t vd, uint8_t vn);
+void emit_simd_movl(code_buffer_t *buf, uint8_t vd, uint8_t vn);
+void emit_simd_movd(code_buffer_t *buf, uint8_t vd, uint8_t vn, int aligned);
+void emit_simd_movq(code_buffer_t *buf, uint8_t vd, uint8_t vn);
+
+/* SIMD Arithmetic */
+void emit_simd_fadd(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double);
+void emit_simd_fadd_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double);
+void emit_simd_fsub(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double);
+void emit_simd_fsub_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double);
+void emit_simd_fmul(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double);
+void emit_simd_fmul_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double);
+void emit_simd_fdiv(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double);
+void emit_simd_fdiv_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double);
+
+/* SIMD Logical */
+void emit_simd_and(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm);
+void emit_simd_bic(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm);
+void emit_simd_orr(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm);
+void emit_simd_eor(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm);
+
+/* SIMD Comparison */
+void emit_simd_fcmp(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double);
+void emit_simd_fcmp_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double);
+void emit_simd_ucomi(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double);
+void emit_simd_comi(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double);
+
+/* SIMD Conversion */
+void emit_simd_fcvt(code_buffer_t *buf, uint8_t vd, uint8_t vn, int to_double);
+void emit_simd_fcvt_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, int to_double);
+void emit_simd_scvtf(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double);
+void emit_simd_fcvtzs(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double);
+void emit_simd_fcvtxzs(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double);
+
+/* SIMD Square Root */
+void emit_simd_fsqrt(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double);
+void emit_simd_fsqrt_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double);
+
+/* SIMD Shuffle/Unpack */
+void emit_simd_shuf(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t imm);
+void emit_simd_shuf_lw(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t imm);
+void emit_simd_shuf_hw(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t imm);
+void emit_simd_unpckl(code_buffer_t *buf, uint8_t vd, uint8_t vn, int elem_size);
+void emit_simd_unpckh(code_buffer_t *buf, uint8_t vd, uint8_t vn, int elem_size);
+
+/* SIMD Integer */
+void emit_simd_add(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int elem_size);
+void emit_simd_sub(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int elem_size);
+
 #endif /* ROSETTA_ARM64_EMIT_H */

@@ -80,7 +80,6 @@ static void do_enter_supervisor_mode(rosettad_state_t *state);
 static void do_crash_handler(rosettad_state_t *state, u64 code, u64 addr);
 static int do_init_logging(rosettad_state_t *state, s32 log_fd, u32 log_level);
 static int do_init_ipc_channels(rosettad_state_t *state);
-static void process_command_line(rosettad_state_t *state, int argc, char **argv, char **envp);
 static void *undefined_instruction_exception(void);
 
 /* ============================================================================
@@ -1200,4 +1199,57 @@ int init_logging(rosettad_state_t *state, s32 log_fd, u32 log_level)
 int init_ipc_channels(rosettad_state_t *state)
 {
     return do_init_ipc_channels(state);
+}
+
+/* ============================================================================
+ * Main Entry Point
+ * ============================================================================ */
+
+/**
+ * process_command_line - Process command line arguments
+ */
+static void process_command_line(rosettad_state_t *state, int argc, char **argv, char **envp)
+{
+    (void)argc;
+    (void)argv;
+    (void)envp;
+    /* Basic implementation - can be extended for command line parsing */
+    /* For now, just initialize the process environment */
+    init_process_environment(state, argc, argv, envp);
+}
+
+/**
+ * main - Rosetta daemon entry point
+ */
+int main(int argc, char **argv, char **envp)
+{
+    rosettad_state_t *state;
+    int ret;
+
+    /* Initialize global state */
+    state = &g_daemon_state;
+    memset(state, 0, sizeof(*state));
+
+    /* Initialize daemon with default config (NULL = use defaults) */
+    ret = rosettad_init(NULL);
+    if (ret != ROSETTAD_OK) {
+        fprintf(stderr, "rosettad: Failed to initialize (error %d)\n", ret);
+        return 1;
+    }
+
+    /* Setup signal handlers */
+    ret = setup_signal_handlers(state);
+    if (ret != ROSETTAD_OK) {
+        fprintf(stderr, "rosettad: Failed to setup signal handlers (error %d)\n", ret);
+        return 1;
+    }
+
+    /* Process command line arguments */
+    process_command_line(state, argc, argv, envp);
+
+    /* Enter supervisor mode (main event loop) */
+    enter_supervisor_mode(state);
+
+    /* Never reached */
+    return 0;
 }

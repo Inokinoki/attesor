@@ -877,4 +877,380 @@ void emit_rdtsc(code_buffer_t *buf)
     emit_movz(buf, rdx, 0, 0);
 }
 
+/* ============================================================================
+ * SIMD/NEON Instruction Emitters
+ * ============================================================================ */
+
+/* SIMD MOV instructions */
+void emit_simd_mov(code_buffer_t *buf, uint8_t vd, uint8_t vn)
+{
+    /* FMOV Vd.16B, Vn.16B - Move vector register */
+    uint32_t insn = 0x0EA01C00;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_mov_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double)
+{
+    /* FMOV Vd[], Vn[] - Move scalar */
+    uint32_t insn = is_double ? 0x0EE03C00 : 0x0EA03C00;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_movhl(code_buffer_t *buf, uint8_t vd, uint8_t vn)
+{
+    /* EXT Vd.16B, Vn.16B, Vn.16B, #8 - Extract high to low */
+    uint32_t insn = 0x2EA00C00;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vn & 31) << 16);
+    insn |= (8 << 11);  /* Index */
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_movh(code_buffer_t *buf, uint8_t vd, uint8_t vn)
+{
+    /* MOVHPS/MOVHPD: Move high packed - use EXT to extract high 64 bits */
+    /* EXT Vd.16B, Vn.16B, Vn.16B, #8 - Extract bytes 8-15 to low 8 bytes */
+    uint32_t insn = 0x2EA00C00;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vn & 31) << 16);
+    insn |= (8 << 11);  /* Index - extract from byte 8 */
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_movl(code_buffer_t *buf, uint8_t vd, uint8_t vn)
+{
+    /* MOVLPS/MOVLPD: Move low packed - low 64 bits are already in place */
+    /* Use INS to copy low 64 bits from source to destination */
+    /* INS Vd.D[0], Vn.D[0] - Insert doubleword element 0 */
+    uint32_t insn = 0x2E201C00;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= (0 << 19);  /* dst index */
+    insn |= (0 << 11);  /* src index */
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_movd(code_buffer_t *buf, uint8_t vd, uint8_t vn, int aligned)
+{
+    /* MOVDQA/MOVDQU - Move double quadword */
+    (void)aligned;
+    uint32_t insn = 0x0EA01C00;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_movq(code_buffer_t *buf, uint8_t vd, uint8_t vn)
+{
+    /* MOV Vd.1D, Vn.1D - Move quadword */
+    uint32_t insn = 0x0EA01C00;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    emit_arm64_insn(buf, insn);
+}
+
+/* SIMD Arithmetic */
+void emit_simd_fadd(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double)
+{
+    /* FADD Vd.4S/Vd.2D, Vn.4S/Vn.2D, Vm.4S/Vm.2D */
+    uint32_t insn = is_double ? 0x2EA0F400 : 0x2EA0F000;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_fadd_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double)
+{
+    /* FADD Vd[], Vn[], Vm[] - Scalar */
+    uint32_t insn = 0x1E202800;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    if (is_double) insn |= (1 << 22);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_fsub(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double)
+{
+    /* FSUB Vd.4S/Vd.2D, Vn.4S/Vn.2D, Vm.4S/Vm.2D */
+    uint32_t insn = is_double ? 0x2EA8F400 : 0x2EA8F000;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_fsub_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double)
+{
+    /* FSUB Vd[], Vn[], Vm[] - Scalar */
+    uint32_t insn = 0x1E203800;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    if (is_double) insn |= (1 << 22);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_fmul(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double)
+{
+    /* FMUL Vd.4S/Vd.2D, Vn.4S/Vn.2D, Vm.4S/Vm.2D */
+    uint32_t insn = is_double ? 0x2EA0FC00 : 0x2EA0F800;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_fmul_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double)
+{
+    /* FMUL Vd[], Vn[], Vm[] - Scalar */
+    uint32_t insn = 0x1E200800;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    if (is_double) insn |= (1 << 22);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_fdiv(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double)
+{
+    /* FDIV Vd.4S/Vd.2D, Vn.4S/Vn.2D, Vm.4S/Vm.2D */
+    uint32_t insn = is_double ? 0x2EA0BC00 : 0x2EA0B800;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_fdiv_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int is_double)
+{
+    /* FDIV Vd[], Vn[], Vm[] - Scalar */
+    uint32_t insn = 0x1E201800;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    if (is_double) insn |= (1 << 22);
+    emit_arm64_insn(buf, insn);
+}
+
+/* SIMD Logical */
+void emit_simd_and(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm)
+{
+    /* AND Vd.16B, Vn.16B, Vm.16B */
+    uint32_t insn = 0x2EA01C00;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_bic(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm)
+{
+    /* BIC Vd.16B, Vn.16B, Vm.16B */
+    uint32_t insn = 0x2EA01800;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_orr(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm)
+{
+    /* ORR Vd.16B, Vn.16B, Vm.16B */
+    uint32_t insn = 0x2EA01400;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_eor(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm)
+{
+    /* EOR Vd.16B, Vn.16B, Vm.16B */
+    uint32_t insn = 0x2EA01000;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    emit_arm64_insn(buf, insn);
+}
+
+/* SIMD Comparison */
+void emit_simd_fcmp(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double)
+{
+    /* FCMGT Vd.4S/Vd.2D, Vn.4S/Vn.2D, Vm.4S/Vm.2D - Compare greater than */
+    /* This sets each element to all 1s if comparison is true, 0 otherwise */
+    uint32_t insn = is_double ? 0x2EA03C00 : 0x2EA03800;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_fcmp_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double)
+{
+    /* FCMP Sd/Dn, Sn/Dm - Scalar compare */
+    /* This sets FP flags, then we move result to integer register */
+    uint32_t insn = is_double ? 0x1E202000 : 0x1E201000;
+    insn |= ((vd & 31) << 5);
+    insn |= ((vn & 31) << 16);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_ucomi(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double)
+{
+    /* UCOMISS/UCOMISD: Unordered compare scalar single/double precision */
+    /* ARM64: FCMP with NaN handling - sets NZCV flags */
+    /* FCMP Sn/Dn, Sm/Dm */
+    uint32_t insn = is_double ? 0x1E202000 : 0x1E201000;
+    insn |= ((vd & 31) << 5);
+    insn |= ((vn & 31) << 16);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_comi(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double)
+{
+    /* COMISS/COMISD: Ordered compare scalar single/double precision */
+    /* ARM64: FCMP with ordered comparison - sets NZCV flags */
+    /* FCMP Sn/Dn, Sm/Dm (same as UCOMI but with different flag handling) */
+    uint32_t insn = is_double ? 0x1E202000 : 0x1E201000;
+    insn |= ((vd & 31) << 5);
+    insn |= ((vn & 31) << 16);
+    emit_arm64_insn(buf, insn);
+}
+
+/* SIMD Conversion */
+void emit_simd_fcvt(code_buffer_t *buf, uint8_t vd, uint8_t vn, int to_double)
+{
+    /* FCVT - Convert */
+    uint32_t insn = to_double ? 0x2EA0E800 : 0x2EA0EC00;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_fcvt_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, int to_double)
+{
+    /* FCVT scalar */
+    uint32_t insn = to_double ? 0x1E22C000 : 0x1E224000;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_scvtf(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double)
+{
+    /* SCVTF - Signed int to float */
+    uint32_t insn = is_double ? 0x2EA02400 : 0x2EA02000;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_fcvtzs(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double)
+{
+    /* FCVTZS - Float to signed int */
+    uint32_t insn = is_double ? 0x2EA03400 : 0x2EA03000;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_fcvtxzs(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double)
+{
+    /* FCVTZS with truncation */
+    uint32_t insn = is_double ? 0x2EA0B400 : 0x2EA0B000;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    emit_arm64_insn(buf, insn);
+}
+
+/* SIMD Square Root */
+void emit_simd_fsqrt(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double)
+{
+    /* FSQRT Vd.4S/Vd.2D */
+    uint32_t insn = is_double ? 0x2EA0F800 : 0x2EA0F400;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_fsqrt_scalar(code_buffer_t *buf, uint8_t vd, uint8_t vn, int is_double)
+{
+    /* FSQRT scalar */
+    uint32_t insn = 0x1E21C000;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    if (is_double) insn |= (1 << 22);
+    emit_arm64_insn(buf, insn);
+}
+
+/* SIMD Shuffle */
+void emit_simd_shuf(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t imm)
+{
+    /* SHUF - Shuffle */
+    (void)vd; (void)vn; (void)imm;
+    emit_nop(buf);
+}
+
+void emit_simd_shuf_lw(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t imm)
+{
+    (void)vd; (void)vn; (void)imm;
+    emit_nop(buf);
+}
+
+void emit_simd_shuf_hw(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t imm)
+{
+    (void)vd; (void)vn; (void)imm;
+    emit_nop(buf);
+}
+
+void emit_simd_unpckl(code_buffer_t *buf, uint8_t vd, uint8_t vn, int elem_size)
+{
+    /* ZIP1 - Interleave low */
+    uint32_t insn = 0x0EA00C00;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vn & 31) << 16);
+    insn |= ((elem_size & 3) << 11);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_unpckh(code_buffer_t *buf, uint8_t vd, uint8_t vn, int elem_size)
+{
+    /* ZIP2 - Interleave high */
+    uint32_t insn = 0x0EA02C00;
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vn & 31) << 16);
+    insn |= ((elem_size & 3) << 11);
+    emit_arm64_insn(buf, insn);
+}
+
+/* SIMD Integer */
+void emit_simd_add(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int elem_size)
+{
+    /* ADD Vd.8B/16B/4S/2D, Vn, Vm */
+    uint32_t insn = 0x2EA08400 | ((elem_size & 3) << 19);
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    emit_arm64_insn(buf, insn);
+}
+
+void emit_simd_sub(code_buffer_t *buf, uint8_t vd, uint8_t vn, uint8_t vm, int elem_size)
+{
+    /* SUB Vd.8B/16B/4S/2D, Vn, Vm */
+    uint32_t insn = 0x2EA28400 | ((elem_size & 3) << 19);
+    insn |= ((vd & 31) << 0);
+    insn |= ((vn & 31) << 5);
+    insn |= ((vm & 31) << 16);
+    emit_arm64_insn(buf, insn);
+}
+
 /* End of rosetta_arm64_emit.c */

@@ -15,6 +15,8 @@
 #include <errno.h>
 #include <signal.h>
 #include <poll.h>
+#include <sched.h>
+#include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/syscall.h>
 #include <sys/stat.h>
@@ -822,7 +824,7 @@ STUB_HANDLER(syscall_handler_get_robust_list)
 STUB_HANDLER(syscall_handler_nanosleep)
 STUB_HANDLER(syscall_handler_getitimer)
 STUB_HANDLER(syscall_handler_setitimer)
-STUB_HANDLER(syscall_handler_init_module)
+/* syscall_handler_init_module - defined below with implementation */
 STUB_HANDLER(syscall_handler_delete_module)
 STUB_HANDLER(syscall_handler_timer_create)
 STUB_HANDLER(syscall_handler_timer_gettime)
@@ -1029,7 +1031,100 @@ s64 syscall_handler_access(ThreadState *st) { return syscall_handler_access_impl
 s64 syscall_handler_poll(ThreadState *st) { return syscall_handler_poll_impl(st); }
 s64 syscall_handler_select(ThreadState *st) { return syscall_handler_select_impl(st); }
 
-/* External declarations for handlers implemented elsewhere */
-extern s64 syscall_handler_ioctl(ThreadState *st);
-extern s64 syscall_handler_pipe(ThreadState *st);
-extern s64 syscall_handler_sched_yield(ThreadState *st);
+/* ============================================================================
+ * Additional Syscall Handler Implementations
+ * ============================================================================ */
+
+/**
+ * syscall_handler_ioctl - I/O control
+ */
+s64 syscall_handler_ioctl(ThreadState *st)
+{
+    s32 fd = (s32)GET_ARG0(st);
+    u64 cmd = GET_ARG1(st);
+    u64 arg = GET_ARG2(st);
+    s64 result;
+
+    result = ioctl(fd, (unsigned long)cmd, (char *)arg);
+    if (result == -1) {
+        return -errno;
+    }
+    return result;
+}
+
+/**
+ * syscall_handler_pipe - Create pipe
+ */
+s64 syscall_handler_pipe(ThreadState *st)
+{
+    s32 *pipefd = (s32 *)GET_ARG0(st);
+    s64 result;
+
+    result = pipe(pipefd);
+    if (result == -1) {
+        return -errno;
+    }
+    return 0;
+}
+
+/**
+ * syscall_handler_sched_yield - Yield CPU
+ */
+s64 syscall_handler_sched_yield(ThreadState *st)
+{
+    (void)st;
+    sched_yield();
+    return 0;
+}
+
+/**
+ * syscall_handler_rt_sigaction - Change action taken for signal
+ */
+s64 syscall_handler_rt_sigaction(ThreadState *st)
+{
+    s32 signum = (s32)GET_ARG0(st);
+    void *act = (void *)GET_ARG1(st);
+    void *oldact = (void *)GET_ARG2(st);
+    size_t sigsetsize = (size_t)GET_ARG3(st);
+    s64 result;
+
+    (void)sigsetsize; /* We use kernel sigset_t size */
+
+    result = sigaction(signum, (const struct sigaction *)act,
+                       (struct sigaction *)oldact);
+    if (result == -1) {
+        return -errno;
+    }
+    return 0;
+}
+
+/**
+ * syscall_handler_kexec_load - Load kernel for kexec
+ * Note: Not supported on macOS - returns ENOSYS
+ */
+s64 syscall_handler_kexec_load(ThreadState *st)
+{
+    (void)st;
+    return -ENOSYS;
+}
+
+/**
+ * syscall_handler_init_module - Load kernel module
+ * Note: Not supported on macOS - returns ENOSYS
+ */
+s64 syscall_handler_init_module(ThreadState *st)
+{
+    (void)st;
+    return -ENOSYS;
+}
+
+/**
+ * syscall_handler_init - Initialize syscall handlers
+ * Note: This is a compatibility wrapper. The syscall table is
+ * statically initialized, so no runtime initialization is needed.
+ */
+void syscall_handler_init(void)
+{
+    /* Syscall table is statically initialized */
+    /* No runtime initialization required */
+}

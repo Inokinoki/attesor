@@ -166,10 +166,14 @@ void dispatch_special_insn(code_buffer_t *code_buf, const x86_insn_t *insn,
 }
 
 /* ============================================================================
- * Block Translation Functions
+ * Block Translation Functions (Legacy - superseded by rosetta_refactored_exec.c)
  * ============================================================================ */
 
-void *translate_block(uint64_t guest_pc)
+/* Note: translate_block has been moved to rosetta_refactored_exec.c
+ * These functions are kept for reference but are no longer used. */
+
+__attribute__((unused))
+static void *translate_block_trans_dispatch(uint64_t guest_pc)
 {
     /* Look up in translation cache first */
     void *cached = translation_lookup(guest_pc);
@@ -266,7 +270,8 @@ void *translate_block(uint64_t guest_pc)
     return code_cache;
 }
 
-void *translate_block_fast(uint64_t guest_pc)
+__attribute__((unused))
+static void *translate_block_fast_trans_dispatch(uint64_t guest_pc)
 {
     /* Check cache with faster lookup */
     void *cached = translation_lookup(guest_pc);
@@ -275,7 +280,7 @@ void *translate_block_fast(uint64_t guest_pc)
     }
 
     /* Fall back to standard translation */
-    return translate_block(guest_pc);
+    return translate_block_trans_dispatch(guest_pc);
 }
 
 void execute_translated(ThreadState *state, void *block)

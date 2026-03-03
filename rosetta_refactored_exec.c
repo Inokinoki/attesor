@@ -9,13 +9,9 @@
 #include "rosetta_refactored_exec.h"
 #include "rosetta_refactored.h"
 #include "rosetta_refactored_init.h"
-#include "rosetta_translate_alu_main.h"
-#include "rosetta_translate_mem_main.h"
-#include "rosetta_translate_branch_main.h"
-#include "rosetta_translate_mov.h"
-#include "rosetta_translate_compare.h"
-#include "rosetta_translate_system.h"
-#include "rosetta_translate_bitfield.h"
+#include "rosetta_x86_decode.h"
+#include "rosetta_translate_dispatch.h"
+#include "rosetta_arm64_emit.h"
 #include "rosetta_trans_cache.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,10 +25,10 @@ extern void *refactored_translation_cache_lookup(uint64_t guest_pc);
 extern void refactored_translation_cache_insert(uint64_t guest_pc, void *code, uint32_t size);
 extern void *refactored_code_cache_alloc(size_t size);
 
-/* Forward declarations for emit functions */
-extern void emit_x86_nop(code_buf_t *code_buf);
-extern void emit_x86_ret(code_buf_t *code_buf);
-extern void emit_x86_jmp_rel32(code_buf_t *code_buf, uint64_t target, uint64_t current);
+/* Forward declarations for ARM64 emit functions */
+extern void emit_nop(code_buffer_t *buf);
+extern void emit_ret(code_buffer_t *buf);
+extern void emit_b(code_buffer_t *buf, int32_t imm26);
 
 /* ============================================================================
  * Block Chaining Helper
@@ -42,16 +38,16 @@ extern void emit_x86_jmp_rel32(code_buf_t *code_buf, uint64_t target, uint64_t c
  * try_chain_block - Attempt to chain to a known block
  * @code_buf: Code buffer
  * @target_pc: Target guest PC
- * @current_pc: Current host PC (for relative jump calculation)
  * Returns: 1 if chained, 0 if not
  */
 __attribute__((unused))
-static int try_chain_block(code_buf_t *code_buf, uint64_t target_pc, uint64_t current_pc)
+static int try_chain_block(code_buffer_t *code_buf, uint64_t target_pc)
 {
     void *cached = refactored_translation_cache_lookup(target_pc);
     if (cached) {
-        /* Chain directly to the cached block */
-        emit_x86_jmp_rel32(code_buf, (uint64_t)(uintptr_t)cached, current_pc);
+        /* Chain directly to the cached block with ARM64 B instruction */
+        int32_t offset = (int32_t)((uintptr_t)cached - (uintptr_t)code_buf->buffer);
+        emit_b(code_buf, offset);
         return 1;
     }
     return 0;
@@ -62,91 +58,95 @@ static int try_chain_block(code_buf_t *code_buf, uint64_t target_pc, uint64_t cu
  * ============================================================================ */
 
 /**
- * translate_block - Translate a basic block of ARM64 instructions
- * @guest_pc: Starting program counter
+ * translate_block - Translate a basic block of x86_64 instructions
+ * @guest_pc: Starting program counter (x86_64 guest address)
  *
- * Translates ARM64 instructions in the block to x86_64.
- * Uses modular dispatch to appropriate translators and emits x86_64 code.
- * Returns: Pointer to translated code, or NULL on error
+ * Translates x86_64 instructions in the block to ARM64.
+ * Uses x86 decoder and dispatch to appropriate translators, emits ARM64 code.
+ * Returns: Pointer to translated ARM64 code, or NULL on error
  */
 void *translate_block(uint64_t guest_pc)
 {
-    const uint32_t *insn_ptr = (const uint32_t *)(uintptr_t)guest_pc;
-    const uint32_t *insn_end;
-    code_buf_t code_buf;
+    const uint8_t *insn_ptr = (const uint8_t *)(uintptr_t)guest_pc;
+    code_buffer_t code_buf;
     static uint8_t code_cache[65536];  /* 64KB code cache per block */
     int terminated = 0;
+    int insn_count = 0;
+
+    fprintf(stderr, "[translate_block] guest_pc=0x%lx\n", guest_pc);
+    fflush(stderr);
 
     /* Check translation cache first */
     void *cached = refactored_translation_cache_lookup(guest_pc);
+    fprintf(stderr, "[translate_block] cache lookup returned %p\n", cached);
+    fflush(stderr);
     if (cached) {
         return cached;
     }
 
-    /* Initialize code buffer */
-    code_buf_init(&code_buf, code_cache, sizeof(code_cache));
+    /* Initialize code buffer for ARM64 emission */
+    code_buffer_init_arm64(&code_buf, code_cache, sizeof(code_cache));
 
     /* Get thread state */
     ThreadState *state = rosetta_get_state();
+    (void)state;  /* State management for future use */
 
-    /* Auto-detect: translate up to 64 instructions or until branch */
-    insn_end = insn_ptr + 64;
+    /* Translate up to 64 instructions or until branch */
+    while (insn_count < 64 && !terminated) {
+        /* Decode x86_64 instruction at current PC */
+        x86_insn_t insn;
+        int insn_len = decode_x86_insn(insn_ptr, &insn);
 
-    /* Translate each instruction */
-    while (insn_ptr < insn_end && !terminated) {
-        uint32_t encoding = *insn_ptr++;
-        uint64_t current_pc = guest_pc + (insn_ptr - (const uint32_t *)(uintptr_t)guest_pc - 1) * 4;
+        fprintf(stderr, "[translate_block] insn_count=%d insn_len=%d opcode=0x%02x\n", insn_count, insn_len, insn.opcode);
+        fflush(stderr);
 
-        /* Try modular dispatch first - ALU instructions */
-        if (translate_alu_dispatch(encoding, &code_buf, state->host.x, &state->host.pstate) == 0) {
-            continue;
+        if (insn_len == 0) {
+            /* Invalid instruction - end block */
+            fprintf(stderr, "[translate_block] invalid instruction, breaking\n");
+            fflush(stderr);
+            break;
         }
 
-        /* Try compare instructions */
-        if (translate_compare_dispatch(encoding, &code_buf, state->host.x,
-                                       &state->host.pstate) == 0) {
-            continue;
+        /* Map x86_64 registers to ARM64 */
+        uint8_t arm_rd = map_x86_to_arm(insn.reg);
+        uint8_t arm_rm = map_x86_to_arm(insn.rm);
+
+        /* Translate using dispatcher */
+        TranslateResult result = dispatch_translate_insn(
+            &code_buf, &insn, arm_rd, arm_rm, guest_pc);
+
+        fprintf(stderr, "[translate_block] translation success=%d is_block_end=%d\n", result.success, result.is_block_end);
+        fflush(stderr);
+
+        if (!result.success) {
+            /* Translation failed - emit NOP and continue */
+            emit_nop(&code_buf);
         }
 
-        /* Try MOV instructions */
-        if (translate_mov_dispatch(encoding, &code_buf, state->host.x) == 0) {
-            continue;
-        }
+        terminated = result.is_block_end;
 
-        /* Try bitfield instructions */
-        if (translate_bitfield_dispatch(encoding, &code_buf, state->host.x) == 0) {
-            continue;
-        }
-
-        /* Try memory instructions */
-        if (translate_mem_dispatch(encoding, &code_buf, state->host.x) == 0) {
-            continue;
-        }
-
-        /* Try branch instructions */
-        if (translate_branch_dispatch(encoding, &code_buf, state->host.x,
-                                      current_pc, &terminated) == 0) {
-            continue;
-        }
-
-        /* Try system instructions */
-        if (translate_system_dispatch(encoding, &code_buf, state->host.x) == 0) {
-            terminated = 1;  /* System calls typically terminate the block */
-            continue;
-        }
-
-        /* Unknown/unimplemented instruction - emit NOP */
-        emit_x86_nop(&code_buf);
+        /* Advance to next x86_64 instruction */
+        insn_ptr += insn.length;
+        insn_count++;
     }
+
+    fprintf(stderr, "[translate_block] loop ended, terminated=%d insn_count=%d\n", terminated, insn_count);
+    fflush(stderr);
 
     /* Ensure block ends with RET if not already */
     if (!terminated) {
-        emit_x86_ret(&code_buf);
+        fprintf(stderr, "[translate_block] emitting RET\n");
+        fflush(stderr);
+        emit_ret(&code_buf);
     }
 
     /* Allocate permanent storage for translated code */
-    size_t code_size = code_buf_get_size(&code_buf);
+    size_t code_size = code_buffer_get_size_arm64(&code_buf);
+    fprintf(stderr, "[translate_block] code_size=%zu\n", code_size);
+    fflush(stderr);
     void *perm_code = refactored_code_cache_alloc(code_size);
+    fprintf(stderr, "[translate_block] perm_code=%p\n", perm_code);
+    fflush(stderr);
     if (!perm_code) {
         perm_code = malloc(code_size);
     }
@@ -161,7 +161,7 @@ void *translate_block(uint64_t guest_pc)
 
 /**
  * translate_block_fast - Fast path translation (lookup only)
- * @guest_pc: Guest ARM64 program counter
+ * @guest_pc: Guest x86_64 program counter
  *
  * Returns: Pointer to cached translation or NULL if not found
  */
@@ -172,10 +172,10 @@ void *translate_block_fast(uint64_t guest_pc)
 
 /**
  * rosetta_translate - Main translation entry point
- * @guest_pc: Guest ARM64 program counter
+ * @guest_pc: Guest x86_64 program counter
  *
  * Translates the block at guest_pc and returns host code pointer.
- * Returns: Pointer to translated x86_64 code
+ * Returns: Pointer to translated ARM64 code
  */
 void *rosetta_translate(uint64_t guest_pc)
 {
@@ -188,7 +188,7 @@ void *rosetta_translate(uint64_t guest_pc)
 
 /**
  * rosetta_execute - Execute translated code
- * @host_code: Pointer to translated x86_64 code
+ * @host_code: Pointer to translated ARM64 code
  *
  * Executes the translated code and updates guest state.
  */
@@ -204,10 +204,10 @@ void rosetta_execute(void *host_code)
 }
 
 /**
- * rosetta_run - Run ARM64 code at given address
- * @guest_pc: Guest ARM64 program counter
+ * rosetta_run - Run x86_64 code at given address via translation
+ * @guest_pc: Guest x86_64 program counter
  *
- * Translates and executes ARM64 code.
+ * Translates x86_64 code to ARM64 and executes.
  */
 void rosetta_run(uint64_t guest_pc)
 {

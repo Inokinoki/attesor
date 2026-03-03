@@ -538,7 +538,7 @@ void init_syscall_table(void);
  * Signal Handling
  * ============================================================================ */
 
-void signal_handler_fault(int sig, siginfo_t *info, void *context);
+void rosetta_signal_handler_fault(int sig, siginfo_t *info, void *context);
 void init_signal_handlers(void);
 
 /* ============================================================================
