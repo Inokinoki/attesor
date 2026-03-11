@@ -11,20 +11,23 @@ ifeq ($(shell uname -s),Darwin)
     CFLAGS += -D_DARWIN_C_SOURCE
 endif
 
+# Linux-specific flags
+ifeq ($(shell uname -s),Linux)
+    CFLAGS += -D_GNU_SOURCE
+endif
+
 # Source files - Core translation modules
 # Note: rosetta_refactored.c is a minimal wrapper that includes all modules
-# rosetta_codegen.c is modularized into smaller components below
-SRCS = rosetta_codegen_buf.c
-SRCS += rosetta_codegen_gpr.c
-SRCS += rosetta_codegen_ctrl.c
-SRCS += rosetta_codegen_fp.c
-SRCS += rosetta_codegen_simd.c
+# Note: rosetta_codegen.c is the canonical implementation; modular codegen files and
+# rosetta_arm64_emit.c excluded to avoid duplicate definitions when building the static library
+SRCS = rosetta_codegen.c
 SRCS += rosetta_jit.c
 SRCS += rosetta_translate.c
 SRCS += rosetta_refactored.c
 SRCS += rosetta_arm64_decode.c
 SRCS += rosetta_x86_decode.c
-SRCS += rosetta_arm64_emit.c
+# rosetta_arm64_emit.c excluded - ARM64 emitters already in rosetta_codegen.c
+# SRCS += rosetta_arm64_emit.c
 SRCS += rosetta_translate_alu.c
 SRCS += rosetta_translate_memory.c
 SRCS += rosetta_translate_branch.c
@@ -32,7 +35,7 @@ SRCS += rosetta_translate_bit.c
 SRCS += rosetta_translate_string.c
 SRCS += rosetta_translate_special.c
 SRCS += rosetta_translate_simd.c
-SRCS += rosetta_syscalls.c
+# SRCS += rosetta_syscalls.c  # Excluded - duplicate with rosetta_syscalls_impl.c
 SRCS += rosetta_cache.c
 SRCS += rosetta_context.c
 SRCS += rosetta_simd.c
@@ -47,16 +50,19 @@ SRCS += rosetta_vector.c
 SRCS += rosetta_memmgmt.c
 SRCS += rosetta_utils.c
 SRCS += rosetta_exec.c
-SRCS += rosetta_init.c
+# rosetta_init.c excluded - duplicate functions in rosetta_context.c
+# SRCS += rosetta_init.c
 SRCS += rosetta_runtime.c
-SRCS += rosetta_trans_helpers.c
+# rosetta_trans_helpers.c excluded - duplicate functions in rosetta_refactored_helpers.c
+# SRCS += rosetta_trans_helpers.c
 SRCS += rosetta_trans_dispatch.c
 
 # Source files - New utility modules (2026 Refactored)
 SRCS += rosetta_simd_string.c
 SRCS += rosetta_vector_utils.c
 SRCS += rosetta_hash_utils.c
-SRCS += rosetta_fp_utils.c
+# rosetta_fp_utils.c excluded - duplicate functions in rosetta_context.c
+# SRCS += rosetta_fp_utils.c
 SRCS += rosetta_context_utils.c
 SRCS += rosetta_insn_common.c
 
@@ -75,13 +81,16 @@ SRCS += rosetta_trans_compare.c
 # Source files - Additional implementation modules
 SRCS += rosetta_fp_translate.c
 SRCS += rosetta_fp_helpers.c
-SRCS += rosetta_jit_emit.c
-SRCS += rosetta_jit_emit_simd.c
+# Note: rosetta_jit_emit.c and rosetta_jit_emit_simd.c excluded to avoid duplicate
+# definitions with rosetta_arm64_emit.c in static library
+# SRCS += rosetta_jit_emit.c
+# SRCS += rosetta_jit_emit_simd.c
 SRCS += rosetta_x86_insns.c
 SRCS += rosetta_memory_utils.c
 SRCS += rosetta_string_utils.c
 SRCS += rosetta_string_simd.c
-SRCS += rosetta_syscalls_impl.c
+# rosetta_syscalls_impl.c excluded - duplicate functions with rosetta_memmgmt.c and rosetta_syscalls.c
+# SRCS += rosetta_syscalls_impl.c
 SRCS += rosetta_translate_alu_impl.c
 SRCS += rosetta_translate_memory_impl.c
 SRCS += rosetta_translate_branch_impl.c
@@ -102,8 +111,10 @@ SRCS += rosetta_translate_conditional.c
 SRCS += rosetta_translate_bitfield.c
 
 # Source files - Rosetta Refactored modular components
-SRCS += rosetta_refactored_helpers.c
-SRCS += rosetta_refactored_init.c
+# rosetta_refactored_helpers.c excluded - duplicate functions in rosetta_init.c and rosetta_context.c
+# SRCS += rosetta_refactored_helpers.c
+# rosetta_refactored_init.c excluded - duplicate functions in rosetta_context.c and rosetta_init.c
+# SRCS += rosetta_refactored_init.c
 SRCS += rosetta_refactored_exec.c
 SRCS += rosetta_refactored_reg.c
 SRCS += rosetta_refactored_debug.c
@@ -149,6 +160,9 @@ SRCS += rosetta_peephole.c
 
 # Source files - Mach-O Binary Loader
 SRCS += rosetta_macho_loader.c
+
+# Source files - Compatibility Layer
+SRCS += rosetta_compat.c
 
 # Source files - Rosetta Daemon (rosettad)
 SRCS += rosettad_refactored.c
@@ -309,7 +323,7 @@ AR = ar
 TARGET = rosetta_modular
 
 # Default target
-all: $(LIB)
+all: $(LIB) rosetta_demo rosetta_demo_full test_translator test_e2e_translation test_fp_simd test_string_advanced test_crypto_advanced
 
 # Create static library
 $(LIB): $(OBJS)
@@ -363,11 +377,41 @@ test_e2e: test_e2e.c $(LIB) $(HDRS)
 
 # Clean
 clean:
-	rm -f $(OBJS) $(TARGET) $(LIB) test_jit test_translate test_e2e rosettad $(LIBROSETTAD)
+	rm -f $(OBJS) $(TARGET) $(LIB) test_jit test_translate test_e2e rosettad rosetta_demo rosetta_demo_full test_translator test_e2e_translation test_fp_simd test_string_advanced test_crypto_advanced $(LIBROSETTAD)
 
 # Rosetta Daemon target
 rosettad: rosettad_refactored.c $(LIB)
 	$(CC) $(CFLAGS) -o rosettad rosettad_refactored.c -L. -lrosetta -lm
+
+# Rosetta demo executable
+rosetta_demo: rosetta_demo.c $(LIB) $(HDRS)
+	$(CC) $(CFLAGS) -o rosetta_demo rosetta_demo.c -L. -lrosetta -lm
+
+# Rosetta full demo executable
+rosetta_demo_full: rosetta_demo_full.c $(LIB) $(HDRS)
+	$(CC) $(CFLAGS) -o rosetta_demo_full rosetta_demo_full.c -L. -lrosetta -lm
+
+# Rosetta translator test suite
+test_translator: test_translator.c $(LIB) $(HDRS)
+	$(CC) $(CFLAGS) -o test_translator test_translator.c -L. -lrosetta -lm
+
+# Rosetta end-to-end translation test
+test_e2e_translation: test_e2e_translation.c $(LIB) $(HDRS)
+	$(CC) $(CFLAGS) -o test_e2e_translation test_e2e_translation.c -L. -lrosetta -lm
+
+# Rosetta FP/SIMD test suite
+test_fp_simd: test_fp_simd.c $(LIB) $(HDRS)
+	$(CC) $(CFLAGS) -o test_fp_simd test_fp_simd.c -L. -lrosetta -lm
+
+# Rosetta String and Advanced Instruction test suite
+test_string_advanced: test_string_advanced.c $(LIB) $(HDRS)
+	$(CC) $(CFLAGS) -o test_string_advanced test_string_advanced.c -L. -lrosetta -lm
+
+# Rosetta Cryptographic and Advanced SIMD test suite
+test_crypto_advanced: test_crypto_advanced.c $(LIB) $(HDRS)
+	$(CC) $(CFLAGS) -o test_crypto_advanced test_crypto_advanced.c -L. -lrosetta -lm
+
+.PHONY: all clean check debug install test test_jit test_translate rosettad rosetta_demo rosetta_demo_full test_translator test_e2e_translation test_fp_simd test_string_advanced test_crypto_advanced
 
 # Build rosettad library
 librosettad.a: rosettad_refactored.o $(OBJS)

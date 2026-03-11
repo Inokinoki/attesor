@@ -1,19 +1,108 @@
 /*
  * Rosetta Daemon (rosettad) - Refactored Implementation
  *
- * This file implements the Rosetta daemon using the existing modular Rosetta
- * translation infrastructure. The daemon handles:
- * - System call translation and forwarding
- * - Process lifecycle management
- * - Communication with the host kernel
- * - IPC between translated processes and host
+ * ============================================================================
+ * OVERVIEW
+ * ============================================================================
  *
- * Architecture:
- * - Reuses rosetta_exec.c for executing translated blocks
- * - Reuses rosetta_syscalls.c for syscall handling
- * - Reuses rosetta_cache.c for translation caching
- * - Reuses rosetta_runtime.c for runtime environment
- * - Adds daemon-specific IPC, signal handling, and process management
+ * The Rosetta daemon (rosettad) is the system-level component that manages
+ * translation services for x86_64 processes running on ARM64. It provides:
+ *
+ * 1. Process Management
+ *    - Launch translated processes
+ *    - Monitor process lifecycle
+ *    - Handle process termination
+ *
+ * 2. IPC Services
+ *    - Communication between guest and host
+ *    - Shared memory management
+ *    - Signal delivery
+ *
+ * 3. Translation Coordination
+ *    - AOT translation coordination
+ *    - JIT translation dispatch
+ *    - Cache management
+ *
+ * 4. System Call Forwarding
+ *    - Translate x86_64 syscalls to ARM64
+ *    - Forward to host kernel
+ *    - Return results to guest
+ *
+ * ============================================================================
+ * ARCHITECTURE
+ * ============================================================================
+ *
+ * Daemon Components:
+ *
+ * ┌─────────────────────────────────────────────────────────────┐
+ * │                    rosettad (Daemon)                        │
+ * ├─────────────────────────────────────────────────────────────┤
+ * │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+ * │  │   IPC       │  │  Process    │  │   Translation       │  │
+ * │  │   Manager   │  │  Manager    │  │   Coordinator       │  │
+ * │  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+ * ├─────────────────────────────────────────────────────────────┤
+ * │         Shared Memory & Signal Handling                     │
+ * ├─────────────────────────────────────────────────────────────┤
+ * │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+ * │  │   Client    │  │   Client    │  │      Client         │  │
+ * │  │   Process 1 │  │   Process 2 │  │      Process N      │  │
+ * │  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+ * └─────────────────────────────────────────────────────────────┘
+ *
+ * ============================================================================
+ * KEY RESPONSIBILITIES
+ * ============================================================================
+ *
+ * 1. Signal Handling
+ *    - Forward signals from host to guest
+ *    - Translate signal contexts (x86_64 ↔ ARM64)
+ *    - Handle crash signals (SIGSEGV, SIGILL, etc.)
+ *
+ * 2. Memory Operations
+ *    - SIMD-optimized memory operations
+ *    - Shared memory allocation
+ *    - Memory mapping coordination
+ *
+ * 3. Logging
+ *    - Debug logging support
+ *    - Crash reporting
+ *    - Performance metrics
+ *
+ * 4. Crash Handling
+ *    - Generate crash reports
+ *    - Save process state
+ *    - Log crash information
+ *
+ * ============================================================================
+ * USAGE
+ * ============================================================================
+ *
+ * Start daemon:
+ *   $ rosettad
+ *
+ * Daemon will:
+ * 1. Initialize IPC channels
+ * 2. Install signal handlers
+ * 3. Wait for client connections
+ * 4. Handle translation requests
+ * 5. Monitor client processes
+ *
+ * ============================================================================
+ * INTEGRATION WITH LIBROSETTA
+ * ============================================================================
+ *
+ * rosettad reuses librosetta components:
+ * - rosetta_exec.c: Execute translated blocks
+ * - rosetta_syscalls.c: System call translation
+ * - rosetta_cache.c: Translation caching
+ * - rosetta_runtime.c: Runtime support
+ *
+ * Daemon-specific additions:
+ * - IPC management
+ * - Signal handling
+ * - Process lifecycle
+ * - Crash reporting
  */
 
 #define _XOPEN_SOURCE 700
@@ -40,6 +129,22 @@
 #include <sys/un.h>
 #include <time.h>
 #include <stdnoreturn.h>
+
+/* Compatibility for syscalls not available on ARM64 Linux */
+#if defined(__linux__) && defined(__aarch64__)
+#ifndef SYS_open
+#define SYS_open 2  /* Deprecated, mapped to openat on ARM64 */
+#endif
+#ifndef SYS_stat
+#define SYS_stat 4  /* Deprecated, mapped to newfstatat on ARM64 */
+#endif
+#ifndef SYS_fstat
+#define SYS_fstat 5  /* Deprecated, mapped to fstat on ARM64 (different number) */
+#endif
+#ifndef SYS_lstat
+#define SYS_lstat 6  /* Deprecated, mapped to newfstatat on ARM64 */
+#endif
+#endif
 
 /* ============================================================================
  * Global Daemon State

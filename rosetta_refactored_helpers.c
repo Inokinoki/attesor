@@ -2,8 +2,84 @@
  * Rosetta Refactored - Helper Functions Implementation
  * ============================================================================
  *
- * This module implements helper utilities for hash functions, translation
- * cache management, memory management, and context operations.
+ * OVERVIEW
+ * --------
+ * This module provides core helper utilities for the Rosetta binary translator.
+ * These utilities form the foundation for translation caching, memory management,
+ * and context switching operations.
+ *
+ * KEY FUNCTIONALITY
+ * ----------------
+ *
+ * 1. Hash Functions
+ *    - hash_address(): Hash 64-bit addresses using golden ratio multiplicative hash
+ *    - hash_string(): DJB2 string hash for symbol names
+ *    - hash_compute(): Generic data block hashing
+ *
+ * 2. Translation Cache
+ *    - Direct-mapped cache for guest→host address translation
+ *    - Fast lookup/insert for translation blocks
+ *    - Cache invalidation for self-modifying code
+ *
+ * 3. Memory Management
+ *    - Guest memory mapping with mmap/munmap
+ *    - Memory protection handling (PROT_READ/WRITE/EXEC)
+ *    - Address translation (guest→host)
+ *
+ * 4. Block Management
+ *    - Block translation lifecycle
+ *    - Block insertion/removal from cache
+ *    - Block lookup for execution
+ *
+ * 5. Context Management
+ *    - CPU context save/restore
+ *    - Thread state management
+ *    - FP register access (FPCR/FPSR on ARM64)
+ *
+ * HASH ALGORITHMS
+ * --------------
+ *
+ * Golden Ratio Multiplicative Hash (for addresses):
+ *   hash = (addr * 2654435761) >> 32
+ *   - 2654435761 is the golden ratio for 32-bit hash
+ *   - Provides good distribution for aligned addresses
+ *   - Fast: single multiply + shift
+ *
+ * DJB2 String Hash:
+ *   hash = hash * 33 + c
+ *   - Classic string hashing algorithm
+ *   - Good distribution for symbol names
+ *   - Fast: few arithmetic operations
+ *
+ * MEMORY MODEL
+ * -----------
+ *
+ * Guest Memory:
+ * - x86_64 applications expect specific memory layout
+ * - Text segment at 0x400000 (typical)
+ * - Data segment follows text
+ * - Stack grows down from high address
+ *
+ * Host Memory:
+ * - ARM64 host provides memory via mmap
+ * - Memory regions mapped with appropriate permissions
+ * - Guest addresses may be mapped to different host addresses
+ *
+ * USAGE EXAMPLES
+ * -------------
+ *
+ * Hash an address:
+ *   uint32_t hash = hash_address(0x400000);
+ *
+ * Lookup translation:
+ *   void *host_code = translation_lookup(0x400500);
+ *
+ * Map guest memory:
+ *   void *mem = memory_map_guest(0x400000, 0x1000);
+ *
+ * Protect memory:
+ *   memory_protect_guest(0x400000, 0x1000, PROT_READ | PROT_EXEC);
+ *
  * ============================================================================ */
 
 #include "rosetta_refactored_helpers.h"
@@ -273,36 +349,36 @@ void context_noop_2(void)
 
 uint32_t read_fpcr(void)
 {
-    uint32_t val = 0;
+    uint64_t val = 0;
 #ifdef __linux__
-    __asm__ volatile("mrs %w0, fpcr" : "=r"(val));
+    __asm__ volatile("mrs %0, fpcr" : "=r"(val));
 #endif
     /* On macOS, FPCR access is restricted; return default */
-    return val;
+    return (uint32_t)val;
 }
 
 void write_fpcr(uint32_t val)
 {
 #ifdef __linux__
-    __asm__ volatile("msr fpcr, %w0" :: "r"(val));
+    __asm__ volatile("msr fpcr, %0" :: "r"((uint64_t)val));
 #endif
     /* On macOS, FPCR access is restricted; no-op */
 }
 
 uint32_t read_fpsr(void)
 {
-    uint32_t val = 0;
+    uint64_t val = 0;
 #ifdef __linux__
-    __asm__ volatile("mrs %w0, fpsr" : "=r"(val));
+    __asm__ volatile("mrs %0, fpsr" : "=r"(val));
 #endif
     /* On macOS, FPSR access is restricted; return default */
-    return val;
+    return (uint32_t)val;
 }
 
 void write_fpsr(uint32_t val)
 {
 #ifdef __linux__
-    __asm__ volatile("msr fpsr, %w0" :: "r"(val));
+    __asm__ volatile("msr fpsr, %0" :: "r"((uint64_t)val));
 #endif
     /* On macOS, FPSR access is restricted; no-op */
 }

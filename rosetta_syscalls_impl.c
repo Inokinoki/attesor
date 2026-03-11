@@ -28,6 +28,10 @@
 #include <sys/poll.h>
 #include <sys/select.h>
 #include <sys/uio.h>
+#include <sys/socket.h>
+#ifdef __linux__
+#include <sys/epoll.h>
+#endif
 #if defined(__APPLE__)
 #include <mach/mach_time.h>
 #endif
@@ -401,7 +405,7 @@ int syscall_getcpu(ThreadState *state)
     unsigned *cpu = (unsigned *)GUEST_ARG0(state);
     unsigned *node = (unsigned *)GUEST_ARG1(state);
 
-#ifdef __linux__
+#if defined(__linux__) && defined(SYS_getcpu)
     int ret = syscall(SYS_getcpu, cpu, node, NULL);
     if (ret < 0) {
         state->syscall_result = -errno;
@@ -937,7 +941,7 @@ int syscall_getdents(ThreadState *state)
     void *dirp = (void *)GUEST_ARG1(state);
     size_t count = GUEST_ARG2(state);
 
-#ifdef __linux__
+#if defined(__linux__) && defined(SYS_getdents)
     int ret = syscall(SYS_getdents, fd, dirp, count);
     if (ret < 0) {
         state->syscall_result = -errno;
@@ -1031,7 +1035,7 @@ int syscall_prlimit(ThreadState *state)
     const void *new_limit = (const void *)GUEST_ARG2(state);
     void *old_limit = (void *)GUEST_ARG3(state);
 
-#ifdef __linux__
+#if defined(__linux__) && defined(SYS_prlimit)
     int ret = syscall(SYS_prlimit, pid, resource, new_limit, old_limit);
     if (ret < 0) {
         state->syscall_result = -errno;

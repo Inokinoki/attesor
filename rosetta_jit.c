@@ -2,11 +2,51 @@
  * Rosetta Binary Translator - JIT Core and Translation Cache
  * ============================================================================
  *
- * This module implements the JIT compilation core:
- * - Translation cache management (hash-based lookup/insert)
- * - Code cache allocation and management
- * - Translation block lifecycle management
- * - Block chaining for direct-threaded execution
+ * OVERVIEW
+ * --------
+ * This module implements the core Just-In-Time (JIT) compilation infrastructure
+ * for Rosetta 2. It provides:
+ *
+ * 1. Translation Cache Management
+ *    - Hash-based lookup for fast translation retrieval
+ *    - Direct-mapped cache with LRU eviction
+ *    - Block chaining for optimized execution paths
+ *
+ * 2. Code Cache Management
+ *    - Dynamic memory allocation for translated code
+ *    - Memory protection switching (RW -> RX)
+ *    - Page-aligned allocations for mprotect efficiency
+ *
+ * 3. Translation Block Lifecycle
+ *    - Block allocation from translation cache
+ *    - Reference counting for garbage collection
+ *    - Cache invalidation for self-modifying code
+ *
+ * 4. Block Chaining (Direct-Threaded Execution)
+ *    - Direct jumps between translated blocks
+ *    - Bypasses dispatch loop on hot paths
+ *    - Improves branch prediction and I-cache utilization
+ *
+ * ARCHITECTURE
+ * -----------
+ *
+ * Translation Flow:
+ *   x86_64 Guest Code → Decode → Translate → Emit ARM64 → Cache → Execute
+ *                                                       ↓
+ *                                          Future calls use cache
+ *
+ * Cache Structure:
+ *   - Hash table: guest PC → host code mapping
+ *   - Hash function: multiplicative golden ratio hash
+ *   - Collision resolution: direct-mapped (last write wins)
+ *   - Chaining: linked blocks for fall-through execution
+ *
+ * PERFORMANCE CONSIDERATIONS
+ * --------------------------
+ * - Cache hit: ~5-10 cycles (hash + lookup + branch)
+ * - Cache miss: ~1000-10000 cycles (decode + translate + emit)
+ * - Block chaining: eliminates dispatch overhead on hot paths
+ * - Cache size: 4096 entries default (tunable via TRANSLATION_CACHE_SIZE)
  *
  * ============================================================================ */
 
@@ -16,6 +56,19 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <unistd.h>
+
+/* MAP_ANON/MAP_ANONYMOUS compatibility for Linux */
+#ifndef MAP_ANON
+#ifdef MAP_ANONYMOUS
+#define MAP_ANON MAP_ANONYMOUS
+#else
+#define MAP_ANON 0x20  /* Linux value for MAP_ANONYMOUS */
+#endif
+#endif
+
+#ifndef MAP_ANONYMOUS
+#define MAP_ANONYMOUS MAP_ANON
+#endif
 
 /* Global JIT context (for simplicity in this implementation) */
 static jit_context_t g_jit_context;

@@ -2,13 +2,54 @@
  * Rosetta Binary Translator - Syscall Translation Implementation
  * ============================================================================
  *
- * This module translates x86_64 Linux syscalls to ARM64 Linux syscalls.
- * It handles:
- * - Syscall number translation (x86_64 -> ARM64)
- * - Argument register remapping (x86_64 -> ARM64)
- * - Syscall dispatch to handlers
+ * OVERVIEW
+ * --------
+ * This module translates x86_64 Linux syscalls to ARM64 Linux syscalls,
+ * enabling x86_64 binaries to make system calls on ARM64 hosts.
  *
- * Translation direction: x86_64 guest -> ARM64 host (like Apple's Rosetta 2)
+ * TRANSLATION DIRECTION
+ * --------------------
+ * Guest: x86_64 Linux application
+ * Host: ARM64 Linux kernel
+ *
+ * This matches Apple's Rosetta 2 architecture (x86_64 → ARM64).
+ *
+ * KEY RESPONSIBILITIES
+ * -------------------
+ * 1. Syscall Number Translation
+ *    - Map x86_64 syscall numbers to ARM64 equivalents
+ *    - Handle architecture-specific syscalls (e.g., arch_prctl)
+ *    - Return ENOSYS for unsupported syscalls
+ *
+ * 2. Argument Register Remapping
+ *    - x86_64 syscall ABI: RDI, RSI, RDX, R10, R8, R9
+ *    - ARM64 syscall ABI:  X0,  X1,  X2,  X3,  X4, X5
+ *    - Same order, different registers (handled by ThreadState)
+ *
+ * 3. Syscall Dispatch
+ *    - Lookup handler in syscall table
+ *    - Invoke platform-specific implementation
+ *    - Return results in guest state
+ *
+ * SUPPORTED SYSCALL CATEGORIES
+ * ----------------------------
+ * - Basic I/O: read, write, open, close, lseek, pipe, dup*
+ * - Memory: mmap, munmap, mprotect, brk
+ * - File Status: stat, fstat, lstat
+ * - Process: getpid, gettid, uname, fcntl, exit*, wait4, kill
+ * - Time: gettimeofday, clock_gettime, nanosleep
+ * - Signal: rt_sigaction, rt_sigprocmask, sched_yield
+ * - IPC/Sync: futex, arch_prctl
+ * - Network: socket, connect, sendto, recvfrom, epoll*
+ * - Additional: ioctl, readv, writev, getcwd, chdir
+ *
+ * LIMITATIONS
+ * -----------
+ * - futex: Linux-only (macOS returns ENOSYS)
+ * - arch_prctl: x86_64-specific (returns ENOSYS on ARM64)
+ * - epoll: Linux-only (macOS returns ENOSYS)
+ * - Some socket options may not translate perfectly
+ *
  * ============================================================================ */
 
 #include "rosetta_syscalls.h"
@@ -848,7 +889,8 @@ int syscall_arch_prctl(ThreadState *state)
     int code = (int)GUEST_RDI(state);
     unsigned long addr = (unsigned long)GUEST_RSI(state);
 
-#ifdef __linux__
+#if defined(__linux__) && defined(SYS_arch_prctl) && !defined(__aarch64__)
+    /* SYS_arch_prctl only exists on x86_64 Linux */
     long ret = syscall(SYS_arch_prctl, code, addr);
     if (ret < 0) {
         state->syscall_result = -errno;
@@ -856,7 +898,7 @@ int syscall_arch_prctl(ThreadState *state)
     }
     state->syscall_result = 0;
 #else
-    /* macOS doesn't have arch_prctl - use alternative */
+    /* macOS and ARM64 Linux don't have arch_prctl */
     (void)code; (void)addr;
     state->syscall_result = -ENOSYS;
     return -1;

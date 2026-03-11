@@ -28,12 +28,12 @@ extern void write_fpsr_internal(uint32_t val);
  */
 uint32_t read_fpcr(void)
 {
-    uint32_t val = 0;
+    uint64_t val = 0;
 #ifdef __linux__
-    __asm__ volatile("mrs %w0, fpcr" : "=r"(val));
+    __asm__ volatile("mrs %0, fpcr" : "=r"(val));
 #endif
     /* On macOS, FPCR access is restricted; return default */
-    return val;
+    return (uint32_t)val;
 }
 
 /**
@@ -44,7 +44,7 @@ uint32_t read_fpcr(void)
 void write_fpcr(uint32_t val)
 {
 #ifdef __linux__
-    __asm__ volatile("msr fpcr, %w0" :: "r"(val));
+    __asm__ volatile("msr fpcr, %0" :: "r"((uint64_t)val));
 #endif
     /* On macOS, FPCR access is restricted; no-op */
 }
@@ -56,12 +56,12 @@ void write_fpcr(uint32_t val)
  */
 uint32_t read_fpsr(void)
 {
-    uint32_t val = 0;
+    uint64_t val = 0;
 #ifdef __linux__
-    __asm__ volatile("mrs %w0, fpsr" : "=r"(val));
+    __asm__ volatile("mrs %0, fpsr" : "=r"(val));
 #endif
     /* On macOS, FPSR access is restricted; return default */
-    return val;
+    return (uint32_t)val;
 }
 
 /**
@@ -72,7 +72,7 @@ uint32_t read_fpsr(void)
 void write_fpsr(uint32_t val)
 {
 #ifdef __linux__
-    __asm__ volatile("msr fpsr, %w0" :: "r"(val));
+    __asm__ volatile("msr fpsr, %0" :: "r"((uint64_t)val));
 #endif
     /* On macOS, FPSR access is restricted; no-op */
 }
