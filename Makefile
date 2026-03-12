@@ -47,8 +47,8 @@ TRANSLATE_SRCS = \
     rosetta_translate_special.c \
     rosetta_translate_block.c \
     rosetta_translate_dispatch.c \
-    rosetta_translate.c \
     rosetta_jit.c
+# Note: rosetta_translate.c disabled - conflicts with rosetta_arm64_emit.c
 
 # System and SIMD modules
 SYSTEM_SRCS = \
@@ -281,7 +281,7 @@ test_jit: test_jit.c librosetta.a
 	$(CC) $(CFLAGS) -Wno-macro-redefined -o $@ test_jit.c -L. -lrosetta
 
 test_translate: test_translate.c librosetta.a
-	$(CC) $(CFLAGS) -Wno-macro-redefined -o $@ test_translate.c -L. -lrosetta
+	$(CC) $(CFLAGS) -Wno-macro-redefined -o $@ test_translate.c -L. -lrosetta -lm
 
 test_elf_loader: test_elf_loader.c librosetta.a
 	$(CC) $(CFLAGS) -Wno-macro-redefined -o $@ test_elf_loader.c -L. -lrosetta

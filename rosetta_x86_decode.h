@@ -290,6 +290,13 @@ static inline int x86_is_sub(const x86_insn_t *i) {
     return (i->opcode >= 0x28 && i->opcode <= 0x2D) ||
            i->opcode == 0x81 || i->opcode == 0x83;
 }
+static inline int x86_is_sbb(const x86_insn_t *i) {
+    /* SBB r/m8, r8 (0x18) | SBB r/m64, r64 (0x19) | SBB r8, r/m8 (0x1A) | SBB r64, r/m64 (0x1B) */
+    /* SBB AL, imm8 (0x1C) | SBB RAX, imm32 (0x1D) */
+    /* SBB r/m64, imm32 (0x81) | SBB r/m64, imm8 (0x83) */
+    return (i->opcode >= 0x18 && i->opcode <= 0x1D) ||
+           i->opcode == 0x81 || i->opcode == 0x83;
+}
 static inline int x86_is_and(const x86_insn_t *i) {
     /* AND r/m8, r8 (0x20) | AND r/m64, r64 (0x21) | AND r8, r/m8 (0x22) | AND r64, r/m64 (0x23) */
     /* AND AL, imm8 (0x24) | AND RAX, imm32 (0x25) */
@@ -348,23 +355,28 @@ static inline int x86_is_div(const x86_insn_t *i) {
 /* Shift/Rotate predicates */
 static inline int x86_is_shl(const x86_insn_t *i) {
     return i->opcode == 0xD1 || i->opcode == 0xD3 ||
-           i->opcode == 0xC1 || (i->opcode == 0xD0 && i->reg == 4);
+           i->opcode == 0xC1 || i->opcode == 0xC0 ||
+           (i->opcode == 0xD0 && i->reg == 4);
 }
 static inline int x86_is_shr(const x86_insn_t *i) {
     return i->opcode == 0xD1 || i->opcode == 0xD3 ||
-           i->opcode == 0xC1 || (i->opcode == 0xD0 && i->reg == 5);
+           i->opcode == 0xC1 || i->opcode == 0xC0 ||
+           (i->opcode == 0xD0 && i->reg == 5);
 }
 static inline int x86_is_sar(const x86_insn_t *i) {
     return i->opcode == 0xD1 || i->opcode == 0xD3 ||
-           i->opcode == 0xC1 || (i->opcode == 0xD0 && i->reg == 7);
+           i->opcode == 0xC1 || i->opcode == 0xC0 ||
+           (i->opcode == 0xD0 && i->reg == 7);
 }
 static inline int x86_is_rol(const x86_insn_t *i) {
     return i->opcode == 0xD1 || i->opcode == 0xD3 ||
-           i->opcode == 0xC1 || (i->opcode == 0xD0 && i->reg == 0);
+           i->opcode == 0xC1 || i->opcode == 0xC0 ||
+           (i->opcode == 0xD0 && i->reg == 0);
 }
 static inline int x86_is_ror(const x86_insn_t *i) {
     return i->opcode == 0xD1 || i->opcode == 0xD3 ||
-           i->opcode == 0xC1 || (i->opcode == 0xD0 && i->reg == 1);
+           i->opcode == 0xC1 || i->opcode == 0xC0 ||
+           (i->opcode == 0xD0 && i->reg == 1);
 }
 
 static inline uint8_t x86_get_jcc_cond(const x86_insn_t *i) {
@@ -426,6 +438,9 @@ static inline int x86_is_pop(const x86_insn_t *i) {
 }
 static inline int x86_is_nop(const x86_insn_t *i) {
     return i->opcode == 0x90;
+}
+static inline int x86_is_hlt(const x86_insn_t *i) {
+    return i->opcode == 0xF4;
 }
 
 /* P1 - Control flow instructions */

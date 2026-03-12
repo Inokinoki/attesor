@@ -67,9 +67,10 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
     if (*p == 0x0F) {
         p++;
         insn->opcode2 = *p++;
+        insn->opcode = 0;  /* For 0F XX opcodes, primary opcode is 0 */
+    } else {
+        insn->opcode = *p++;
     }
-
-    insn->opcode = *p++;
 
     /* Determine if has ModR/M */
     uint8_t op = insn->opcode;
@@ -78,15 +79,18 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
 
     if (op == 0x00 || op == 0x01 || op == 0x02 || op == 0x03 ||
         op == 0x08 || op == 0x09 || op == 0x0A || op == 0x0B ||
+        op == 0x18 || op == 0x19 || op == 0x1A || op == 0x1B ||
         op == 0x20 || op == 0x21 || op == 0x22 || op == 0x23 ||
         op == 0x28 || op == 0x29 || op == 0x2A || op == 0x2B ||
         op == 0x30 || op == 0x31 || op == 0x32 || op == 0x33 ||
+        op == 0x38 || op == 0x39 || op == 0x3A || op == 0x3B ||
         op == 0x84 || op == 0x85 || op == 0x86 || op == 0x87 ||
         op == 0x88 || op == 0x89 || op == 0x8A || op == 0x8B ||
         op == 0x8C || op == 0x8D || op == 0x8E || op == 0x8F ||
+        op == 0x69 || op == 0x6B || /* IMUL with immediate */
         op == 0xC0 || op == 0xC1 ||
         op == 0xD0 || op == 0xD1 || op == 0xD2 || op == 0xD3 ||
-        op == 0xF6 || op == 0xF7 ||
+        op == 0xF6 || op == 0xF7 || op == 0xFF ||
         op == 0x80 || op == 0x81 || op == 0x82 || op == 0x83) {
         has_modrm = 1;
     }
@@ -97,6 +101,8 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
         (op2 >= 0x40 && op2 <= 0x4F) ||
         (op2 >= 0x50 && op2 <= 0x7F) ||
         (op2 >= 0x80 && op2 <= 0x8F) ||
+        (op2 >= 0x90 && op2 <= 0x9F) ||
+        op2 == 0x1F ||
         op2 == 0xA0 || op2 == 0xA1 || op2 == 0xA2 || op2 == 0xA3 ||
         op2 == 0xB0 || op2 == 0xB1 || op2 == 0xB3 ||
         op2 == 0xB6 || op2 == 0xB7 || op2 == 0xBE || op2 == 0xBF ||
@@ -141,11 +147,18 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
             insn->imm = *(const int32_t *)p;
             p += 4;
         }
-    } else if (op == 0x05 || op == 0x0D || op == 0x0F || op == 0x25 ||
-               op == 0x2D || op == 0x2F || op == 0x35 || op == 0x3D) {
+    } else if (op == 0x05 || op == 0x0D || op == 0x0F || op == 0x15 ||
+               op == 0x1D || op == 0x25 || op == 0x2D || op == 0x2F ||
+               op == 0x35 || op == 0x3C || op == 0x3D || op == 0xA9) {
         insn->rm = 0;
-        insn->imm = *(const int32_t *)p;
-        p += 4;
+        if (op == 0x3C) {
+            /* CMP AL, imm8 */
+            insn->imm = *(const int8_t *)p;
+            p += 1;
+        } else {
+            insn->imm = *(const int32_t *)p;
+            p += 4;
+        }
     } else if ((op >= 0x80 && op <= 0x83) ||
                (op2 >= 0x80 && op2 <= 0x8F)) {
         int is_imm8 = (op == 0x83 || op == 0x82 || op2 >= 0x80);
@@ -155,6 +168,34 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
         } else {
             insn->imm = *(const int32_t *)p;
             p += 4;
+        }
+    } else if (op == 0xC0 || op == 0xC1) {
+        /* Group 2 shifts/rotates with immediate */
+        insn->imm = *(const int8_t *)p;
+        p += 1;
+    } else if (op == 0x69 || op == 0x6B) {
+        /* IMUL r/m, imm32 or imm16 */
+        if (op == 0x6B) {
+            insn->imm = *(const int8_t *)p;
+            p += 1;
+        } else {
+            insn->imm = *(const int32_t *)p;
+            p += 4;
+        }
+    } else if (op == 0x6A || op == 0x68) {
+        /* PUSH imm8 or imm32 */
+        if (op == 0x6A) {
+            insn->imm = *(const int8_t *)p;
+            p += 1;
+        } else {
+            insn->imm = *(const int32_t *)p;
+            p += 4;
+        }
+    } else if (op >= 0xB0 && op <= 0xB7) {
+        /* MOV r8, imm8 - 8-bit immediate move */
+        if (!(rex & 0x08)) {  /* Not 64-bit move */
+            insn->imm = *(const int8_t *)p;
+            p += 1;
         }
     } else if (op == 0xE8 || op == 0xE9) {
         insn->imm = *(const int32_t *)p;

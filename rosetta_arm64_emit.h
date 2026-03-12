@@ -52,6 +52,7 @@ void emit_arm64_insn(code_buffer_t *buf, u32 insn);
 /* x86_64 to ARM64 register mapping */
 uint8_t map_x86_to_arm(uint8_t x86_reg);
 uint8_t x86_map_gpr(uint8_t arm64_reg);
+uint8_t x86_map_xmm(uint8_t arm64_vreg);
 
 /* ============================================================================
  * Data Processing (Register) - ALU Operations

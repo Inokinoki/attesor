@@ -91,6 +91,12 @@ uint8_t x86_map_gpr(uint8_t arm64_reg)
     return arm64_reg & 0xF;
 }
 
+uint8_t x86_map_xmm(uint8_t arm64_vreg)
+{
+    /* Map ARM64 vector register to x86_64 XMM register */
+    return arm64_vreg & 0x0F;  /* Wrap around for V16-V31 */
+}
+
 /* ============================================================================
  * Data Processing (Register) - ALU Operations
  * ============================================================================ */

@@ -28,7 +28,7 @@ InsnCategory dispatch_classify_insn(const x86_insn_t *insn)
     }
 
     /* ALU operations */
-    if (x86_is_add(insn) || x86_is_sub(insn) ||
+    if (x86_is_add(insn) || x86_is_sub(insn) || x86_is_sbb(insn) ||
         x86_is_and(insn) || x86_is_or(insn) || x86_is_xor(insn) ||
         x86_is_mul(insn) || x86_is_div(insn) ||
         x86_is_inc(insn) || x86_is_dec(insn) ||
@@ -69,7 +69,8 @@ InsnCategory dispatch_classify_insn(const x86_insn_t *insn)
     /* Special instructions */
     if (x86_is_cpuid(insn) || x86_is_rdtsc(insn) || x86_is_shld(insn) ||
         x86_is_shrd(insn) || x86_is_cwd(insn) || x86_is_cqo(insn) ||
-        x86_is_cli(insn) || x86_is_sti(insn) || x86_is_nop(insn)) {
+        x86_is_cli(insn) || x86_is_sti(insn) || x86_is_nop(insn) ||
+        x86_is_hlt(insn)) {
         return INSN_SPECIAL;
     }
 
@@ -115,6 +116,9 @@ TranslateResult dispatch_translate_insn(code_buffer_t *code_buf,
             if (x86_is_add(insn)) {
                 translate_alu_add(code_buf, insn, arm_rd, arm_rm);
             } else if (x86_is_sub(insn)) {
+                translate_alu_sub(code_buf, insn, arm_rd, arm_rm);
+            } else if (x86_is_sbb(insn)) {
+                /* SBB (subtract with borrow) - for now implement as SUB */
                 translate_alu_sub(code_buf, insn, arm_rd, arm_rm);
             } else if (x86_is_and(insn)) {
                 translate_alu_and(code_buf, insn, arm_rd, arm_rm);
@@ -238,6 +242,9 @@ TranslateResult dispatch_translate_insn(code_buffer_t *code_buf,
             } else if (x86_is_sti(insn)) {
                 translate_special_sti(code_buf, insn);
             } else if (x86_is_nop(insn)) {
+                translate_special_nop(code_buf, insn);
+            } else if (x86_is_hlt(insn)) {
+                /* HLT - implement as NOP for our purposes */
                 translate_special_nop(code_buf, insn);
             }
             result.success = true;
