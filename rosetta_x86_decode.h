@@ -397,10 +397,17 @@ static inline int x86_is_not(const x86_insn_t *i) {
     return i->opcode == 0xF7 && i->reg == 2;
 }
 static inline int x86_is_push(const x86_insn_t *i) {
-    return i->opcode == 0x50 || i->opcode == 0xFF;
+    /* PUSH r64 (50-57) | PUSH r/m64 (FF /6) | PUSH imm32 (68) | PUSH imm8 (6A) */
+    if (i->opcode >= 0x50 && i->opcode <= 0x57) return 1;
+    if (i->opcode == 0x68 || i->opcode == 0x6A) return 1;
+    if (i->opcode == 0xFF && i->reg == 6) return 1;
+    return 0;
 }
 static inline int x86_is_pop(const x86_insn_t *i) {
-    return i->opcode == 0x58 || i->opcode == 0x8F;
+    /* POP r64 (58-5F) | POP r/m64 (8F /0) */
+    if (i->opcode >= 0x58 && i->opcode <= 0x5F) return 1;
+    if (i->opcode == 0x8F && i->reg == 0) return 1;
+    return 0;
 }
 static inline int x86_is_nop(const x86_insn_t *i) {
     return i->opcode == 0x90;

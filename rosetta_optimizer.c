@@ -68,7 +68,7 @@ int translate_and_execute(uint64_t guest_pc)
         return -1;
     }
 
-    rosetta_execute(code);
+    rosetta_execute_translated(code);
     return 0;
 }
 

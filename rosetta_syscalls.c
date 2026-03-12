@@ -207,18 +207,38 @@ syscall_handler_t get_syscall_handler(int x86_64_nr)
 /**
  * Remap x86_64 syscall arguments to ARM64 calling convention
  *
- * x86_64: rdi, rsi, rdx, r10, r8, r9  (syscall convention)
- * ARM64:  x0, x1, x2, x3, x4, x5
+ * x86_64 Linux syscall ABI: RDI, RSI, RDX, R10, R8, R9
+ * ARM64 Linux syscall ABI: X0,  X1,  X2,  X3,  X4, X5
  *
- * Both use the same order for the first 6 arguments, just in different registers.
+ * Both architectures use the same argument order, but in different registers.
+ * This function ensures guest x86_64 register values are accessible
+ * through the standard GUEST_ARG0..GUEST_ARG5 macros.
+ *
+ * In our current implementation, the ThreadState already maps
+ * guest x86_64 registers to these macros, so this function is primarily
+ * for documentation and potential future optimizations.
  */
 void remap_syscall_args(ThreadState *state)
 {
-    /* x86_64 and ARM64 Linux use the same argument passing for syscalls
-     * when the arguments are in memory. The difference is only in which
-     * registers are used. Since we're handling syscalls in C, the
-     * arguments are already in the correct order in the ThreadState. */
-    (void)state;  /* No remapping needed for our implementation */
+    /* The GUEST_ARG macros already provide the correct mapping:
+     * GUEST_ARG0(state) -> state->guest.r[X86_RDI] (arg1)
+     * GUEST_ARG1(state) -> state->guest.r[X86_RSI] (arg2)
+     * GUEST_ARG2(state) -> state->guest.r[X86_RDX] (arg3)
+     * GUEST_ARG3(state) -> state->guest.r[X86_R10] (arg4)
+     * GUEST_ARG4(state) -> state->guest.r[X86_R8]  (arg5)
+     * GUEST_ARG5(state) -> state->guest.r[X86_R9]  (arg6)
+     *
+     * This matches the x86_64 syscall ABI where arguments are passed in
+     * RDI, RSI, RDX, R10, R8, R9 (note: RCX is used for return address,
+     * so R10 is used for the 4th argument instead of RCX).
+     *
+     * For ARM64 syscall ABI, the mapping would be:
+     * X0 (arg1), X1 (arg2), X2 (arg3), X3 (arg4), X4 (arg5), X5 (arg6)
+     *
+     * No remapping is needed in our implementation since we extract
+     * arguments directly from the guest x86_64 state.
+     */
+    (void)state;
 }
 
 /**

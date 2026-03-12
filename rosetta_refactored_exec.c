@@ -187,12 +187,12 @@ void *rosetta_translate(uint64_t guest_pc)
  * ============================================================================ */
 
 /**
- * rosetta_execute - Execute translated code
+ * rosetta_execute_translated - Execute translated code (legacy)
  * @host_code: Pointer to translated ARM64 code
  *
  * Executes the translated code and updates guest state.
  */
-void rosetta_execute(void *host_code)
+void rosetta_execute_translated(void *host_code)
 {
     if (!host_code) {
         return;

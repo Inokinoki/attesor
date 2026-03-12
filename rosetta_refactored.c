@@ -74,7 +74,7 @@ extern bool rosetta_is_initialized(void);
 extern void *translate_block(uint64_t guest_pc);
 extern void *translate_block_fast(uint64_t guest_pc);
 extern void *rosetta_translate(uint64_t guest_pc);
-extern void rosetta_execute(void *host_code);
+extern void rosetta_execute_translated(void *host_code);
 extern void rosetta_run(uint64_t guest_pc);
 extern uint64_t rosetta_interpret(uint32_t insn, ThreadState *state, uint64_t pc);
 extern void rosetta_run_interpreter(uint64_t guest_pc, int max_insns);

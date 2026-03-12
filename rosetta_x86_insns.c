@@ -20,8 +20,9 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
 
     memset(insn, 0, sizeof(x86_insn_t));
 
-    /* Parse REX prefix */
-    if ((p[0] & 0xF0) == 0x40 && (p[0] & 0x0F) >= 0x08) {
+    /* Parse REX prefix (0x40-0x4F) */
+    /* In 64-bit mode: REX prefix has bits 7-4 = 0100 and bit 0 = 1 */
+    if ((p[0] & 0xF0) == 0x40 && (p[0] & 0x0F) != 0x00) {
         rex = p[0];
         p++;
         insn->rex = rex;

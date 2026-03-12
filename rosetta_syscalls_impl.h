@@ -94,6 +94,33 @@ int syscall_set_tid_address(ThreadState *state);
 /* Get CPU number */
 int syscall_getcpu(ThreadState *state);
 
+/* Set process group ID */
+int syscall_setpgid(ThreadState *state);
+
+/* Create session and set process group ID */
+int syscall_setsid(ThreadState *state);
+
+/* Get process group ID */
+int syscall_getpgid(ThreadState *state);
+
+/* Get session ID */
+int syscall_getsid(ThreadState *state);
+
+/* Get supplementary group IDs */
+int syscall_getgroups(ThreadState *state);
+
+/* Set supplementary group IDs */
+int syscall_setgroups(ThreadState *state);
+
+/* Set hostname */
+int syscall_sethostname(ThreadState *state);
+
+/* Set domain name */
+int syscall_setdomainname(ThreadState *state);
+
+/* Operations on a process */
+int syscall_prctl(ThreadState *state);
+
 /* ============================================================================
  * Time-related Syscalls
  * ============================================================================ */
@@ -198,6 +225,18 @@ int syscall_chmod(ThreadState *state);
 /* Change owner and group of a file */
 int syscall_lchown(ThreadState *state);
 
+/* Create file and open it for writing */
+int syscall_creat(ThreadState *state);
+
+/* Change owner and group of file */
+int syscall_chown(ThreadState *state);
+
+/* Change file permissions by file descriptor */
+int syscall_fchmod(ThreadState *state);
+
+/* Change owner and group by file descriptor */
+int syscall_fchown(ThreadState *state);
+
 /* Get directory entries */
 int syscall_getdents(ThreadState *state);
 
@@ -216,6 +255,18 @@ int syscall_capset(ThreadState *state);
 
 /* Get memory resident set information */
 int syscall_mincore(ThreadState *state);
+
+/* Give advice about use of memory */
+int syscall_madvise(ThreadState *state);
+
+/* Lock memory in RAM */
+int syscall_mlock(ThreadState *state);
+
+/* Unlock memory */
+int syscall_munlock(ThreadState *state);
+
+/* Synchronize a file with a memory map */
+int syscall_msync(ThreadState *state);
 
 /* Get/set resource limits */
 int syscall_prlimit(ThreadState *state);

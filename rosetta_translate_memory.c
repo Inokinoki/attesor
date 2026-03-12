@@ -9,6 +9,7 @@
 #include "rosetta_translate_memory.h"
 #include "rosetta_arm64_emit.h"
 #include <stdint.h>
+#include <stdio.h>
 
 /* ============================================================================
  * Memory Translation Functions
@@ -17,7 +18,11 @@
 void translate_memory_mov(code_buffer_t *code_buf, const x86_insn_t *insn,
                           uint8_t arm_rd, uint8_t arm_rm)
 {
+    fprintf(stderr, "[translate_memory_mov] opcode=0x%02x arm_rd=%d arm_rm=%d has_modrm=%d mod=%d\n",
+            insn->opcode, arm_rd, arm_rm, insn->has_modrm, insn->mod);
+
     if (x86_is_mov_imm64(insn)) {
+        fprintf(stderr, "[translate_memory_mov] MOV imm64\n");
         /* MOV r64, imm64 - use MOVZ + MOVK sequence */
         uint64_t imm = (uint64_t)insn->imm;
         emit_movz(code_buf, arm_rd, (uint16_t)(imm & 0xFFFF), 0);
@@ -25,15 +30,19 @@ void translate_memory_mov(code_buffer_t *code_buf, const x86_insn_t *insn,
         if (imm >> 32) emit_movk(code_buf, arm_rd, (uint16_t)((imm >> 32) & 0xFFFF), 2);
         if (imm >> 48) emit_movk(code_buf, arm_rd, (uint16_t)((imm >> 48) & 0xFFFF), 3);
     } else if (insn->has_modrm && insn->mod == 3) {
+        fprintf(stderr, "[translate_memory_mov] MOV reg to reg - calling emit_mov_reg\n");
         /* MOV: register to register */
         emit_mov_reg(code_buf, arm_rd, arm_rm);
     } else if (!insn->has_modrm || insn->mod != 3) {
-        /* Memory operand: load from memory
-         * The arm_rm should contain the address
-         * Use LDR to load from [arm_rm]
+        fprintf(stderr, "[translate_memory_mov] MOV from memory (using guest memory helper)\n");
+        /* Memory operand: load from guest memory
+         * The arm_rm contains the guest address
+         * Use helper function to translate address and load from host memory
          */
-        emit_ldr_reg(code_buf, arm_rd, arm_rm, XZR);
+        emit_ldr_guest_mem64(code_buf, arm_rd, arm_rm);
     }
+
+    fprintf(stderr, "[translate_memory_mov] Done, new offset=%u\n", code_buf->offset);
 }
 
 void translate_memory_movzx(code_buffer_t *code_buf, const x86_insn_t *insn,

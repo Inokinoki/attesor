@@ -34,7 +34,8 @@ CORE_SRCS = \
     rosetta_context.c \
     rosetta_memmgmt.c \
     rosetta_x86_decode.c \
-    rosetta_codegen.c
+    rosetta_codegen.c \
+    rosetta_arm64_emit.c
 
 # Translation modules
 TRANSLATE_SRCS = \
@@ -60,10 +61,9 @@ SYSTEM_SRCS = \
 # ============================================================================
 
 # JIT code emitter
+# Note: rosetta_jit_emit.c removed due to duplicate symbols with rosetta_codegen.c
 REFACTORED_CORE_SRCS = \
-    rosetta_jit_emit.c \
-    rosetta_jit_emit_simd.c \
-    rosetta_arm64_emit.c
+    rosetta_jit_emit_simd.c
 
 # Translation modules
 REFACTORED_TRANS_SRCS = \
@@ -116,11 +116,13 @@ REFACTORED_TRANS_HELPERS_SRCS = \
     rosetta_trans_helpers.c
 
 # Translation implementation modules (full functional translation)
+# NOTE: Disabled due to duplicate symbols causing x86_64 emission instead of ARM64
+# The main translate_*.c files should be used instead
 REFACTORED_TRANS_IMPL_SRCS = \
-    rosetta_translate_alu_impl.c \
-    rosetta_translate_memory_impl.c \
-    rosetta_translate_branch_impl.c \
-    rosetta_translate_special_impl.c
+    # rosetta_translate_alu_impl.c \
+    # rosetta_translate_memory_impl.c \
+    # rosetta_translate_branch_impl.c \
+    # rosetta_translate_special_impl.c
 
 # Translation dispatch module
 REFACTORED_TRANS_DISPATCH_SRCS = \
@@ -152,7 +154,35 @@ REFACTORED_INSN_SRCS = \
 REFACTORED_RUNTIME_SRCS = \
     rosetta_runtime.c
 
-REFACTORED_SRCS = $(REFACTORED_CORE_SRCS) $(REFACTORED_TRANS_SRCS) $(REFACTORED_FP_SRCS) $(REFACTORED_NEON_SRCS) $(REFACTORED_SYSTEM_SRCS) $(REFACTORED_CRYPTO_SRCS) $(REFACTORED_STRING_SIMD_SRCS) $(REFACTORED_SYSCALLS_IMPL_SRCS) $(REFACTORED_MEMORY_UTILS_SRCS) $(REFACTORED_STRING_UTILS_SRCS) $(REFACTORED_TRANS_HELPERS_SRCS) $(REFACTORED_TRANS_IMPL_SRCS) $(REFACTORED_TRANS_DISPATCH_SRCS) $(REFACTORED_SIMD_MEM_HELPERS_SRCS) $(REFACTORED_JIT_CORE_SRCS) $(REFACTORED_X86_INSNS_SRCS) $(REFACTORED_UTIL_SRCS) $(REFACTORED_INSN_SRCS) $(REFACTORED_RUNTIME_SRCS)
+# ELF binary loader (Linux support)
+REFACTORED_LOADER_SRCS = \
+    rosetta_elf_loader.c \
+    rosetta_macho_loader.c
+
+# Exception and signal handling
+REFACTORED_EXCEPTION_SRCS = \
+    rosetta_refactored_exception.c \
+    rosetta_refactored_signal.c
+
+# /proc filesystem emulation
+REFACTORED_PROCFS_SRCS = \
+    rosetta_procfs.c
+
+# Binary execution runner
+REFACTORED_RUNNER_SRCS = \
+    rosetta_runner.c
+
+# Guest memory management
+REFACTORED_MEMMGR_SRCS = \
+    rosetta_memmgr.c
+
+# Execution engine
+REFACTORED_EXECUTE_SRCS = \
+    rosetta_execute_fixed.c \
+    rosetta_execute_stubs.c \
+    rosetta_exec_helpers.c
+
+REFACTORED_SRCS = $(REFACTORED_CORE_SRCS) $(REFACTORED_TRANS_SRCS) $(REFACTORED_FP_SRCS) $(REFACTORED_NEON_SRCS) $(REFACTORED_SYSTEM_SRCS) $(REFACTORED_CRYPTO_SRCS) $(REFACTORED_STRING_SIMD_SRCS) $(REFACTORED_SYSCALLS_IMPL_SRCS) $(REFACTORED_MEMORY_UTILS_SRCS) $(REFACTORED_STRING_UTILS_SRCS) $(REFACTORED_TRANS_HELPERS_SRCS) $(REFACTORED_TRANS_IMPL_SRCS) $(REFACTORED_TRANS_DISPATCH_SRCS) $(REFACTORED_SIMD_MEM_HELPERS_SRCS) $(REFACTORED_JIT_CORE_SRCS) $(REFACTORED_X86_INSNS_SRCS) $(REFACTORED_UTIL_SRCS) $(REFACTORED_INSN_SRCS) $(REFACTORED_RUNTIME_SRCS) $(REFACTORED_LOADER_SRCS) $(REFACTORED_EXCEPTION_SRCS) $(REFACTORED_PROCFS_SRCS) $(REFACTORED_RUNNER_SRCS) $(REFACTORED_MEMMGR_SRCS) $(REFACTORED_EXECUTE_SRCS)
 
 # All source files (include REFACTORED_SRCS which contains NEON, System, Crypto, String SIMD modules)
 MODULAR_SRCS = $(CORE_SRCS) $(TRANSLATE_SRCS) $(SYSTEM_SRCS) $(REFACTORED_SRCS)
@@ -229,10 +259,14 @@ HEADERS = \
     rosetta_trans_cond.h \
     rosetta_trans_mul_ext.h \
     rosetta_refactored_utils.h \
-    rosetta_translate_alu_full.h
+    rosetta_translate_alu_full.h \
+    rosetta_elf_loader.h \
+    rosetta_macho_loader.h \
+    rosetta_exec_context.h \
+    rosetta_exec_helpers.h
 
 # Main targets
-all: librosetta.a test_jit test_translate
+all: librosetta.a test_jit test_translate test_elf_loader test_exception_handling test_procfs
 
 # Static library
 librosetta.a: $(MODULAR_OBJS)
@@ -249,14 +283,36 @@ test_jit: test_jit.c librosetta.a
 test_translate: test_translate.c librosetta.a
 	$(CC) $(CFLAGS) -Wno-macro-redefined -o $@ test_translate.c -L. -lrosetta
 
-# Phony test target runs both tests
-test: test_jit test_translate
+test_elf_loader: test_elf_loader.c librosetta.a
+	$(CC) $(CFLAGS) -Wno-macro-redefined -o $@ test_elf_loader.c -L. -lrosetta
+
+test_exception_handling: test_exception_handling.c librosetta.a
+	$(CC) $(CFLAGS) -Wno-macro-redefined -o $@ test_exception_handling.c -L. -lrosetta
+
+test_procfs: test_procfs.c librosetta.a
+	$(CC) $(CFLAGS) -Wno-macro-redefined -o $@ test_procfs.c -L. -lrosetta
+
+test_binary_runner: test_binary_runner.c librosetta.a
+	$(CC) $(CFLAGS) -Wno-macro-redefined -o $@ test_binary_runner.c -L. -lrosetta
+
+test_execution: test_execution.c librosetta.a
+	$(CC) $(CFLAGS) -Wno-macro-redefined -o $@ test_execution.c -L. -lrosetta
+
+test_memaccess: test_memaccess.c librosetta.a
+	$(CC) $(CFLAGS) -Wno-macro-redefined -o $@ test_memaccess.c -L. -lrosetta
+
+# Phony test target runs all tests
+test: test_jit test_translate test_elf_loader test_exception_handling test_procfs test_binary_runner
 	./test_jit
 	./test_translate
+	./test_elf_loader || echo "Note: test_elf_loader needs x86_64 binaries"
+	./test_exception_handling
+	./test_procfs
+	./test_binary_runner || echo "Note: test_binary_runner needs x86_64 binaries"
 
 # Clean build artifacts
 clean:
-	rm -f $(MODULAR_OBJS) librosetta.a test_jit test_translate
+	rm -f $(MODULAR_OBJS) librosetta.a test_jit test_translate test_elf_loader test_exception_handling test_procfs test_memaccess
 
 # Phony targets
 .PHONY: all clean test install

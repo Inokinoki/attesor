@@ -421,6 +421,194 @@ int syscall_getcpu(ThreadState *state)
 #endif
 }
 
+/**
+ * syscall_setpgid - Set process group ID
+ */
+int syscall_setpgid(ThreadState *state)
+{
+    pid_t pid = (pid_t)GUEST_ARG0(state);
+    pid_t pgid = (pid_t)GUEST_ARG1(state);
+
+    int ret = setpgid(pid, pgid);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_setsid - Create session and set process group ID
+ */
+int syscall_setsid(ThreadState *state)
+{
+    pid_t ret = setsid();
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = ret;
+    return 0;
+}
+
+/**
+ * syscall_getpgid - Get process group ID
+ */
+int syscall_getpgid(ThreadState *state)
+{
+    pid_t pid = (pid_t)GUEST_ARG0(state);
+
+    pid_t ret = getpgid(pid);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = ret;
+    return 0;
+}
+
+/**
+ * syscall_getsid - Get session ID
+ */
+int syscall_getsid(ThreadState *state)
+{
+    pid_t pid = (pid_t)GUEST_ARG0(state);
+
+#ifdef __linux__
+    pid_t ret = getsid(pid);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = ret;
+    return 0;
+#else
+    (void)pid;
+    state->syscall_result = -38;  /* ENOSYS */
+    return -1;
+#endif
+}
+
+/**
+ * syscall_getgroups - Get supplementary group IDs
+ */
+int syscall_getgroups(ThreadState *state)
+{
+    int size = (int)GUEST_ARG0(state);
+    gid_t *list = (gid_t *)GUEST_ARG1(state);
+
+    int ret = getgroups(size, list);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = ret;
+    return 0;
+}
+
+/**
+ * syscall_setgroups - Set supplementary group IDs
+ */
+int syscall_setgroups(ThreadState *state)
+{
+    size_t size = (size_t)GUEST_ARG0(state);
+    const gid_t *list = (const gid_t *)GUEST_ARG1(state);
+
+#ifdef __linux__
+    int ret = setgroups(size, list);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+#else
+    (void)size;
+    (void)list;
+    state->syscall_result = -1;  /* EPERM - not permitted on non-Linux */
+    return -1;
+#endif
+}
+
+/**
+ * syscall_sethostname - Set hostname
+ */
+int syscall_sethostname(ThreadState *state)
+{
+    const char *name = (const char *)GUEST_ARG0(state);
+    size_t len = (size_t)GUEST_ARG1(state);
+
+#ifdef __linux__
+    int ret = sethostname(name, len);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+#else
+    (void)name;
+    (void)len;
+    state->syscall_result = -1;  /* EPERM - requires root */
+    return -1;
+#endif
+}
+
+/**
+ * syscall_setdomainname - Set domain name
+ */
+int syscall_setdomainname(ThreadState *state)
+{
+    const char *name = (const char *)GUEST_ARG0(state);
+    size_t len = (size_t)GUEST_ARG1(state);
+
+#ifdef __linux__
+    int ret = setdomainname(name, len);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+#else
+    (void)name;
+    (void)len;
+    state->syscall_result = -1;  /* EPERM - requires root */
+    return -1;
+#endif
+}
+
+/**
+ * syscall_prctl - Operations on a process
+ */
+int syscall_prctl(ThreadState *state)
+{
+    int option = (int)GUEST_ARG0(state);
+    unsigned long arg2 = GUEST_ARG1(state);
+    unsigned long arg3 = GUEST_ARG2(state);
+    unsigned long arg4 = GUEST_ARG3(state);
+    unsigned long arg5 = GUEST_ARG4(state);
+
+#ifdef __linux__
+    long ret = prctl(option, arg2, arg3, arg4, arg5);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = ret;
+    return 0;
+#else
+    (void)option;
+    (void)arg2;
+    (void)arg3;
+    (void)arg4;
+    (void)arg5;
+    state->syscall_result = -38;  /* ENOSYS */
+    return -1;
+#endif
+}
+
 /* ============================================================================
  * Time-related Syscalls
  * ============================================================================ */
@@ -933,6 +1121,77 @@ int syscall_lchown(ThreadState *state)
 }
 
 /**
+ * syscall_creat - Create file and open it for writing
+ */
+int syscall_creat(ThreadState *state)
+{
+    const char *pathname = (const char *)GUEST_ARG0(state);
+    mode_t mode = GUEST_ARG1(state);
+
+    /* creat is equivalent to open(pathname, O_WRONLY|O_CREAT|O_TRUNC, mode) */
+    int fd = creat(pathname, mode);
+    if (fd < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = fd;
+    return 0;
+}
+
+/**
+ * syscall_chown - Change owner and group of file
+ */
+int syscall_chown(ThreadState *state)
+{
+    const char *pathname = (const char *)GUEST_ARG0(state);
+    uid_t owner = GUEST_ARG1(state);
+    gid_t group = GUEST_ARG2(state);
+
+    int ret = chown(pathname, owner, group);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_fchmod - Change file permissions by file descriptor
+ */
+int syscall_fchmod(ThreadState *state)
+{
+    int fd = GUEST_ARG0(state);
+    mode_t mode = GUEST_ARG1(state);
+
+    int ret = fchmod(fd, mode);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_fchown - Change owner and group by file descriptor
+ */
+int syscall_fchown(ThreadState *state)
+{
+    int fd = GUEST_ARG0(state);
+    uid_t owner = GUEST_ARG1(state);
+    gid_t group = GUEST_ARG2(state);
+
+    int ret = fchown(fd, owner, group);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
  * syscall_getdents - Get directory entries
  */
 int syscall_getdents(ThreadState *state)
@@ -1051,6 +1310,98 @@ int syscall_prlimit(ThreadState *state)
     state->syscall_result = -38;  /* ENOSYS */
     return -1;
 #endif
+}
+
+/**
+ * syscall_madvise - Give advice about use of memory
+ */
+int syscall_madvise(ThreadState *state)
+{
+    void *addr = (void *)GUEST_ARG0(state);
+    size_t length = GUEST_ARG1(state);
+    int advice = GUEST_ARG2(state);
+
+#ifdef __linux__
+    int ret = madvise(addr, length, advice);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+#else
+    (void)addr;
+    (void)length;
+    (void)advice;
+    state->syscall_result = 0;  /* Silently ignore on non-Linux */
+    return 0;
+#endif
+}
+
+/**
+ * syscall_mlock - Lock memory in RAM
+ */
+int syscall_mlock(ThreadState *state)
+{
+    const void *addr = (const void *)GUEST_ARG0(state);
+    size_t len = GUEST_ARG1(state);
+
+#ifdef __linux__
+    int ret = mlock(addr, len);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+#else
+    (void)addr;
+    (void)len;
+    state->syscall_result = 0;  /* Silently ignore on non-Linux */
+    return 0;
+#endif
+}
+
+/**
+ * syscall_munlock - Unlock memory
+ */
+int syscall_munlock(ThreadState *state)
+{
+    const void *addr = (const void *)GUEST_ARG0(state);
+    size_t len = GUEST_ARG1(state);
+
+#ifdef __linux__
+    int ret = munlock(addr, len);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+#else
+    (void)addr;
+    (void)len;
+    state->syscall_result = 0;  /* Silently ignore on non-Linux */
+    return 0;
+#endif
+}
+
+/**
+ * syscall_msync - Synchronize a file with a memory map
+ */
+int syscall_msync(ThreadState *state)
+{
+    void *addr = (void *)GUEST_ARG0(state);
+    size_t length = GUEST_ARG1(state);
+    int flags = GUEST_ARG2(state);
+
+    int ret = msync(addr, length, flags);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
 }
 
 /**

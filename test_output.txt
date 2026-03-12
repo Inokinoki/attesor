@@ -1,0 +1,84 @@
+=================================================================
+Rosetta Execution Engine Test
+=================================================================
+
+Binary: simple_x86_pure.x86_64
+
+[ROSETTA] Runner created
+Step 1: Loading binary...
+[ROSETTA] Loading binary: simple_x86_pure.x86_64
+[ROSETTA] Entry point: 0x0000000000401b90
+[ROSETTA] Static binary detected
+=== ELF Binary Information ===
+File: simple_x86_pure.x86_64
+Size: 866424 bytes
+Entry Point: 0x0000000000401b90
+Base Address: 0x0000000000400000
+PIE: No
+Static: Yes
+
+=== Program Headers ===
+  [ 0] Type: LOAD         Flags: R   0x0000000000400000-0x0000000000400518 (0x000518 filesz, 0x000518 memsz)
+  [ 1] Type: LOAD         Flags: R X 0x0000000000401000-0x000000000049463d (0x09363d filesz, 0x09363d memsz)
+  [ 2] Type: LOAD         Flags: R   0x0000000000495000-0x00000000004bb645 (0x026645 filesz, 0x026645 memsz)
+  [ 3] Type: LOAD         Flags: RW  0x00000000004bd0c0-0x00000000004c3980 (0x005170 filesz, 0x0068c0 memsz)
+  [ 4] Type: NOTE         
+  [ 5] Type: NOTE         
+  [ 6] Type: UNKNOWN      
+  [ 7] Type: UNKNOWN      
+  [ 8] Type: GNU_STACK    
+  [ 9] Type: GNU_RELRO    
+
+=== Sections ===
+  .note.gnu.property   0x0000000000400270-0000000000400290 (0x000020) A  
+  .note.gnu.build-id   0x0000000000400290-00000000004002b4 (0x000024) A  
+  .note.ABI-tag        0x00000000004002b4-00000000004002d4 (0x000020) A  
+  .rela.plt            0x00000000004002d8-0000000000400518 (0x000240) A  
+  .init                0x0000000000401000-000000000040101b (0x00001b) A X
+  .plt                 0x0000000000401020-00000000004011a0 (0x000180) A X
+  .text                0x00000000004011a0-0000000000492990 (0x0917f0) A X
+  __libc_freeres_fn    0x0000000000492990-0000000000494630 (0x001ca0) A X
+  .fini                0x0000000000494630-000000000049463d (0x00000d) A X
+  .rodata              0x0000000000495000-00000000004b0fec (0x01bfec) A  
+  .eh_frame            0x00000000004b0ff0-00000000004bb594 (0x00a5a4) A  
+  .gcc_except_table    0x00000000004bb594-00000000004bb645 (0x0000b1) A  
+  .tdata               0x00000000004bd0c0-00000000004bd0e0 (0x000020) AW 
+  .tbss                0x00000000004bd0e0-00000000004bd120 (0x000040) AW 
+  .init_array          0x00000000004bd0e0-00000000004bd0f0 (0x000010) AW 
+  .fini_array          0x00000000004bd0f0-00000000004bd100 (0x000010) AW 
+  .data.rel.ro         0x00000000004bd100-00000000004bfef4 (0x002df4) AW 
+  .got                 0x00000000004bfef8-00000000004bffe8 (0x0000f0) AW 
+  .got.plt             0x00000000004c0000-00000000004c00d8 (0x0000d8) AW 
+  .data                0x00000000004c00e0-00000000004c1b30 (0x001a50) AW 
+  __libc_subfreeres    0x00000000004c1b30-00000000004c1b78 (0x000048) AW 
+  __libc_IO_vtables    0x00000000004c1b80-00000000004c2228 (0x0006a8) AW 
+  __libc_atexit        0x00000000004c2228-00000000004c2230 (0x000008) AW 
+  .bss                 0x00000000004c2240-00000000004c3958 (0x001718) AW 
+  __libc_freeres_ptrs  0x00000000004c3958-00000000004c3980 (0x000028) AW 
+  .comment             0x0000000000000000-000000000000002b (0x00002b)    
+  .symtab              0x0000000000000000-000000000000aed8 (0x00aed8)    
+  .strtab              0x0000000000000000-0000000000006e83 (0x006e83)    
+  .shstrtab            0x0000000000000000-000000000000013b (0x00013b)    
+
+  Binary loaded successfully
+
+Step 2: Preparing execution environment...
+[ROSETTA] Preparing execution environment
+[ROSETTA] Skipping signal handler initialization (validation phase)
+[ROSETTA] Initializing guest memory manager
+[MEMMGR] Created guest memory:
+[MEMMGR]   Host:  0xffff6ec78000
+[MEMMGR]   Guest: 0x0 (flat address space)
+[MEMMGR]   Size:  1024 MB
+[ROSETTA] Initializing translation subsystem
+[ROSETTA] Execution environment prepared
+  Environment prepared
+
+Step 3: Executing binary...
+  Entry point: 0x0000000000401b90
+
+[ROSETTA] Starting execution
+[ROSETTA] Step 1: Mapping ELF segments into guest memory
+[MEMMGR] Mapped: 0x400000-0x400fff R-- [elf_segment] (1304 bytes)
+[MEMMGR] Mapped: 0x401000-0x494fff R-X [elf_segment] (603709 bytes)
+[MEMMGR] Mapped: 0x49

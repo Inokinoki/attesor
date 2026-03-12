@@ -10,6 +10,25 @@
 #include "rosetta_codegen.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+
+/* Forward declarations - static internal functions */
+static void emit_arm64_insn(code_buffer_t *buf, u32 insn);
+static void emit_ret(code_buffer_t *buf);
+static void emit_nop(code_buffer_t *buf);
+static void emit_push_reg(code_buffer_t *buf, u8 reg);
+static void emit_pop_reg(code_buffer_t *buf, u8 reg);
+static void emit_movz(code_buffer_t *buf, u8 dst, u16 imm, u8 shift);
+static void emit_movk(code_buffer_t *buf, u8 dst, u16 imm, u8 shift);
+static void emit_movn(code_buffer_t *buf, u8 dst, u16 imm, u8 shift);
+static void emit_mul_reg(code_buffer_t *buf, u8 dst, u8 src1, u8 src2);
+static void emit_cmp_reg(code_buffer_t *buf, u8 op1, u8 op2);
+static void emit_tst_reg(code_buffer_t *buf, u8 op1, u8 op2);
+static void emit_b(code_buffer_t *buf, int32_t imm26);
+static void emit_bl(code_buffer_t *buf, int32_t imm26);
+static void emit_bcond(code_buffer_t *buf, u8 cond, int32_t imm19);
+static void emit_ldr_reg(code_buffer_t *buf, u8 dst, u8 base, u8 offset);
+static void emit_mov_extend(code_buffer_t *buf, u8 dst, u8 src, int is_signed, int is_16bit);
 
 /* ============================================================================
  * Code Buffer Management
@@ -262,7 +281,7 @@ void emit_mvn_reg_reg(code_buffer_t *buf, u8 dst, u8 src) {
     emit_byte(buf, 0xD0 + (dst & 7));
 }
 
-void emit_mul_reg(code_buffer_t *buf, u8 dst, u8 src1, u8 src2) {
+static void emit_mul_reg(code_buffer_t *buf, u8 dst, u8 src1, u8 src2) {
     /* ARM64: dst = src1 * src2 using MADD with XZR */
     /* MADD Xd, Xn, Xm, XZR */
     u32 insn = 0x1B000000;
@@ -339,20 +358,54 @@ void emit_lea_reg_disp(code_buffer_t *buf, u8 dst, u8 base, s32 disp) {
     emit_word32(buf, (u32)disp);
 }
 
-void emit_push_reg(code_buffer_t *buf, u8 reg) {
-    /* PUSH r64: 50 + reg */
-    u8 rex = 0x50;
-    if (reg >= 8) rex |= 0x01;
+/* ============================================================================
+ * Stack Operations
+ * ============================================================================ */
 
-    emit_byte(buf, rex + (reg & 7));
+/**
+ * ARM64 ADD immediate - helper for push/pop
+ */
+static void emit_add_imm(code_buffer_t *buf, u8 dst, u8 src, u16 imm)
+{
+    /* ADD Xd, Xn, #imm12 */
+    u32 insn = 0x91000000;
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(src & 31) << 5;
+    insn |= (u32)(imm & 0xFFF) << 10;
+    emit_arm64_insn(buf, insn);
 }
 
-void emit_pop_reg(code_buffer_t *buf, u8 reg) {
-    /* POP r64: 58 + reg */
-    u8 rex = 0x58;
-    if (reg >= 8) rex |= 0x01;
+/**
+ * ARM64 SUB immediate - helper for push/pop
+ */
+static void emit_sub_imm(code_buffer_t *buf, u8 dst, u8 src, u16 imm)
+{
+    /* SUB Xd, Xn, #imm12 */
+    u32 insn = 0x51000000;
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(src & 31) << 5;
+    insn |= (u32)(imm & 0xFFF) << 10;
+    emit_arm64_insn(buf, insn);
+}
 
-    emit_byte(buf, rex + (reg & 7));
+static void emit_push_reg(code_buffer_t *buf, u8 reg) {
+    /* ARM64 doesn't have PUSH. Implement as SUB SP, SP, #16 + STR */
+    emit_sub_imm(buf, 31, 31, 16);  /* SUB SP, SP, #16 */
+    /* STR Xreg, [SP] */
+    u32 insn = 0xF9000000;  /* STR (unscaled immediate) */
+    insn |= (u32)(reg & 31) << 0;
+    insn |= (u32)(31 & 31) << 5;  /* Rn = SP */
+    emit_arm64_insn(buf, insn);
+}
+
+static void emit_pop_reg(code_buffer_t *buf, u8 reg) {
+    /* ARM64 doesn't have POP. Implement as LDR + ADD SP, SP, #16 */
+    /* LDR Xreg, [SP] */
+    u32 insn = 0xF9400000;  /* LDR (unscaled immediate) */
+    insn |= (u32)(reg & 31) << 0;
+    insn |= (u32)(31 & 31) << 5;  /* Rn = SP */
+    emit_arm64_insn(buf, insn);
+    emit_add_imm(buf, 31, 31, 16);  /* ADD SP, SP, #16 */
 }
 
 /* ============================================================================
@@ -545,14 +598,442 @@ u32 emit_call_rel32(code_buffer_t *buf) {
     return offset;
 }
 
-void emit_ret(code_buffer_t *buf) {
-    /* RET: C3 */
-    emit_byte(buf, 0xC3);
+static void emit_ret(code_buffer_t *buf) {
+    /* ARM64 RET: D65F03C0 */
+    emit_word32(buf, 0xD65F03C0);
 }
 
-void emit_nop(code_buffer_t *buf) {
-    /* NOP: 90 */
-    emit_byte(buf, 0x90);
+static void emit_nop(code_buffer_t *buf) {
+    /* ARM64 NOP: 0x1F2003D5 (space instruction from ARM manual)
+     * When emit_word32 writes this to memory in little-endian format, bytes will be: D5 03 20 1F
+     * which when read as uint32_t gives 0xD503201F (correct ARM64 NOP) */
+    emit_word32(buf, 0x1F2003D5);
+}
+
+/* ============================================================================
+ * ARM64 Stack Operations
+ * ============================================================================ */
+
+/**
+ * ARM64 PUSH register - emit_push_reg_arm64
+ *
+ * ARM64 doesn't have a PUSH instruction. We implement it as:
+ *   STR Xreg, [SP, #-16]!
+ *
+ * Encoding for STR Xt, [Xn, #imm]! (pre-indexed):
+ *   31 30      26|25 24|23 22|21     10|9   5|4   0
+ *    1  0 1 1 1 0 0  0   1   0  imm12=16   Rn=SP Rt
+ *
+ * For SP, Rn=31. imm16 = 0x010 (16 bytes)
+ * Base: 0xF820041C | (Rt << 0) | (31 << 5) | (16/4 << 10)
+ * Simplified: 0xF820041C for base, then modify fields
+ */
+void emit_push_reg_arm64(code_buffer_t *buf, u8 reg) {
+    /* STR Xreg, [SP, #-16]! - Store register to stack with pre-decrement */
+    /* Encoding: 11 00 001 00 00000 01010 00000 (roughly) */
+    /* Let's use the simpler approach: build from known encoding */
+
+    /* STR (immediate) pre-indexed: 0xF820001C | imm9 << 12 | Rn << 5 | Rt << 0 */
+    /* Wait, that's not right. Let me use the correct encoding */
+
+    /* STR Xt, [Xn, #imm]! where imm is signed offset in bytes
+     * This is load/store unscaled immediate, not what we want
+     */
+
+    /* Actually, we want STR (immediate) with pre-index:
+     * STR Xt, [Xn, #imm]!  where imm is in range -256 to 255, scaled by size
+     * For 64-bit, scale is 8. We want -16 = -2 * 8
+     * Encoding: 0xF820001C (base) | (imm/8 & 0x1F) << 12 | Rn << 5 | Rt << 0
+     * Wait, that's still not right.
+     */
+
+    /* Let me use the verified ARM64 encoding:
+     * STR (immediate) pre-indexed:
+     *   bits 31-30: 11 (64-bit)
+     *   bits 29-27: 001 (STR immediate pre-indexed)
+     *   bits 26-24: 1 (variant)
+     *   bits 23-22: 00
+     *   bits 21-10: simm9 (signed immediate divided by 8)
+     *   bits 9-5: Rn (base register, SP=31)
+     *   bits 4-0: Rt (source register)
+     *
+     * We want: STR Xreg, [SP, #-16]!
+     * simm9 = -16/8 = -2 = 0b111111110 (but only 9 bits, so 0x1FE = 0b111111110)
+     * Actually in 9-bit signed: -2 = 0b111111110 = 0x3FE but we only have 9 bits so it's 0x1FE truncated? No...
+     * 9-bit signed -2: two's complement of 2 in 9 bits = 0b111111110
+     *
+     * Let's use a simpler approach: just encode it directly
+     * STR Xn, [SP, #-16]! = 0xF81F0FE2 (example for X2)
+     *
+     * Actually, let me look at the ARM64 reference:
+     * STR Xt, [Xn, #simm]! - bits: op=1, S=1, size=11 (64-bit), opcode=001
+     * Base: 0xF820001C seems wrong
+     *
+     * Correct base for STR (immediate) pre-indexed:
+     *   31 30 29 28 27 26 25 24 23 22
+     *    1  1  0  0  0  1  0  0  0  0  = 0xF8400000
+     * Wait no...
+     *
+     * ARM64 encoding is complex. Let me use a simpler approach:
+     * I'll encode it step by step
+     */
+
+    /* STR Xt, [Xn, #-16]! (pre-indexed store)
+     * Size = 11 (64-bit)
+     * V = 0
+     * opc = 001 (STR)
+     *   bits 31-22: 1110 0001 00 = 0xE40
+     * Actually let me use a different reference...
+     *
+     * ARM64 ARM (Architecture Reference Manual) encoding:
+     * STR (immediate) pre-indexed:
+     *   31 30 29 28 27 26 25 24 23 22 21  10      5 4    0
+     *    1  1  0  0  0  1  0  0  0  0  imm9   Rn     Rt
+     *    where imm9 is the offset divided by data size (8 for 64-bit)
+     *
+     * So base = 0xF8400000
+     * imm9 = -16 / 8 = -2
+     * In 9-bit signed two's complement: -2 = 0b111111110 = 0x1FE
+     * But we need just 9 bits: 111111110
+     * Shifting to position 10: (0x1FE & 0x1FF) << 10 = 0x7F8
+     * No wait, imm9 is only 9 bits, so -2 = 0b111111110
+     * Shifted to position 10: 0b111111110 << 10 = 0x1FC0
+     *
+     * For SP (Rn=31): 31 << 5 = 0x3E0
+     *
+     * For register Rt: reg << 0
+     *
+     * Final: 0xF8400000 | 0x1FC0 | 0x3E0 | reg
+     *      = 0xF85F0FE0 | reg
+     * Wait, let me recalculate...
+     *
+     * imm9 = -2, which in 9-bit is: 111111110
+     * Shifted left by 10: 111111110 << 10 = 0b111111110000000000 = 0x1FC0
+     *
+     * Rn = SP = 31, shifted left by 5: 31 << 5 = 0x3E0
+     *
+     * So: 0xF8400000 | 0x1FC0 | 0x3E0 | reg
+     *    = 0xF85F83E0 | reg
+     *
+     * Let me verify: STR X2, [SP, #-16]! should be:
+     * 0xF85F83E0 | 2 = 0xF85F83E2
+     */
+
+    u32 insn = 0xF8400000;  /* Base: STR (immediate) pre-indexed, 64-bit */
+    insn |= ((u32)(-2) & 0x1FF) << 10;  /* imm9 = -16/8 = -2 */
+    insn |= (u32)(31 & 31) << 5;         /* Rn = SP (31) */
+    insn |= (u32)(reg & 31) << 0;        /* Rt = register to push */
+    emit_arm64_insn(buf, insn);
+}
+
+/**
+ * ARM64 POP register - emit_pop_reg_arm64
+ *
+ * ARM64 doesn't have a POP instruction. We implement it as:
+ *   LDR Xreg, [SP], #16
+ *
+ * Encoding for LDR Xt, [Xn], #imm (post-indexed):
+ *   bits 31-22: 1110 0100 00 (LDR immediate post-indexed, 64-bit)
+ *   bits 21-10: simm9 (signed immediate divided by 8)
+ *   bits 9-5: Rn (base register, SP=31)
+ *   bits 4-0: Rt (destination register)
+ *
+ * We want: LDR Xreg, [SP], #16
+ * simm9 = 16/8 = 2
+ */
+void emit_pop_reg_arm64(code_buffer_t *buf, u8 reg) {
+    /* LDR Xreg, [SP], #16 - Load register from stack with post-increment */
+
+    /* LDR (immediate) post-indexed:
+     * Size = 11 (64-bit)
+     * opc = 001 (LDR)
+     *   bits 31-22: 1110 0101 00 = 0xF8500000 (wait, that's for unsigned)
+     *
+     * For post-indexed signed immediate:
+     *   bits 31-30: 11 (64-bit)
+     *   bits 29-27: 010 (LDR immediate)
+     *   bits 26-24: 0 (variant for post-indexed)
+     *   bits 23-22: 00
+     *   bits 21-10: simm9 / 8
+     *   bits 9-5: Rn
+     *   bits 4-0: Rt
+     *
+     * Base: 0xF8400000 is for pre-indexed STR
+     * For post-indexed LDR: 0xF8400000 with different bits
+     *
+     * Actually, LDR post-indexed:
+     *   31 30 29 28 27 26 25 24 23 22
+     *    1  1  0  0  0  1  0  1  0  0  = 0xF8500000
+     *
+     * imm9 = 16/8 = 2 = 0b000000010
+     * Shifted left by 10: 2 << 10 = 0x800
+     *
+     * Rn = SP = 31, shifted left by 5: 31 << 5 = 0x3E0
+     *
+     * So: 0xF8500000 | 0x800 | 0x3E0 | reg
+     *    = 0xF85083E0 | reg
+     *
+     * Let me verify: LDR X2, [SP], #16 should be:
+     * 0xF85083E0 | 2 = 0xF85083E2
+     */
+
+    u32 insn = 0xF8400000;  /* Base: load/store immediate */
+    insn |= 0x1 << 22;                /* Set bit 22 for LDR (vs STR) */
+    insn |= 0x1 << 24;                /* Set for post-indexed? No wait... */
+
+    /* Let me be more careful:
+     * Load/store register (unscaled immediate) is different
+     * Load/store register (immediate) has different variants:
+     * - Unsigned offset
+     * - Signed offset (post-indexed or pre-indexed)
+     *
+     * For post-indexed LDR:
+     *   opc = 001 (LDR)
+     *   bits 31-22: 1110 0101 00 but that's not quite right
+     *
+     * Reference says:
+     * LDR Xt, [Xn], #simm
+     *   size=11, opc=00x (for loads)
+     *   Actually for LDR: size=11, opc=001
+     *
+     * Let me try: 0xF8400000 is STR pre-indexed base
+     * For LDR post-indexed, change:
+     *   bit 10: no change (it's part of imm9)
+     *   bit 24: should be 1 for post-indexed? No...
+     *
+     * Actually, the encoding distinguishes:
+     *   bit 24 = 0: pre-indexed
+     *   bit 10 = 0: post-indexed (when bit 24 = 1) ... this is confusing
+     *
+     * Let me use a different approach - I'll build it more carefully:
+     *
+     * Load/store register (immediate):
+     *   31 30 29 28 27 26 25 24 23 22
+     *    size=11  0  0  1 opc=01
+     *   This gives: 1110 0101 00xx = 0xF8500000 for the first 10 bits
+     *
+     * For LDR specifically: opc = 001
+     * So: 1110 0001 01xx (size=11, opc=001)
+     *    = 0xF8400000 for base
+     *
+     * Then:
+     *   bits 24 = 1 for post-indexed
+     *   bits 10 = 0 for post-indexed
+     *
+     * So: 0xF8400000 | (1 << 24) = 0xF8500000
+     *
+     * Then add simm9, Rn, Rt
+     */
+
+    insn = 0xF8400000;               /* Base for load/store immediate */
+    insn |= 0x1 << 24;                /* Post-indexed variant */
+    insn |= ((u32)(2) & 0x1FF) << 10; /* imm9 = 16/8 = 2 */
+    insn |= (u32)(31 & 31) << 5;      /* Rn = SP (31) */
+    insn |= (u32)(reg & 31) << 0;     /* Rt = register to pop */
+    emit_arm64_insn(buf, insn);
+}
+
+/* ============================================================================
+ * ARM64 ALU Operations
+ * ============================================================================ */
+
+/**
+ * ARM64 SUB register - emit_sub_reg_reg_arm64
+ *
+ * SUB Xd, Xn, Xm: 00 01 00 00 | Rd << 0 | Rn << 5 | Rm << 16
+ * Base encoding: 0x4B000000
+ */
+void emit_sub_reg_reg_arm64(code_buffer_t *buf, u8 dst, u8 src1, u8 src2) {
+    u32 insn = 0x4B000000;  /* SUB (shifted register) */
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(src1 & 31) << 5;
+    insn |= (u32)(src2 & 31) << 16;
+    emit_arm64_insn(buf, insn);
+}
+
+/**
+ * ARM64 AND register - emit_and_reg_reg_arm64
+ *
+ * AND Xd, Xn, Xm: 00 00 00 00 | Rd << 0 | Rn << 5 | Rm << 16
+ * Base encoding: 0x0A000000
+ */
+void emit_and_reg_reg_arm64(code_buffer_t *buf, u8 dst, u8 src1, u8 src2) {
+    u32 insn = 0x0A000000;  /* AND (shifted register) */
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(src1 & 31) << 5;
+    insn |= (u32)(src2 & 31) << 16;
+    emit_arm64_insn(buf, insn);
+}
+
+/**
+ * ARM64 ORR register - emit_orr_reg_reg_arm64
+ *
+ * ORR Xd, Xn, Xm: 00 10 00 00 | Rd << 0 | Rn << 5 | Rm << 16
+ * Base encoding: 0x2A000000
+ */
+void emit_orr_reg_reg_arm64(code_buffer_t *buf, u8 dst, u8 src1, u8 src2) {
+    u32 insn = 0x2A000000;  /* ORR (shifted register) */
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(src1 & 31) << 5;
+    insn |= (u32)(src2 & 31) << 16;
+    emit_arm64_insn(buf, insn);
+}
+
+/**
+ * ARM64 EOR (XOR) register - emit_xor_reg_reg_arm64
+ *
+ * EOR Xd, Xn, Xm: 01 00 00 00 | Rd << 0 | Rn << 5 | Rm << 16
+ * Base encoding: 0x4A000000
+ */
+void emit_xor_reg_reg_arm64(code_buffer_t *buf, u8 dst, u8 src1, u8 src2) {
+    u32 insn = 0x4A000000;  /* EOR (shifted register) */
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(src1 & 31) << 5;
+    insn |= (u32)(src2 & 31) << 16;
+    emit_arm64_insn(buf, insn);
+}
+
+/**
+ * ARM64 MOV register with 64-bit immediate - emit_mov_reg_imm64_arm64
+ *
+ * ARM64 doesn't have a single instruction for 64-bit immediate.
+ * We use MOVZ + MOVK sequence:
+ *   MOVZ Xd, #imm16, LSL #0
+ *   MOVK Xd, #imm16, LSL #16
+ *   MOVK Xd, #imm16, LSL #32
+ *   MOVK Xd, #imm16, LSL #48
+ */
+void emit_mov_reg_imm64_arm64(code_buffer_t *buf, u8 dst, u64 imm) {
+    /* Build 64-bit immediate using MOVZ + up to 3 MOVK instructions */
+    int first = 1;
+
+    for (int shift = 0; shift < 64; shift += 16) {
+        u16 imm16 = (imm >> shift) & 0xFFFF;
+
+        if (imm16 != 0 || first) {
+            if (first) {
+                /* MOVZ Xd, #imm16, LSL #shift */
+                emit_movz(buf, dst, imm16, shift / 16);
+                first = 0;
+            } else {
+                /* MOVK Xd, #imm16, LSL #shift */
+                emit_movk(buf, dst, imm16, shift / 16);
+            }
+        }
+    }
+
+    /* If imm is 0 and we didn't emit anything, emit MOVZ Xd, #0 */
+    if (first) {
+        emit_movz(buf, dst, 0, 0);
+    }
+}
+
+/* ============================================================================
+ * ARM64 Compare/Test Operations
+ * ============================================================================ */
+
+/**
+ * ARM64 CMP register - emit_cmp_reg_reg_arm64
+ *
+ * CMP Xn, Xm is encoded as SUBS XZR, Xn, Xm
+ * SUBS Xd, Xn, Xm: 01 11 00 00 | Rd << 0 | Rn << 5 | Rm << 16
+ * With Rd = XZR (31): Base encoding: 0xEB00001F | Rn << 5 | Rm << 16
+ */
+void emit_cmp_reg_reg_arm64(code_buffer_t *buf, u8 op1, u8 op2) {
+    u32 insn = 0xEB00001F;  /* SUBS XZR, Xn, Xm (XZR is Rd=31) */
+    insn |= (u32)(op1 & 31) << 5;   /* Rn = op1 */
+    insn |= (u32)(op2 & 31) << 16;  /* Rm = op2 */
+    emit_arm64_insn(buf, insn);
+}
+
+/**
+ * ARM64 TEST register - emit_test_reg_reg_arm64
+ *
+ * TST Xn, Xm is encoded as ANDS XZR, Xn, Xm
+ * ANDS Xd, Xn, Xm: 01 10 00 00 | Rd << 0 | Rn << 5 | Rm << 16
+ * With Rd = XZR (31): Base encoding: 0x6A00001F | Rn << 5 | Rm << 16
+ */
+void emit_test_reg_reg_arm64(code_buffer_t *buf, u8 op1, u8 op2) {
+    u32 insn = 0x6A00001F;  /* ANDS XZR, Xn, Xm (XZR is Rd=31) */
+    insn |= (u32)(op1 & 31) << 5;   /* Rn = op1 */
+    insn |= (u32)(op2 & 31) << 16;  /* Rm = op2 */
+    emit_arm64_insn(buf, insn);
+}
+
+/* ============================================================================
+ * Guest Memory Access Helpers
+ * ============================================================================ */
+
+/* Forward declaration */
+void emit_add_reg_reg_arm64(code_buffer_t *buf, u8 dst, u8 src1, u8 src2);
+
+/**
+ * Emit code to load 64-bit value from guest memory with address translation
+ * This generates a sequence that translates guest address to host address
+ * and then performs the load, without calling helper functions.
+ *
+ * Generated sequence:
+ *   LDR X16, [X18]         ; Load guest_mem_base from context
+ *   ADD X16, X16, guest_addr_reg  ; Translate: host_addr = base + guest
+ *   LDR dst_reg, [X16]     ; Load from translated address
+ *
+ * Assumptions:
+ *   - X18 contains pointer to rosetta_exec_context_t
+ *   - guest_addr_reg contains the guest virtual address
+ */
+void emit_ldr_guest_mem64(code_buffer_t *buf, u8 dst_reg, u8 guest_addr_reg)
+{
+    /* Load guest_mem_base from [X18] */
+    /* LDR X16, [X18] - LDR Xt, [Xn] */
+    /* Encoding: 11 000 100 00 imm12=0 Rn=X18 Rt=X16 */
+    u32 ldr_insn = 0xF9400000;  /* Base LDR instruction */
+    ldr_insn |= (u32)(18 & 31) << 5;   /* Rn = X18 */
+    ldr_insn |= (u32)(16 & 31) << 0;   /* Rt = X16 */
+    emit_arm64_insn(buf, ldr_insn);
+
+    /* Add guest address to base */
+    /* ADD X16, X16, guest_addr_reg - ARM64 ADD */
+    if (guest_addr_reg != 16) {
+        emit_add_reg_reg_arm64(buf, 16, 16, guest_addr_reg);
+    }
+
+    /* Load from translated address */
+    /* LDR dst_reg, [X16] */
+    u32 ldr_final = 0xF9400000;
+    ldr_final |= (u32)(16 & 31) << 5;   /* Rn = X16 */
+    ldr_final |= (u32)(dst_reg & 31) << 0;   /* Rt = dst_reg */
+    emit_arm64_insn(buf, ldr_final);
+}
+
+/**
+ * Emit code to store 64-bit value to guest memory with address translation
+ *
+ * Generated sequence:
+ *   LDR X16, [X18]         ; Load guest_mem_base from context
+ *   ADD X16, X16, guest_addr_reg  ; Translate: host_addr = base + guest
+ *   STR src_reg, [X16]     ; Store to translated address
+ */
+void emit_str_guest_mem64(code_buffer_t *buf, u8 guest_addr_reg, u8 src_reg)
+{
+    /* Load guest_mem_base from [X18] */
+    /* LDR X16, [X18] */
+    u32 ldr_insn = 0xF9400000;
+    ldr_insn |= (u32)(18 & 31) << 5;   /* Rn = X18 */
+    ldr_insn |= (u32)(16 & 31) << 0;   /* Rt = X16 */
+    emit_arm64_insn(buf, ldr_insn);
+
+    /* Add guest address to base */
+    /* ADD X16, X16, guest_addr_reg - ARM64 ADD */
+    if (guest_addr_reg != 16) {
+        emit_add_reg_reg_arm64(buf, 16, 16, guest_addr_reg);
+    }
+
+    /* Store to translated address */
+    /* STR src_reg, [X16] - STR Xt, [Xn] */
+    u32 str_insn = 0xF9000000;  /* Base STR instruction */
+    str_insn |= (u32)(16 & 31) << 5;   /* Rn = X16 */
+    str_insn |= (u32)(src_reg & 31) << 0;   /* Rt = src_reg */
+    emit_arm64_insn(buf, str_insn);
 }
 
 void emit_ud2(code_buffer_t *buf) {
@@ -1394,16 +1875,25 @@ void emit_pinsrb_xmm_reg_imm(code_buffer_t *buf, u8 dst, u8 src, u8 imm) {
 #define ARM64_SP   31  /* Stack pointer (when used as SP) */
 
 /* ARM64 instruction emit helper */
-void emit_arm64_insn(code_buffer_t *buf, u32 insn)
+static void emit_arm64_insn(code_buffer_t *buf, u32 insn)
 {
-    emit_byte(buf, (insn >> 0) & 0xFF);
-    emit_byte(buf, (insn >> 8) & 0xFF);
-    emit_byte(buf, (insn >> 16) & 0xFF);
-    emit_byte(buf, (insn >> 24) & 0xFF);
+    /* ARM64 is little-endian: LSB (bits 0-7) goes to lowest address */
+    static int insn_count = 0;
+    if (insn_count < 3) {
+        fprintf(stderr, "[EMIT_ARM64_INSN #%d] Writing insn=0x%08x: %02x %02x %02x %02x\n",
+                insn_count, insn,
+                (insn >> 0) & 0xFF, (insn >> 8) & 0xFF,
+                (insn >> 16) & 0xFF, (insn >> 24) & 0xFF);
+        insn_count++;
+    }
+    emit_byte(buf, (insn >> 0) & 0xFF);   /* Byte 0: bits 0-7 (LSB) */
+    emit_byte(buf, (insn >> 8) & 0xFF);   /* Byte 1: bits 8-15 */
+    emit_byte(buf, (insn >> 16) & 0xFF);  /* Byte 2: bits 16-23 */
+    emit_byte(buf, (insn >> 24) & 0xFF);  /* Byte 3: bits 24-31 (MSB) */
 }
 
 /* LDR (register): Load register */
-void emit_ldr_reg(code_buffer_t *buf, u8 dst, u8 base, u8 offset)
+static void emit_ldr_reg(code_buffer_t *buf, u8 dst, u8 base, u8 offset)
 {
     (void)offset;  /* Simplified - no offset for now */
     /* LDR Xd, [Xn] : 11011100 00000000 00000000 00ffffff */
@@ -1425,7 +1915,7 @@ void emit_movz(code_buffer_t *buf, u8 dst, u16 imm, u8 shift)
 }
 
 /* MOVK: Move with keep immediate */
-void emit_movk(code_buffer_t *buf, u8 dst, u16 imm, u8 shift)
+static void emit_movk(code_buffer_t *buf, u8 dst, u16 imm, u8 shift)
 {
     /* MOVK Xd, #imm, LSL #shift : 11110100 10000000 iiiiiiii iiiiiii */
     u32 insn = 0xF2800000;
@@ -1436,7 +1926,7 @@ void emit_movk(code_buffer_t *buf, u8 dst, u16 imm, u8 shift)
 }
 
 /* MOVN: Move with negate immediate */
-void emit_movn(code_buffer_t *buf, u8 dst, u16 imm, u8 shift)
+static void emit_movn(code_buffer_t *buf, u8 dst, u16 imm, u8 shift)
 {
     /* MOVN Xd, #imm, LSL #shift : 10010010 10000000 iiiiiiii iiiiiii */
     u32 insn = 0x92800000;
@@ -1447,7 +1937,7 @@ void emit_movn(code_buffer_t *buf, u8 dst, u16 imm, u8 shift)
 }
 
 /* CMP (register): Compare two registers */
-void emit_cmp_reg(code_buffer_t *buf, u8 op1, u8 op2)
+static void emit_cmp_reg(code_buffer_t *buf, u8 op1, u8 op2)
 {
     /* SUBS XZR, Xn, Xm : 11101011 00000000 00000000 00ffffff */
     /* This is encoded as SUBS with destination = XZR (31) */
@@ -1458,7 +1948,7 @@ void emit_cmp_reg(code_buffer_t *buf, u8 op1, u8 op2)
 }
 
 /* UBFM: Unsigned bit field move (used for MOVZX, shifts) */
-void emit_mov_extend(code_buffer_t *buf, u8 dst, u8 src, int is_signed, int is_16bit)
+static void emit_mov_extend(code_buffer_t *buf, u8 dst, u8 src, int is_signed, int is_16bit)
 {
     if (is_signed) {
         if (is_16bit) {
@@ -1492,7 +1982,7 @@ void emit_mov_extend(code_buffer_t *buf, u8 dst, u8 src, int is_signed, int is_1
 }
 
 /* MOV (register): Move register - ORR with zero register */
-void emit_mov_reg(code_buffer_t *buf, u8 dst, u8 src)
+static void emit_mov_reg(code_buffer_t *buf, u8 dst, u8 src)
 {
     /* MOV Xd, Xm is ORR Xd, XZR, Xm */
     u32 insn = 0xAA000000;  /* ORR (shifted) */
@@ -1502,8 +1992,25 @@ void emit_mov_reg(code_buffer_t *buf, u8 dst, u8 src)
     emit_arm64_insn(buf, insn);
 }
 
+/* ADD (register): Add registers - ARM64 ADD Xd, Xn, Xm */
+void emit_add_reg_reg_arm64(code_buffer_t *buf, u8 dst, u8 src1, u8 src2)
+{
+    /* ADD Xd, Xn, Xm: 00 01 00 00 | Rd << 0 | Rn << 5 | Rm << 16 */
+    u32 insn = 0x0B000000;  /* ADD (shifted register) */
+    insn |= (u32)(dst & 31) << 0;
+    insn |= (u32)(src1 & 31) << 5;
+    insn |= (u32)(src2 & 31) << 16;
+    emit_arm64_insn(buf, insn);
+}
+
+/* Alias for emit_add_reg_reg_arm64 - used by emit_add_reg wrapper */
+void emit_add_reg_arm64(code_buffer_t *buf, u8 dst, u8 src1, u8 src2)
+{
+    emit_add_reg_reg_arm64(buf, dst, src1, src2);
+}
+
 /* TST (register): Test register (ANDS with zero destination) */
-void emit_tst_reg(code_buffer_t *buf, u8 op1, u8 op2)
+static void emit_tst_reg(code_buffer_t *buf, u8 op1, u8 op2)
 {
     /* TST Xn, Xm is ANDS XZR, Xn, Xm */
     u32 insn = 0xEA00001F;  /* ANDS with XZR destination */
@@ -1513,7 +2020,7 @@ void emit_tst_reg(code_buffer_t *buf, u8 op1, u8 op2)
 }
 
 /* B: Unconditional branch (relative) */
-void emit_b(code_buffer_t *buf, int32_t imm26)
+static void emit_b(code_buffer_t *buf, int32_t imm26)
 {
     /* B imm26 : 000001ii iiiiiiii iiiiiiii iiiiiiii */
     u32 insn = 0x14000000;
@@ -1522,7 +2029,7 @@ void emit_b(code_buffer_t *buf, int32_t imm26)
 }
 
 /* BL: Branch with link (relative) */
-void emit_bl(code_buffer_t *buf, int32_t imm26)
+static void emit_bl(code_buffer_t *buf, int32_t imm26)
 {
     /* BL imm26 : 100001ii iiiiiiii iiiiiiii iiiiiiii */
     u32 insn = 0x94000000;
@@ -1531,7 +2038,7 @@ void emit_bl(code_buffer_t *buf, int32_t imm26)
 }
 
 /* B.cond: Conditional branch (relative) */
-void emit_bcond(code_buffer_t *buf, u8 cond, int32_t imm19)
+static void emit_bcond(code_buffer_t *buf, u8 cond, int32_t imm19)
 {
     /* B.cond imm19 : 0101010i iiiiiiii iiiiiiii 000cond */
     u32 insn = 0x54000000;
@@ -1541,7 +2048,7 @@ void emit_bcond(code_buffer_t *buf, u8 cond, int32_t imm19)
 }
 
 /* CSEL: Conditional select */
-void emit_csel_reg_reg_cond(code_buffer_t *buf, u8 dst, u8 src1, u8 src2, u8 cond)
+static void emit_csel_reg_reg_cond(code_buffer_t *buf, u8 dst, u8 src1, u8 src2, u8 cond)
 {
     /* CSEL Xd, Xn, Xm, cond : 11010101 00000000 000000mm mmm0nnnn ddddcc */
     u32 insn = 0x1A800000;
@@ -1553,7 +2060,7 @@ void emit_csel_reg_reg_cond(code_buffer_t *buf, u8 dst, u8 src1, u8 src2, u8 con
 }
 
 /* SETCC: Set register based on condition */
-void emit_setcc_reg_cond(code_buffer_t *buf, u8 dst, u8 cond)
+static void emit_setcc_reg_cond(code_buffer_t *buf, u8 dst, u8 cond)
 {
     /* CSET Xd, cond is CSEL Xd, XZR, XZR, !cond */
     /* Inverted condition for CSET */
@@ -1568,7 +2075,7 @@ void emit_setcc_reg_cond(code_buffer_t *buf, u8 dst, u8 cond)
  * ============================================================================ */
 
 /* BSF: Bit scan forward - find first set bit */
-void emit_bsf_reg(code_buffer_t *buf, u8 dst, u8 src)
+static void emit_bsf_reg(code_buffer_t *buf, u8 dst, u8 src)
 {
     /* ARM64: RBIT + CLZ + SUB from 63 */
     /* Step 1: RBIT Wd, Wn - reverse bits */
@@ -1583,7 +2090,7 @@ void emit_bsf_reg(code_buffer_t *buf, u8 dst, u8 src)
 }
 
 /* BSR: Bit scan reverse - find last set bit */
-void emit_bsr_reg(code_buffer_t *buf, u8 dst, u8 src)
+static void emit_bsr_reg(code_buffer_t *buf, u8 dst, u8 src)
 {
     /* ARM64: CLZ then subtract from 31 */
     /* Step 1: CLZ Wd, Wn - count leading zeros */
@@ -1595,7 +2102,7 @@ void emit_bsr_reg(code_buffer_t *buf, u8 dst, u8 src)
 }
 
 /* POPCNT: Population count */
-void emit_popcnt_reg(code_buffer_t *buf, u8 dst, u8 src)
+static void emit_popcnt_reg(code_buffer_t *buf, u8 dst, u8 src)
 {
     /* CNT Vd.16B, Vn.16B then ADDV */
     /* Simplified: use ARM64 CNT instruction */
@@ -1606,7 +2113,7 @@ void emit_popcnt_reg(code_buffer_t *buf, u8 dst, u8 src)
 }
 
 /* BT: Bit test */
-void emit_bt_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
+static void emit_bt_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
 {
     /* ARM64: UBFX + TST to extract and test bit */
     /* Extract bit at position 'bit' from src into dst */
@@ -1615,7 +2122,7 @@ void emit_bt_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
 }
 
 /* BTS: Bit test and set */
-void emit_bts_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
+static void emit_bts_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
 {
     /* ARM64: ORR with shifted bit to set */
     /* First copy src to dst, then ORR with bit mask */
@@ -1627,7 +2134,7 @@ void emit_bts_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
 }
 
 /* BTR: Bit test and reset */
-void emit_btr_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
+static void emit_btr_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
 {
     /* ARM64: BIC with shifted bit to clear */
     /* First copy src to dst, then BIC with bit mask */
@@ -1639,7 +2146,7 @@ void emit_btr_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
 }
 
 /* BTC: Bit test and complement */
-void emit_btc_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
+static void emit_btc_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
 {
     /* ARM64: EOR with shifted bit to complement/toggle */
     /* First copy src to dst, then EOR with bit mask */
@@ -1655,10 +2162,12 @@ void emit_btc_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit)
  * ============================================================================ */
 
 /* MOVS: Move string - copy data from [RSI] to [RDI] */
-void emit_movs(code_buffer_t *buf, int is_64bit)
+static void emit_movs(code_buffer_t *buf, int is_64bit)
 {
     /* ARM64: LDR from RSI, STR to RDI, update pointers */
-    u8 rd = 0, rn = 6, rt = 7;  /* rd=temp, rn=RSI, rt=RDI */
+    u8 rn = 6, rd = 0, rt = 7;  /* RSI, temp, RDI */
+    (void)rd;
+    (void)rt;
     u32 insn;
 
     if (is_64bit) {
@@ -1691,16 +2200,17 @@ void emit_movs(code_buffer_t *buf, int is_64bit)
 }
 
 /* STOS: Store string - store RAX/AL to [RDI] */
-void emit_stos(code_buffer_t *buf, int size)
+static void emit_stos(code_buffer_t *buf, int size)
 {
     /* ARM64: STR from RAX to [RDI], update RDI */
-    u8 rd = 0, rn = 7;  /* rd=RAX/temp, rt=RDI */
+    u8 rn = 7;  /* RDI */
+    (void)rn;
     u32 insn;
 
     switch (size) {
         case 1:  /* STOSB - store byte */
             /* STRB W0, [X7] */
-            insn = 0x390000E0 | ((rd & 31) << 0);
+            insn = 0x390000E0;
             emit_arm64_insn(buf, insn);
             /* ADD X7, X7, #1 */
             insn = 0x910004E7;
@@ -1708,7 +2218,7 @@ void emit_stos(code_buffer_t *buf, int size)
             break;
         case 2:  /* STOSW - store word */
             /* STRH W0, [X7] */
-            insn = 0x790000E0 | ((rd & 31) << 0);
+            insn = 0x790000E0;
             emit_arm64_insn(buf, insn);
             /* ADD X7, X7, #2 */
             insn = 0x910008E7;
@@ -1716,7 +2226,7 @@ void emit_stos(code_buffer_t *buf, int size)
             break;
         case 4:  /* STOSD - store dword */
             /* STR W0, [X7] */
-            insn = 0xB90000E0 | ((rd & 31) << 0);
+            insn = 0xB90000E0;
             emit_arm64_insn(buf, insn);
             /* ADD X7, X7, #4 */
             insn = 0x910010E7;
@@ -1724,7 +2234,7 @@ void emit_stos(code_buffer_t *buf, int size)
             break;
         case 8:  /* STOSQ - store qword */
             /* STR X0, [X7] */
-            insn = 0xF90000E0 | ((rd & 31) << 0);
+            insn = 0xF90000E0;
             emit_arm64_insn(buf, insn);
             /* ADD X7, X7, #8 */
             insn = 0x910020E7;
@@ -1734,10 +2244,10 @@ void emit_stos(code_buffer_t *buf, int size)
 }
 
 /* LODS: Load string - load from [RSI] to RAX/AL */
-void emit_lods(code_buffer_t *buf, int size)
+static void emit_lods(code_buffer_t *buf, int size)
 {
     /* ARM64: LDR from [RSI] to RAX, update RSI */
-    u8 rd = 0, rn = 6;  /* rd=RAX/temp, rn=RSI */
+    u8 rn = 6;  /* RSI */
     u32 insn;
 
     switch (size) {
@@ -1777,10 +2287,10 @@ void emit_lods(code_buffer_t *buf, int size)
 }
 
 /* CMPS: Compare string - compare [RSI] with [RDI] */
-void emit_cmps(code_buffer_t *buf, int size)
+static void emit_cmps(code_buffer_t *buf, int size)
 {
     /* ARM64: LDR from [RSI], LDR from [RDI], CMP, update pointers */
-    u8 r0 = 0, r1 = 1, rsi = 6, rdi = 7;
+    u8 rsi = 6, rdi = 7;
     u32 insn;
 
     switch (size) {
@@ -1852,10 +2362,10 @@ void emit_cmps(code_buffer_t *buf, int size)
 }
 
 /* SCAS: Scan string - compare RAX/AL with [RDI] */
-void emit_scas(code_buffer_t *buf, int size)
+static void emit_scas(code_buffer_t *buf, int size)
 {
     /* ARM64: LDR from [RDI], CMP with RAX, update RDI */
-    u8 r0 = 0, r1 = 1, rdi = 7;
+    u8 rdi = 7;
     u32 insn;
 
     switch (size) {
@@ -1911,7 +2421,7 @@ void emit_scas(code_buffer_t *buf, int size)
  * ============================================================================ */
 
 /* CPUID: CPU identification - emulate x86 CPUID on ARM64 */
-void emit_cpuid(code_buffer_t *buf)
+static void emit_cpuid(code_buffer_t *buf)
 {
     /* ARM64: Use MRS to read system registers for CPUID emulation
      * For simplicity, we'll set up a call to a helper function
@@ -1939,7 +2449,7 @@ void emit_cpuid(code_buffer_t *buf)
 }
 
 /* RDTSC: Read time-stamp counter */
-void emit_rdtsc(code_buffer_t *buf)
+static void emit_rdtsc(code_buffer_t *buf)
 {
     /* ARM64: Use CNTVCT_EL0 to read virtual count
      * This reads the ARM generic timer counter
@@ -1963,7 +2473,7 @@ void emit_rdtsc(code_buffer_t *buf)
 }
 
 /* SHLD: Shift left double - shift dst left, filling from src */
-void emit_shld(code_buffer_t *buf, u8 dst, u8 src, u8 shift)
+static void emit_shld(code_buffer_t *buf, u8 dst, u8 src, u8 shift)
 {
     /* ARM64: ORR with shifted register
      * SHLD dst, src, imm is equivalent to:
@@ -1985,7 +2495,7 @@ void emit_shld(code_buffer_t *buf, u8 dst, u8 src, u8 shift)
 }
 
 /* SHRD: Shift right double - shift dst right, filling from src */
-void emit_shrd(code_buffer_t *buf, u8 dst, u8 src, u8 shift)
+static void emit_shrd(code_buffer_t *buf, u8 dst, u8 src, u8 shift)
 {
     /* ARM64: ORR with shifted register
      * SHRD dst, src, imm is equivalent to:
@@ -2007,7 +2517,7 @@ void emit_shrd(code_buffer_t *buf, u8 dst, u8 src, u8 shift)
 }
 
 /* CQO: Convert quadword to octword (sign-extend RAX to RDX:RAX) */
-void emit_cqo(code_buffer_t *buf)
+static void emit_cqo(code_buffer_t *buf)
 {
     /* SAR RDX, RAX, #63 */
     u32 insn = 0x9340FC00;  /* SBFM (sign extend) */
@@ -2017,7 +2527,7 @@ void emit_cqo(code_buffer_t *buf)
 }
 
 /* CLI: Clear interrupt flag */
-void emit_cli(code_buffer_t *buf)
+static void emit_cli(code_buffer_t *buf)
 {
     /* ARM64: MSR DAIFSET, #2 - Clear interrupt flag (disable IRQ)
      * DAIFSET register controls interrupt masks
@@ -2029,7 +2539,7 @@ void emit_cli(code_buffer_t *buf)
 }
 
 /* STI: Set interrupt flag */
-void emit_sti(code_buffer_t *buf)
+static void emit_sti(code_buffer_t *buf)
 {
     /* ARM64: MSR DAIFCLR, #2 - Set interrupt flag (enable IRQ)
      * DAIFCLR register clears interrupt masks

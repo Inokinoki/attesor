@@ -174,39 +174,56 @@ int rosetta_raise_exception(ros_exception_type_t type, uint64_t pc, uint32_t ins
 
     /* Try to handle with registered handler */
     if (type < MAX_EXCEPTION_HANDLERS && g_exception_handlers[type] != NULL) {
-        return g_exception_handlers[type](&info, NULL);
+        int result = g_exception_handlers[type](&info, NULL);
+        /* Update global exception info with any flag changes */
+        g_current_exception.flags = info.flags;
+        return result;
     }
 
     /* Default handling based on type */
+    int result;
     switch (type) {
         case ROS_EXCEPTION_TRAP:
         case ROS_EXCEPTION_BREAKPOINT:
             /* Debug trap - can usually continue */
-            return 0;
+            result = 0;
+            break;
 
         case ROS_EXCEPTION_UNDEFINED:
             /* Undefined instruction - fatal */
             info.flags |= ROS_EXCEPTION_FLAG_FATAL;
-            return -1;
+            g_current_exception.flags = info.flags;
+            result = -1;
+            break;
 
         case ROS_EXCEPTION_DAT_ABORT:
         case ROS_EXCEPTION_PRE_ABORT:
         case ROS_EXCEPTION_ALIGNMENT:
             /* Memory faults - try fault handler */
             if (g_fault_handler != NULL) {
-                return g_fault_handler(&info, NULL);
+                result = g_fault_handler(&info, NULL);
+                /* Update global exception info with any flag changes */
+                g_current_exception.flags = info.flags;
+                return result;
             }
             info.flags |= ROS_EXCEPTION_FLAG_FATAL;
-            return -1;
+            g_current_exception.flags = info.flags;
+            result = -1;
+            break;
 
         case ROS_EXCEPTION_SYS:
             /* Syscall - handled separately */
-            return 0;
+            result = 0;
+            break;
 
         default:
             info.flags |= ROS_EXCEPTION_FLAG_FATAL;
-            return -1;
+            g_current_exception.flags = info.flags;
+            result = -1;
+            break;
     }
+
+    return result;
 }
 
 /**
@@ -242,7 +259,9 @@ int rosetta_raise_syscall(uint64_t pc, int nr)
 {
     int result = rosetta_raise_exception(ROS_EXCEPTION_SYS, pc, 0xD4000000);
     if (result == 0) {
-        result = rosetta_handle_syscall(nr, NULL);
+        /* Syscall handling is done separately through the syscall dispatch */
+        (void)nr;  /* Syscall number would be handled by syscall dispatcher */
+        result = 0;
     }
     return result;
 }

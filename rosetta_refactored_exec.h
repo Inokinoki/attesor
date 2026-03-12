@@ -42,11 +42,11 @@ void *rosetta_translate(uint64_t guest_pc);
  * ============================================================================ */
 
 /**
- * Execute translated code
+ * Execute translated code (legacy)
  * @host_code: Pointer to translated x86_64 code
  * Updates guest state after execution.
  */
-void rosetta_execute(void *host_code);
+void rosetta_execute_translated(void *host_code);
 
 /**
  * Run ARM64 code at given address

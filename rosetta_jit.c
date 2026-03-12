@@ -52,6 +52,8 @@
 
 #include "rosetta_jit.h"
 #include "rosetta_arm64_decode.h"
+#include "rosetta_arm64_emit.h"
+#include "rosetta_hash.h"
 #include <string.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -77,55 +79,6 @@ static bool g_jit_initialized = false;
 /* ============================================================================
  * Hash Functions
  * ============================================================================ */
-
-/**
- * Hash a 64-bit address for cache lookup
- *
- * Uses a simple multiplicative hash function optimized for
- * addresses that are typically aligned to 4-byte boundaries.
- */
-u32 hash_address(u64 addr)
-{
-    /* Golden ratio multiplicative hash */
-    u64 hash = addr * 2654435761ULL;
-    return (u32)(hash >> 32);
-}
-
-/**
- * Hash a null-terminated string (DJB2 algorithm)
- *
- * Commonly used for symbol names and file paths.
- */
-u32 hash_string(const char *s)
-{
-    u32 hash = 5381;
-    int c;
-
-    while ((c = *s++) != '\0') {
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-    }
-
-    return hash;
-}
-
-/**
- * Compute hash over arbitrary data
- *
- * Uses a simple rolling hash suitable for hashing
- * blocks of code or data structures.
- */
-u32 hash_compute(const void *data, size_t len)
-{
-    const u8 *bytes = (const u8 *)data;
-    u32 hash = 0;
-    size_t i;
-
-    for (i = 0; i < len; i++) {
-        hash = hash * 31 + bytes[i];
-    }
-
-    return hash;
-}
 
 /* ============================================================================
  * JIT Core Initialization
@@ -767,9 +720,9 @@ u64 jit_execute(jit_context_t *ctx, u64 guest_pc, ThreadState *state)
  * ============================================================================ */
 
 /**
- * Get translation cache size
+ * Get number of entries currently used in translation cache
  */
-u32 translation_cache_get_size(jit_context_t *ctx)
+u32 jit_cache_get_used_count(jit_context_t *ctx)
 {
     u32 i, count = 0;
 
@@ -788,9 +741,9 @@ u32 translation_cache_get_size(jit_context_t *ctx)
 /**
  * Check if translation cache is full
  */
-bool translation_cache_is_full(jit_context_t *ctx)
+bool jit_cache_is_full(jit_context_t *ctx)
 {
-    return translation_cache_get_size(ctx) >= TRANSLATION_CACHE_SIZE;
+    return jit_cache_get_used_count(ctx) >= TRANSLATION_CACHE_SIZE;
 }
 
 /**

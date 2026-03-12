@@ -211,14 +211,12 @@ void emit_mvn_reg_reg(code_buffer_t *buf, u8 dst, u8 src);
  * @param dst Destination register (also first operand)
  * @param src Source register
  */
-void emit_mul_reg(code_buffer_t *buf, u8 dst, u8 src1, u8 src2);
 
 /**
- * Emit DIV reg64, reg64
+ * Emit DIV reg64, reg64 - use rosetta_arm64_emit.c version
  * @param buf Code buffer
  * @param src Source register (divisor)
  */
-void emit_div_reg(code_buffer_t *buf, u8 src);
 
 /**
  * Emit CMP reg64, reg64
@@ -262,18 +260,16 @@ void emit_test_reg_imm32(code_buffer_t *buf, u8 reg, u32 imm);
 void emit_lea_reg_disp(code_buffer_t *buf, u8 dst, u8 base, s32 disp);
 
 /**
- * Emit PUSH reg64
+ * Emit PUSH reg64 - use rosetta_arm64_emit.c version
  * @param buf Code buffer
  * @param reg Register to push
  */
-void emit_push_reg(code_buffer_t *buf, u8 reg);
 
 /**
- * Emit POP reg64
+ * Emit POP reg64 - use rosetta_arm64_emit.c version
  * @param buf Code buffer
  * @param reg Register to pop
  */
-void emit_pop_reg(code_buffer_t *buf, u8 reg);
 
 /* ============================================================================
  * Control Flow Instructions
@@ -415,22 +411,40 @@ void emit_call_reg(code_buffer_t *buf, u8 reg);
 u32 emit_call_rel32(code_buffer_t *buf);
 
 /**
- * Emit RET
+ * Emit RET - use rosetta_arm64_emit.c version
  * @param buf Code buffer
  */
-void emit_ret(code_buffer_t *buf);
 
 /**
- * Emit NOP
+ * Emit NOP - use rosetta_arm64_emit.c version
  * @param buf Code buffer
  */
-void emit_nop(code_buffer_t *buf);
 
 /**
  * Emit UD2 (undefined instruction)
  * @param buf Code buffer
  */
 void emit_ud2(code_buffer_t *buf);
+
+/* ============================================================================
+ * Guest Memory Access Helpers
+ * ============================================================================ */
+
+/**
+ * Emit code to load 64-bit value from guest memory via helper function
+ * @param buf Code buffer
+ * @param dst_reg Destination register for value
+ * @param guest_addr_reg Register containing guest address
+ */
+void emit_ldr_guest_mem64(code_buffer_t *buf, u8 dst_reg, u8 guest_addr_reg);
+
+/**
+ * Emit code to store 64-bit value to guest memory via helper function
+ * @param buf Code buffer
+ * @param guest_addr_reg Register containing guest address
+ * @param src_reg Register containing value to store
+ */
+void emit_str_guest_mem64(code_buffer_t *buf, u8 guest_addr_reg, u8 src_reg);
 
 /* ============================================================================
  * Flag Handling
@@ -1013,61 +1027,27 @@ void emit_pinsrb_xmm_reg_imm(code_buffer_t *buf, u8 dst, u8 src, u8 imm);
 #define XZR  31  /* ARM64 zero register */
 #define WZR  31  /* ARM64 zero register (32-bit) */
 
-/* ARM64 load/store */
-void emit_ldr_reg(code_buffer_t *buf, u8 dst, u8 base, u8 offset);
+/* ARM64 load/store - use rosetta_arm64_emit.c versions */
 
-/* ARM64 raw instruction emission */
-void emit_arm64_insn(code_buffer_t *buf, u32 insn);
+/* ARM64 raw instruction emission (internal to rosetta_codegen.c) */
+/* ARM64 move with immediate - use rosetta_arm64_emit.c versions */
 
-/* ARM64 move with immediate */
-void emit_movz(code_buffer_t *buf, u8 dst, u16 imm, u8 shift);
-void emit_movk(code_buffer_t *buf, u8 dst, u16 imm, u8 shift);
-void emit_movn(code_buffer_t *buf, u8 dst, u16 imm, u8 shift);
+/* ARM64 compare - use rosetta_arm64_emit.c versions */
 
-/* ARM64 compare */
-void emit_cmp_reg(code_buffer_t *buf, u8 op1, u8 op2);
+/* ARM64 move with extend (MOVZX/MOVSX) - use rosetta_arm64_emit.c versions */
 
-/* ARM64 move with extend (MOVZX/MOVSX) */
-void emit_mov_extend(code_buffer_t *buf, u8 dst, u8 src, int is_signed, int is_16bit);
+/* ARM64 move register - use rosetta_arm64_emit.c version */
 
-/* ARM64 move register */
-void emit_mov_reg(code_buffer_t *buf, u8 dst, u8 src);
+/* ARM64 test register - use rosetta_arm64_emit.c versions */
 
-/* ARM64 test register */
-void emit_tst_reg(code_buffer_t *buf, u8 op1, u8 op2);
+/* ARM64 branch instructions - use rosetta_arm64_emit.c versions */
 
-/* ARM64 branch instructions */
-void emit_b(code_buffer_t *buf, int32_t imm26);
-void emit_bl(code_buffer_t *buf, int32_t imm26);
-void emit_bcond(code_buffer_t *buf, u8 cond, int32_t imm19);
+/* ARM64 conditional select - use rosetta_arm64_emit.c versions */
 
-/* ARM64 conditional select */
-void emit_csel_reg_reg_cond(code_buffer_t *buf, u8 dst, u8 src1, u8 src2, u8 cond);
-void emit_setcc_reg_cond(code_buffer_t *buf, u8 dst, u8 cond);
+/* ARM64 bit manipulation - use rosetta_arm64_emit.c versions */
 
-/* ARM64 bit manipulation */
-void emit_bsf_reg(code_buffer_t *buf, u8 dst, u8 src);
-void emit_bsr_reg(code_buffer_t *buf, u8 dst, u8 src);
-void emit_popcnt_reg(code_buffer_t *buf, u8 dst, u8 src);
-void emit_bt_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit);
-void emit_bts_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit);
-void emit_btr_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit);
-void emit_btc_reg(code_buffer_t *buf, u8 dst, u8 src, u8 bit);
+/* ARM64 string instructions - use rosetta_arm64_emit.c versions */
 
-/* ARM64 string instructions */
-void emit_movs(code_buffer_t *buf, int is_64bit);
-void emit_stos(code_buffer_t *buf, int size);
-void emit_lods(code_buffer_t *buf, int size);
-void emit_cmps(code_buffer_t *buf, int size);
-void emit_scas(code_buffer_t *buf, int size);
-
-/* ARM64 special instructions */
-void emit_cpuid(code_buffer_t *buf);
-void emit_rdtsc(code_buffer_t *buf);
-void emit_shld(code_buffer_t *buf, u8 dst, u8 src, u8 shift);
-void emit_shrd(code_buffer_t *buf, u8 dst, u8 src, u8 shift);
-void emit_cqo(code_buffer_t *buf);
-void emit_cli(code_buffer_t *buf);
-void emit_sti(code_buffer_t *buf);
+/* ARM64 special instructions - use rosetta_arm64_emit.c versions */
 
 #endif /* ROSETTA_CODEGEN_H */
