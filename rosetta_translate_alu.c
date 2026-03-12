@@ -16,13 +16,27 @@
 void translate_alu_add(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm)
 {
+    /* Check if this is an 8-bit operation */
+    int is_8bit = (insn->opcode >= 0x00 && insn->opcode <= 0x05);
+
     if (insn->has_modrm && insn->mod == 3) {
-        /* Register ADD: r64, r/m64 */
-        emit_add_reg(code_buf, arm_rd, arm_rd, arm_rm);
+        /* Register ADD */
+        if (is_8bit) {
+            /* 8-bit ADD: use 32-bit operations + mask */
+            emit_add_reg(code_buf, arm_rd, arm_rd, arm_rm);
+            emit_and_imm(code_buf, arm_rd, arm_rd, 0xFF);
+        } else {
+            /* 32/64-bit ADD */
+            emit_add_reg(code_buf, arm_rd, arm_rd, arm_rm);
+        }
     } else if (insn->imm_size > 0) {
         /* Immediate ADD - handle different sizes */
         u64 imm = (u64)insn->imm;
-        if (imm <= 0xFFFF && imm >= 0) {
+        if (is_8bit) {
+            /* 8-bit immediate ADD */
+            emit_add_imm(code_buf, arm_rd, arm_rd, (u16)imm);
+            emit_and_imm(code_buf, arm_rd, arm_rd, 0xFF);
+        } else if (imm <= 0xFFFF) {
             emit_add_imm(code_buf, arm_rd, arm_rd, (u16)imm);
         } else {
             /* Large immediate: load into temp register then add */

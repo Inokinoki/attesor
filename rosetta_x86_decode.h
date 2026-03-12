@@ -277,21 +277,36 @@ static inline int x86_is_simd_shuffle(const x86_insn_t *i);
  * ============================================================================ */
 
 static inline int x86_is_add(const x86_insn_t *i) {
-    return i->opcode == 0x01 || i->opcode == 0x03 ||
+    /* ADD r/m8, r8 (0x00) | ADD r/m64, r64 (0x01) | ADD r8, r/m8 (0x02) | ADD r64, r/m64 (0x03) */
+    /* ADD AL, imm8 (0x04) | ADD RAX, imm32 (0x05) */
+    /* ADD r/m64, imm32 (0x81) | ADD r/m64, imm8 (0x83) */
+    return (i->opcode >= 0x00 && i->opcode <= 0x05) ||
            i->opcode == 0x81 || i->opcode == 0x83;
 }
 static inline int x86_is_sub(const x86_insn_t *i) {
-    return i->opcode == 0x29 || i->opcode == 0x2B ||
+    /* SUB r/m8, r8 (0x28) | SUB r/m64, r64 (0x29) | SUB r8, r/m8 (0x2A) | SUB r64, r/m64 (0x2B) */
+    /* SUB AL, imm8 (0x2C) | SUB RAX, imm32 (0x2D) */
+    /* SUB r/m64, imm32 (0x81) | SUB r/m64, imm8 (0x83) */
+    return (i->opcode >= 0x28 && i->opcode <= 0x2D) ||
            i->opcode == 0x81 || i->opcode == 0x83;
 }
 static inline int x86_is_and(const x86_insn_t *i) {
-    return i->opcode == 0x21 || i->opcode == 0x23 || i->opcode == 0x81;
+    /* AND r/m8, r8 (0x20) | AND r/m64, r64 (0x21) | AND r8, r/m8 (0x22) | AND r64, r/m64 (0x23) */
+    /* AND AL, imm8 (0x24) | AND RAX, imm32 (0x25) */
+    /* AND r/m64, imm32 (0x81) */
+    return (i->opcode >= 0x20 && i->opcode <= 0x25) || i->opcode == 0x81;
 }
 static inline int x86_is_or(const x86_insn_t *i) {
-    return i->opcode == 0x09 || i->opcode == 0x0B || i->opcode == 0x81;
+    /* OR r/m8, r8 (0x08) | OR r/m64, r64 (0x09) | OR r8, r/m8 (0x0A) | OR r64, r/m64 (0x0B) */
+    /* OR AL, imm8 (0x0C) | OR RAX, imm32 (0x0D) */
+    /* OR r/m64, imm32 (0x81) */
+    return (i->opcode >= 0x08 && i->opcode <= 0x0D) || i->opcode == 0x81;
 }
 static inline int x86_is_xor(const x86_insn_t *i) {
-    return i->opcode == 0x31 || i->opcode == 0x33 || i->opcode == 0x81;
+    /* XOR r/m8, r8 (0x30) | XOR r/m64, r64 (0x31) | XOR r8, r/m8 (0x32) | XOR r64, r/m64 (0x33) */
+    /* XOR AL, imm8 (0x34) | XOR RAX, imm32 (0x35) */
+    /* XOR r/m64, imm32 (0x81) */
+    return (i->opcode >= 0x30 && i->opcode <= 0x35) || i->opcode == 0x81;
 }
 static inline int x86_is_mov(const x86_insn_t *i) {
     return i->opcode == 0x8B || i->opcode == 0x89 ||
