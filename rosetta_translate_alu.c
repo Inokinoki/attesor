@@ -62,13 +62,27 @@ void translate_alu_add(code_buffer_t *code_buf, const x86_insn_t *insn,
 void translate_alu_sub(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm)
 {
+    /* Check if this is an 8-bit operation */
+    int is_8bit = (insn->opcode >= 0x28 && insn->opcode <= 0x2D);
+
     if (insn->has_modrm && insn->mod == 3) {
-        /* Register SUB: r64, r/m64 */
-        emit_sub_reg(code_buf, arm_rd, arm_rd, arm_rm);
+        /* Register SUB */
+        if (is_8bit) {
+            /* 8-bit SUB: use 32-bit operations + mask */
+            emit_sub_reg(code_buf, arm_rd, arm_rd, arm_rm);
+            emit_and_imm(code_buf, arm_rd, arm_rd, 0xFF);
+        } else {
+            /* 32/64-bit SUB */
+            emit_sub_reg(code_buf, arm_rd, arm_rd, arm_rm);
+        }
     } else if (insn->imm_size > 0) {
         /* Immediate SUB */
         u64 imm = (u64)insn->imm;
-        if (imm <= 0xFFFF && imm >= 0) {
+        if (is_8bit) {
+            /* 8-bit immediate SUB */
+            emit_sub_imm(code_buf, arm_rd, arm_rd, (u16)imm);
+            emit_and_imm(code_buf, arm_rd, arm_rd, 0xFF);
+        } else if (imm <= 0xFFFF) {
             emit_sub_imm(code_buf, arm_rd, arm_rd, (u16)imm);
         } else {
             /* Large immediate: load into temp register then subtract */
@@ -94,13 +108,26 @@ void translate_alu_sub(code_buffer_t *code_buf, const x86_insn_t *insn,
 void translate_alu_and(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm)
 {
+    /* Check if this is an 8-bit operation */
+    int is_8bit = (insn->opcode >= 0x20 && insn->opcode <= 0x25);
+
     if (insn->has_modrm && insn->mod == 3) {
-        /* Register AND: r64, r/m64 */
-        emit_and_reg(code_buf, arm_rd, arm_rd, arm_rm);
+        /* Register AND */
+        if (is_8bit) {
+            /* 8-bit AND: use 32-bit operations + mask */
+            emit_and_reg(code_buf, arm_rd, arm_rd, arm_rm);
+            emit_and_imm(code_buf, arm_rd, arm_rd, 0xFF);
+        } else {
+            /* 32/64-bit AND */
+            emit_and_reg(code_buf, arm_rd, arm_rd, arm_rm);
+        }
     } else if (insn->imm_size > 0) {
         /* Immediate AND */
         u64 imm = (u64)insn->imm;
-        if (imm <= 0xFFFF && imm >= 0) {
+        if (is_8bit) {
+            /* 8-bit immediate AND - mask to 8 bits */
+            emit_and_imm(code_buf, arm_rd, arm_rd, (u16)imm & 0xFF);
+        } else if (imm <= 0xFFFF) {
             emit_and_imm(code_buf, arm_rd, arm_rd, (u16)imm);
         } else {
             /* Large immediate: load into temp register then AND */
@@ -125,24 +152,40 @@ void translate_alu_and(code_buffer_t *code_buf, const x86_insn_t *insn,
 void translate_alu_or(code_buffer_t *code_buf, const x86_insn_t *insn,
                       uint8_t arm_rd, uint8_t arm_rm)
 {
+    /* Check if this is an 8-bit operation */
+    int is_8bit = (insn->opcode >= 0x08 && insn->opcode <= 0x0D);
+
     if (insn->has_modrm && insn->mod == 3) {
-        /* Register OR: r64, r/m64 */
-        emit_orr_reg(code_buf, arm_rd, arm_rd, arm_rm);
+        /* Register OR */
+        if (is_8bit) {
+            /* 8-bit OR: use 32-bit operations + mask */
+            emit_orr_reg(code_buf, arm_rd, arm_rd, arm_rm);
+            emit_and_imm(code_buf, arm_rd, arm_rd, 0xFF);
+        } else {
+            /* 32/64-bit OR */
+            emit_orr_reg(code_buf, arm_rd, arm_rd, arm_rm);
+        }
     } else if (insn->imm_size > 0) {
         /* Immediate OR - load into temp then OR */
         u64 imm = (u64)insn->imm;
         uint8_t tmp = 16;
         emit_movz(code_buf, tmp, (u16)imm, 0);
-        if (imm > 0xFFFF) {
-            emit_movk(code_buf, tmp, (u16)(imm >> 16), 1);
-            if (imm > 0xFFFFFFFF) {
-                emit_movk(code_buf, tmp, (u16)(imm >> 32), 2);
-                if (imm > 0xFFFFFFFFFFFF) {
-                    emit_movk(code_buf, tmp, (u16)(imm >> 48), 3);
+        if (is_8bit) {
+            /* 8-bit immediate OR - mask result to 8 bits */
+            emit_orr_reg(code_buf, arm_rd, arm_rd, tmp);
+            emit_and_imm(code_buf, arm_rd, arm_rd, 0xFF);
+        } else {
+            if (imm > 0xFFFF) {
+                emit_movk(code_buf, tmp, (u16)(imm >> 16), 1);
+                if (imm > 0xFFFFFFFF) {
+                    emit_movk(code_buf, tmp, (u16)(imm >> 32), 2);
+                    if (imm > 0xFFFFFFFFFFFF) {
+                        emit_movk(code_buf, tmp, (u16)(imm >> 48), 3);
+                    }
                 }
             }
+            emit_orr_reg(code_buf, arm_rd, arm_rd, tmp);
         }
-        emit_orr_reg(code_buf, arm_rd, arm_rd, tmp);
     } else {
         emit_orr_reg(code_buf, arm_rd, arm_rd, arm_rm);
     }
@@ -151,30 +194,51 @@ void translate_alu_or(code_buffer_t *code_buf, const x86_insn_t *insn,
 void translate_alu_xor(code_buffer_t *code_buf, const x86_insn_t *insn,
                        uint8_t arm_rd, uint8_t arm_rm)
 {
-    /* Special case: XOR EAX, EAX or RAX, RAX -> clear register */
+    /* Check if this is an 8-bit operation */
+    int is_8bit = (insn->opcode >= 0x30 && insn->opcode <= 0x35);
+
+    /* Special case: XOR reg, reg -> clear register */
     if (insn->has_modrm && insn->mod == 3 && insn->reg == insn->rm) {
-        emit_movz(code_buf, arm_rd, 0, 0);
+        if (is_8bit) {
+            /* 8-bit XOR reg, reg: clear and mask to 8 bits */
+            emit_movz(code_buf, arm_rd, 0, 0);
+        } else {
+            emit_movz(code_buf, arm_rd, 0, 0);
+        }
         return;
     }
 
     if (insn->has_modrm && insn->mod == 3) {
-        /* Register XOR: r64, r/m64 */
-        emit_eor_reg(code_buf, arm_rd, arm_rd, arm_rm);
+        /* Register XOR */
+        if (is_8bit) {
+            /* 8-bit XOR: use 32-bit operations + mask */
+            emit_eor_reg(code_buf, arm_rd, arm_rd, arm_rm);
+            emit_and_imm(code_buf, arm_rd, arm_rd, 0xFF);
+        } else {
+            /* 32/64-bit XOR */
+            emit_eor_reg(code_buf, arm_rd, arm_rd, arm_rm);
+        }
     } else if (insn->imm_size > 0) {
         /* Immediate XOR - load into temp then XOR */
         u64 imm = (u64)insn->imm;
         uint8_t tmp = 16;
         emit_movz(code_buf, tmp, (u16)imm, 0);
-        if (imm > 0xFFFF) {
-            emit_movk(code_buf, tmp, (u16)(imm >> 16), 1);
-            if (imm > 0xFFFFFFFF) {
-                emit_movk(code_buf, tmp, (u16)(imm >> 32), 2);
-                if (imm > 0xFFFFFFFFFFFF) {
-                    emit_movk(code_buf, tmp, (u16)(imm >> 48), 3);
+        if (is_8bit) {
+            /* 8-bit immediate XOR - mask result to 8 bits */
+            emit_eor_reg(code_buf, arm_rd, arm_rd, tmp);
+            emit_and_imm(code_buf, arm_rd, arm_rd, 0xFF);
+        } else {
+            if (imm > 0xFFFF) {
+                emit_movk(code_buf, tmp, (u16)(imm >> 16), 1);
+                if (imm > 0xFFFFFFFF) {
+                    emit_movk(code_buf, tmp, (u16)(imm >> 32), 2);
+                    if (imm > 0xFFFFFFFFFFFF) {
+                        emit_movk(code_buf, tmp, (u16)(imm >> 48), 3);
+                    }
                 }
             }
+            emit_eor_reg(code_buf, arm_rd, arm_rd, tmp);
         }
-        emit_eor_reg(code_buf, arm_rd, arm_rd, tmp);
     } else {
         emit_eor_reg(code_buf, arm_rd, arm_rd, arm_rm);
     }
