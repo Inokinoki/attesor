@@ -114,21 +114,33 @@ static inline int is_simple_memory_insn(const uint8_t *p)
 {
     uint8_t first = p[0];
     uint8_t second = p[1];
+    uint8_t modrm;
 
     /* Check for REX prefix (0x40-0x4F) followed by MOV (0x88-0x8B) */
     if ((first & 0xF0) == 0x40) {
         /* REX.W + MOV r/m64, r64 (0x89) or MOV r64, r/m64 (0x8B) */
         if (second == 0x89 || second == 0x8B) {
-            return 1;
+            modrm = p[2];  /* ModR/M is after REX + opcode */
+            /* Only accept register-to-register (mod == 3) */
+            /* Exclude SIB (rm == 4), RIP-relative (mod==0 && rm==5), and memory with displacements */
+            uint8_t mod = (modrm >> 6) & 0x03;
+            uint8_t rm = modrm & 0x07;
+            return (mod == 3 && rm != 4);  /* Register-to-register, no SIB */
         }
     }
 
     /* No REX prefix - check for MOV directly (legacy mode) */
     if ((first & 0xFE) == 0x88) {  /* 0x88 or 0x89 */
-        return 1;
+        modrm = p[1];  /* ModR/M is after opcode */
+        uint8_t mod = (modrm >> 6) & 0x03;
+        uint8_t rm = modrm & 0x07;
+        return (mod == 3 && rm != 4);  /* Register-to-register, no SIB */
     }
     if ((first & 0xFE) == 0x8A) {  /* 0x8A or 0x8B */
-        return 1;
+        modrm = p[1];  /* ModR/M is after opcode */
+        uint8_t mod = (modrm >> 6) & 0x03;
+        uint8_t rm = modrm & 0x07;
+        return (mod == 3 && rm != 4);  /* Register-to-register, no SIB */
     }
 
     return 0;
@@ -953,6 +965,7 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
     if (has_modrm) {
         uint8_t modrm = *p++;
         insn->modrm = modrm;
+        insn->has_modrm = 1;  /* Mark that ModR/M byte was read */
         insn->mod = (modrm >> 6) & 0x03;
         insn->reg = ((modrm >> 3) & 0x07) | ((rex & 0x04) ? 8 : 0);
         insn->rm = ((modrm >> 0) & 0x07) | ((rex & 0x01) ? 8 : 0);
@@ -988,8 +1001,9 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
             insn->imm = *(const int32_t *)p;
             p += 4;
         }
-    } else if ((op & 0x0C) == 0x04) {
+    } else if ((op & 0x0C) == 0x04 && (op <= 0x3C)) {
         /* AL/EAX immediate operations (0x04, 0x0C, 0x14, 0x1C, 0x24, 0x2C, 0x34, 0x3C) */
+        /* Exclude 0x84-0x87 (TEST/XCHG with ModR/M) and higher opcodes */
         insn->rm = 0;
         /* Check if odd opcode = 32-bit immediate, even = 8-bit immediate */
         if (op & 0x01) {
