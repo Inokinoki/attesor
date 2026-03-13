@@ -115,6 +115,8 @@
 #define X86_64_SYS_SETHOSTNAME  170
 #define X86_64_SYS_SETDOMAINNAME 171
 #define X86_64_SYS_PRCTL        157
+#define X86_64_SYS_STATFS       137
+#define X86_64_SYS_FSTATFS      138
 
 /* *at family syscalls (directory FD variants) */
 #define X86_64_SYS_OPENAT       257
@@ -249,6 +251,8 @@
 #define ARM64_SYS_SETHOSTNAME   161
 #define ARM64_SYS_SETDOMAINNAME 162
 #define ARM64_SYS_PRCTL         167
+#define ARM64_SYS_STATFS        43
+#define ARM64_SYS_FSTATFS       44
 
 /* *at family syscalls (directory FD variants) */
 #define ARM64_SYS_OPENAT        56
@@ -396,6 +400,10 @@ int syscall_fsync(ThreadState *state);
 int syscall_fdatasync(ThreadState *state);
 int syscall_poll(ThreadState *state);
 int syscall_dup(ThreadState *state);
+
+/* Filesystem Statistics */
+int syscall_statfs(ThreadState *state);
+int syscall_fstatfs(ThreadState *state);
 
 /* *at Family Syscalls (directory FD variants) */
 int syscall_openat(ThreadState *state);

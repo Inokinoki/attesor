@@ -20,6 +20,7 @@
 #include <sys/mman.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/vfs.h>
 #include <sys/utsname.h>
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -1722,6 +1723,48 @@ void *memory_translate_addr(uint64_t guest)
         return (void *)guest;
     }
     return NULL;
+}
+
+/* ============================================================================
+ * Filesystem Statistics Syscalls
+ * ============================================================================ */
+
+/**
+ * syscall_statfs - Get filesystem statistics
+ *
+ * Linux syscall: int statfs(const char *path, struct statfs *buf);
+ */
+int syscall_statfs(ThreadState *state)
+{
+    const char *path = (const char *)GUEST_ARG0(state);
+    struct statfs *buf = (struct statfs *)GUEST_ARG1(state);
+
+    int ret = statfs(path, buf);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_fstatfs - Get filesystem statistics for file descriptor
+ *
+ * Linux syscall: int fstatfs(int fd, struct statfs *buf);
+ */
+int syscall_fstatfs(ThreadState *state)
+{
+    int fd = GUEST_ARG0(state);
+    struct statfs *buf = (struct statfs *)GUEST_ARG1(state);
+
+    int ret = fstatfs(fd, buf);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
 }
 
 /* ============================================================================
