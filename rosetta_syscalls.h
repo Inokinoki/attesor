@@ -115,6 +115,23 @@
 #define X86_64_SYS_SETHOSTNAME  170
 #define X86_64_SYS_SETDOMAINNAME 171
 #define X86_64_SYS_PRCTL        157
+
+/* *at family syscalls (directory FD variants) */
+#define X86_64_SYS_OPENAT       257
+#define X86_64_SYS_MKDIRAT      258
+#define X86_64_SYS_MKNODAT      259
+#define X86_64_SYS_FCHOWNAT     260
+#define X86_64_SYS_FUTIMESAT    261
+#define X86_64_SYS_NEWFSTATAT   262
+#define X86_64_SYS_UNLINKAT     263
+#define X86_64_SYS_RENAMEAT     264
+#define X86_64_SYS_LINKAT       265
+#define X86_64_SYS_SYMLINKAT    266
+#define X86_64_SYS_READLINKAT   267
+#define X86_64_SYS_FCHMODAT     268
+#define X86_64_SYS_FACCESSAT    269
+#define X86_64_SYS_UTIMENSAT    280
+
 #define X86_64_SYS_SET_ROBUST_LIST 273
 #define X86_64_SYS_GET_ROBUST_LIST 274
 #define X86_64_SYS_CLOCK_GETRES 229
@@ -232,6 +249,22 @@
 #define ARM64_SYS_SETHOSTNAME   161
 #define ARM64_SYS_SETDOMAINNAME 162
 #define ARM64_SYS_PRCTL         167
+
+/* *at family syscalls (directory FD variants) */
+#define ARM64_SYS_OPENAT        56
+#define ARM64_SYS_MKDIRAT       34
+#define ARM64_SYS_MKNODAT       33
+#define ARM64_SYS_FCHOWNAT      204
+#define ARM64_SYS_NEWFSTATAT    79
+#define ARM64_SYS_UNLINKAT      35
+#define ARM64_SYS_RENAMEAT      35
+#define ARM64_SYS_LINKAT        37
+#define ARM64_SYS_SYMLINKAT     38
+#define ARM64_SYS_READLINKAT    78
+#define ARM64_SYS_FCHMODAT      53
+#define ARM64_SYS_FACCESSAT     48
+#define ARM64_SYS_UTIMENSAT     88
+
 #define ARM64_SYS_MINCORE       232
 #define ARM64_SYS_MLOCK         228
 #define ARM64_SYS_MUNLOCK       229
@@ -363,6 +396,22 @@ int syscall_fsync(ThreadState *state);
 int syscall_fdatasync(ThreadState *state);
 int syscall_poll(ThreadState *state);
 int syscall_dup(ThreadState *state);
+
+/* *at Family Syscalls (directory FD variants) */
+int syscall_openat(ThreadState *state);
+int syscall_mkdirat(ThreadState *state);
+int syscall_mknodat(ThreadState *state);
+int syscall_fchownat(ThreadState *state);
+int syscall_futimesat(ThreadState *state);
+int syscall_newfstatat(ThreadState *state);
+int syscall_unlinkat(ThreadState *state);
+int syscall_renameat(ThreadState *state);
+int syscall_linkat(ThreadState *state);
+int syscall_symlinkat(ThreadState *state);
+int syscall_readlinkat(ThreadState *state);
+int syscall_fchmodat(ThreadState *state);
+int syscall_faccessat(ThreadState *state);
+int syscall_utimensat(ThreadState *state);
 
 /* Process Management (Priority 2) */
 int syscall_getuid(ThreadState *state);

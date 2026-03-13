@@ -1725,6 +1725,315 @@ void *memory_translate_addr(uint64_t guest)
 }
 
 /* ============================================================================
+ * *at Family Syscall Implementations (directory FD variants)
+ * ============================================================================ */
+
+/**
+ * syscall_openat - Open file relative to directory file descriptor
+ *
+ * Linux syscall: int openat(int dirfd, const char *pathname, int flags, mode_t mode);
+ *
+ * *at variant allows opening files relative to a directory file descriptor,
+ * providing race-free path resolution and better security.
+ */
+int syscall_openat(ThreadState *state)
+{
+    int dirfd = GUEST_ARG0(state);
+    const char *pathname = (const char *)GUEST_ARG1(state);
+    int flags = GUEST_ARG2(state);
+    mode_t mode = GUEST_ARG3(state);
+
+    /* Call the actual syscall */
+    int ret = openat(dirfd, pathname, flags, mode);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = ret;
+    return 0;
+}
+
+/**
+ * syscall_mkdirat - Create directory relative to directory FD
+ *
+ * Linux syscall: int mkdirat(int dirfd, const char *pathname, mode_t mode);
+ */
+int syscall_mkdirat(ThreadState *state)
+{
+    int dirfd = GUEST_ARG0(state);
+    const char *pathname = (const char *)GUEST_ARG1(state);
+    mode_t mode = GUEST_ARG2(state);
+
+    int ret = mkdirat(dirfd, pathname, mode);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_mknodat - Create special file relative to directory FD
+ *
+ * Linux syscall: int mknodat(int dirfd, const char *pathname,
+ *                            mode_t mode, dev_t dev);
+ */
+int syscall_mknodat(ThreadState *state)
+{
+    int dirfd = GUEST_ARG0(state);
+    const char *pathname = (const char *)GUEST_ARG1(state);
+    mode_t mode = GUEST_ARG2(state);
+    dev_t dev = (dev_t)GUEST_ARG3(state);
+
+    int ret = mknodat(dirfd, pathname, mode, dev);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_fchownat - Change file ownership relative to directory FD
+ *
+ * Linux syscall: int fchownat(int dirfd, const char *pathname,
+ *                             uid_t owner, gid_t group, int flags);
+ */
+int syscall_fchownat(ThreadState *state)
+{
+    int dirfd = GUEST_ARG0(state);
+    const char *pathname = (const char *)GUEST_ARG1(state);
+    uid_t owner = GUEST_ARG2(state);
+    gid_t group = GUEST_ARG3(state);
+    int flags = GUEST_ARG4(state);
+
+    int ret = fchownat(dirfd, pathname, owner, group, flags);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_futimesat - Change file timestamps relative to directory FD
+ *
+ * Linux syscall: int futimesat(int dirfd, const char *pathname,
+ *                              const struct timeval times[2]);
+ */
+int syscall_futimesat(ThreadState *state)
+{
+    int dirfd = GUEST_ARG0(state);
+    const char *pathname = (const char *)GUEST_ARG1(state);
+    const struct timeval *times = (const struct timeval *)GUEST_ARG2(state);
+
+    int ret = futimesat(dirfd, pathname, times);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_newfstatat - Get file status relative to directory FD
+ *
+ * Linux syscall: int newfstatat(int dirfd, const char *pathname,
+ *                               struct stat *statbuf, int flags);
+ */
+int syscall_newfstatat(ThreadState *state)
+{
+    int dirfd = GUEST_ARG0(state);
+    const char *pathname = (const char *)GUEST_ARG1(state);
+    struct stat *statbuf = (struct stat *)GUEST_ARG2(state);
+    int flags = GUEST_ARG3(state);
+
+    int ret = fstatat(dirfd, pathname, statbuf, flags);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_unlinkat - Unlink file relative to directory FD
+ *
+ * Linux syscall: int unlinkat(int dirfd, const char *pathname, int flags);
+ */
+int syscall_unlinkat(ThreadState *state)
+{
+    int dirfd = GUEST_ARG0(state);
+    const char *pathname = (const char *)GUEST_ARG1(state);
+    int flags = GUEST_ARG2(state);
+
+    int ret = unlinkat(dirfd, pathname, flags);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_renameat - Rename file relative to directory FD
+ *
+ * Linux syscall: int renameat(int olddirfd, const char *oldpath,
+ *                              int newdirfd, const char *newpath);
+ */
+int syscall_renameat(ThreadState *state)
+{
+    int olddirfd = GUEST_ARG0(state);
+    const char *oldpath = (const char *)GUEST_ARG1(state);
+    int newdirfd = GUEST_ARG2(state);
+    const char *newpath = (const char *)GUEST_ARG3(state);
+
+    int ret = renameat(olddirfd, oldpath, newdirfd, newpath);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_linkat - Create hard link relative to directory FD
+ *
+ * Linux syscall: int linkat(int olddirfd, const char *oldpath,
+ *                          int newdirfd, const char *newpath, int flags);
+ */
+int syscall_linkat(ThreadState *state)
+{
+    int olddirfd = GUEST_ARG0(state);
+    const char *oldpath = (const char *)GUEST_ARG1(state);
+    int newdirfd = GUEST_ARG2(state);
+    const char *newpath = (const char *)GUEST_ARG3(state);
+    int flags = GUEST_ARG4(state);
+
+    int ret = linkat(olddirfd, oldpath, newdirfd, newpath, flags);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_symlinkat - Create symlink relative to directory FD
+ *
+ * Linux syscall: int symlinkat(const char *oldpath, int newdirfd,
+ *                              const char *newpath);
+ */
+int syscall_symlinkat(ThreadState *state)
+{
+    const char *oldpath = (const char *)GUEST_ARG0(state);
+    int newdirfd = GUEST_ARG1(state);
+    const char *newpath = (const char *)GUEST_ARG2(state);
+
+    int ret = symlinkat(oldpath, newdirfd, newpath);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_readlinkat - Read symlink value relative to directory FD
+ *
+ * Linux syscall: ssize_t readlinkat(int dirfd, const char *pathname,
+ *                                   char *buf, size_t bufsiz);
+ */
+int syscall_readlinkat(ThreadState *state)
+{
+    int dirfd = GUEST_ARG0(state);
+    const char *pathname = (const char *)GUEST_ARG1(state);
+    char *buf = (char *)GUEST_ARG2(state);
+    size_t bufsiz = GUEST_ARG3(state);
+
+    ssize_t ret = readlinkat(dirfd, pathname, buf, bufsiz);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = ret;
+    return 0;
+}
+
+/**
+ * syscall_fchmodat - Change file mode relative to directory FD
+ *
+ * Linux syscall: int fchmodat(int dirfd, const char *pathname, mode_t mode, int flags);
+ */
+int syscall_fchmodat(ThreadState *state)
+{
+    int dirfd = GUEST_ARG0(state);
+    const char *pathname = (const char *)GUEST_ARG1(state);
+    mode_t mode = GUEST_ARG2(state);
+    int flags = GUEST_ARG3(state);
+
+    int ret = fchmodat(dirfd, pathname, mode, flags);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_faccessat - Check file access relative to directory FD
+ *
+ * Linux syscall: int faccessat(int dirfd, const char *pathname, int mode, int flags);
+ */
+int syscall_faccessat(ThreadState *state)
+{
+    int dirfd = GUEST_ARG0(state);
+    const char *pathname = (const char *)GUEST_ARG1(state);
+    int mode = GUEST_ARG2(state);
+    int flags = GUEST_ARG3(state);
+
+    int ret = faccessat(dirfd, pathname, mode, flags);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_utimensat - Change file timestamps relative to directory FD
+ *
+ * Linux syscall: int utimensat(int dirfd, const char *pathname,
+ *                              const struct timespec times[2], int flags);
+ */
+int syscall_utimensat(ThreadState *state)
+{
+    int dirfd = GUEST_ARG0(state);
+    const char *pathname = (const char *)GUEST_ARG1(state);
+    const struct timespec *times = (const struct timespec *)GUEST_ARG2(state);
+    int flags = GUEST_ARG3(state);
+
+    int ret = utimensat(dirfd, pathname, times, flags);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/* ============================================================================
  * Helper Utilities
  * ============================================================================ */
 
