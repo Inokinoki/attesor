@@ -117,6 +117,10 @@
 #define X86_64_SYS_PRCTL        157
 #define X86_64_SYS_STATFS       137
 #define X86_64_SYS_FSTATFS      138
+#define X86_64_SYS_GETXATTR     191
+#define X86_64_SYS_SETXATTR     188
+#define X86_64_SYS_LISTXATTR    194
+#define X86_64_SYS_GETSOCKNAME  51
 
 /* *at family syscalls (directory FD variants) */
 #define X86_64_SYS_OPENAT       257
@@ -253,6 +257,10 @@
 #define ARM64_SYS_PRCTL         167
 #define ARM64_SYS_STATFS        43
 #define ARM64_SYS_FSTATFS       44
+#define ARM64_SYS_GETXATTR      8
+#define ARM64_SYS_SETXATTR      5
+#define ARM64_SYS_LISTXATTR     9
+#define ARM64_SYS_GETSOCKNAME   204
 
 /* *at family syscalls (directory FD variants) */
 #define ARM64_SYS_OPENAT        56
@@ -404,6 +412,14 @@ int syscall_dup(ThreadState *state);
 /* Filesystem Statistics */
 int syscall_statfs(ThreadState *state);
 int syscall_fstatfs(ThreadState *state);
+
+/* Extended Attributes */
+int syscall_getxattr(ThreadState *state);
+int syscall_setxattr(ThreadState *state);
+int syscall_listxattr(ThreadState *state);
+
+/* Socket Operations */
+int syscall_getsockname(ThreadState *state);
 
 /* *at Family Syscalls (directory FD variants) */
 int syscall_openat(ThreadState *state);

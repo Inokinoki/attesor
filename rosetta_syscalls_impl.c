@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include <sys/vfs.h>
 #include <sys/utsname.h>
+#include <sys/xattr.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
@@ -1759,6 +1760,99 @@ int syscall_fstatfs(ThreadState *state)
     struct statfs *buf = (struct statfs *)GUEST_ARG1(state);
 
     int ret = fstatfs(fd, buf);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/* ============================================================================
+ * Extended Attributes Syscalls
+ * ============================================================================ */
+
+/**
+ * syscall_getxattr - Get extended attribute value
+ *
+ * Linux syscall: ssize_t getxattr(const char *path, const char *name,
+ *                                  void *value, size_t size);
+ */
+int syscall_getxattr(ThreadState *state)
+{
+    const char *path = (const char *)GUEST_ARG0(state);
+    const char *name = (const char *)GUEST_ARG1(state);
+    void *value = (void *)GUEST_ARG2(state);
+    size_t size = GUEST_ARG3(state);
+
+    ssize_t ret = getxattr(path, name, value, size);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = ret;
+    return 0;
+}
+
+/**
+ * syscall_setxattr - Set extended attribute value
+ *
+ * Linux syscall: int setxattr(const char *path, const char *name,
+ *                             const void *value, size_t size, int flags);
+ */
+int syscall_setxattr(ThreadState *state)
+{
+    const char *path = (const char *)GUEST_ARG0(state);
+    const char *name = (const char *)GUEST_ARG1(state);
+    const void *value = (const void *)GUEST_ARG2(state);
+    size_t size = GUEST_ARG3(state);
+    int flags = GUEST_ARG4(state);
+
+    int ret = setxattr(path, name, value, size, flags);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_listxattr - List extended attribute names
+ *
+ * Linux syscall: ssize_t listxattr(const char *path, char *list, size_t size);
+ */
+int syscall_listxattr(ThreadState *state)
+{
+    const char *path = (const char *)GUEST_ARG0(state);
+    char *list = (char *)GUEST_ARG1(state);
+    size_t size = GUEST_ARG2(state);
+
+    ssize_t ret = listxattr(path, list, size);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = ret;
+    return 0;
+}
+
+/* ============================================================================
+ * Socket Operations
+ * ============================================================================ */
+
+/**
+ * syscall_getsockname - Get socket address
+ *
+ * Linux syscall: int getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen);
+ */
+int syscall_getsockname(ThreadState *state)
+{
+    int fd = GUEST_ARG0(state);
+    struct sockaddr *addr = (struct sockaddr *)GUEST_ARG1(state);
+    socklen_t *addrlen = (socklen_t *)GUEST_ARG2(state);
+
+    int ret = getsockname(fd, addr, addrlen);
     if (ret < 0) {
         state->syscall_result = -errno;
         return -1;
