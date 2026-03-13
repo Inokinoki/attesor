@@ -22,6 +22,7 @@
 typedef struct {
     uint8_t opcode;         /* Primary opcode byte */
     uint8_t opcode2;        /* Secondary opcode (for 0F xx) */
+    uint8_t opcode3;        /* Tertiary opcode (for 0F 38/3A xx) */
     uint8_t rex;            /* REX prefix (0 if none) */
     uint8_t modrm;          /* ModR/M byte (0 if none) */
     int32_t disp;           /* Displacement */
@@ -35,6 +36,15 @@ typedef struct {
     uint8_t simd_prefix;    /* SIMD prefix: 0x66, 0xF2, 0xF3 */
     int has_modrm;          /* Has ModR/M byte */
     int is_64bit;           /* 64-bit operand size */
+    int has_lock;           /* LOCK prefix present */
+
+    /* VEX prefix fields (for AVX instructions) */
+    uint8_t vex_prefix;     /* VEX prefix type: 0=none, 1=C5 (2-byte), 2=C4 (3-byte) */
+    uint8_t vex_L;          /* Vector length: 0=128-bit, 1=256-bit */
+    uint8_t vex_pp;         /* SIMD prefix: 0=none, 1=0x66, 2=0xF3, 3=0xF2 */
+    uint8_t vex_m;          /* Opcode map (for C4 only) */
+    uint8_t vex_w;          /* W bit (for C4 only) */
+    uint8_t vex_vvvv;       /* VEX.vvvv register specifier (inverted) */
 } x86_insn_t;
 
 /* ============================================================================
@@ -48,6 +58,17 @@ typedef struct {
  * @return Instruction length in bytes
  */
 int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn);
+
+/**
+ * Decode x86_64 instruction with caching
+ * This function attempts to lookup the instruction in the cache first,
+ * and only performs full decoding if there's a cache miss.
+ *
+ * @param insn_ptr Pointer to instruction bytes
+ * @param insn Output: decoded instruction info
+ * @return Number of bytes decoded
+ */
+int decode_x86_insn_cached(const uint8_t *insn_ptr, x86_insn_t *insn);
 
 /* ============================================================================
  * Instruction Type Predicates (P0 - Essential)

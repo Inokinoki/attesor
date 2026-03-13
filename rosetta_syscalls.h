@@ -114,13 +114,27 @@
 #define X86_64_SYS_SETGROUPS    116
 #define X86_64_SYS_SETHOSTNAME  170
 #define X86_64_SYS_SETDOMAINNAME 171
-#define X86_64_SYS_SETDOMAINNAME 171
 #define X86_64_SYS_PRCTL        157
 #define X86_64_SYS_SET_ROBUST_LIST 273
 #define X86_64_SYS_GET_ROBUST_LIST 274
 #define X86_64_SYS_CLOCK_GETRES 229
 #define X86_64_SYS_CLOCK_NANOSLEEP 287
 #define X86_64_SYS_TIMERFD_CREATE 283
+#define X86_64_SYS_PAUSE         34
+#define X86_64_SYS_GETUID        102
+#define X86_64_SYS_GETEUID       107
+#define X86_64_SYS_GETGID        104
+#define X86_64_SYS_GETEGID       108
+#define X86_64_SYS_GETRLIMIT     97
+#define X86_64_SYS_GETRUSAGE     98
+#define X86_64_SYS_TIMES         100
+#define X86_64_SYS_SYSINFO       99
+#define X86_64_SYS_MINCORE       232
+#define X86_64_SYS_MLOCK         149
+#define X86_64_SYS_MUNLOCK       150
+#define X86_64_SYS_MSYNC         26
+#define X86_64_SYS_PRLIMIT       309
+#define X86_64_SYS_GETCPU        204
 
 /* ARM64 syscall numbers (Linux ABI) - Host */
 #define ARM64_SYS_READ          63
@@ -218,6 +232,12 @@
 #define ARM64_SYS_SETHOSTNAME   161
 #define ARM64_SYS_SETDOMAINNAME 162
 #define ARM64_SYS_PRCTL         167
+#define ARM64_SYS_MINCORE       232
+#define ARM64_SYS_MLOCK         228
+#define ARM64_SYS_MUNLOCK       229
+#define ARM64_SYS_MSYNC         227
+#define ARM64_SYS_PRLIMIT       261
+#define ARM64_SYS_GETCPU        168
 
 /* ============================================================================
  * Syscall Handler Function Types
@@ -322,6 +342,71 @@ int syscall_getcwd(ThreadState *state);
 int syscall_chdir(ThreadState *state);
 int syscall_kill(ThreadState *state);
 int syscall_wait4(ThreadState *state);
+
+/* File Operations (Priority 1) */
+int syscall_rename(ThreadState *state);
+int syscall_mkdir(ThreadState *state);
+int syscall_rmdir(ThreadState *state);
+int syscall_unlink(ThreadState *state);
+int syscall_symlink(ThreadState *state);
+int syscall_readlink(ThreadState *state);
+int syscall_chmod(ThreadState *state);
+int syscall_fchmod(ThreadState *state);
+int syscall_chown(ThreadState *state);
+int syscall_fchown(ThreadState *state);
+int syscall_lchown(ThreadState *state);
+int syscall_creat(ThreadState *state);
+int syscall_link(ThreadState *state);
+int syscall_umask(ThreadState *state);
+int syscall_flock(ThreadState *state);
+int syscall_fsync(ThreadState *state);
+int syscall_fdatasync(ThreadState *state);
+int syscall_poll(ThreadState *state);
+int syscall_dup(ThreadState *state);
+
+/* Process Management (Priority 2) */
+int syscall_getuid(ThreadState *state);
+int syscall_geteuid(ThreadState *state);
+int syscall_getgid(ThreadState *state);
+int syscall_getegid(ThreadState *state);
+int syscall_setpgid(ThreadState *state);
+int syscall_getpgid(ThreadState *state);
+int syscall_setsid(ThreadState *state);
+int syscall_getsid(ThreadState *state);
+int syscall_getgroups(ThreadState *state);
+int syscall_setgroups(ThreadState *state);
+int syscall_sethostname(ThreadState *state);
+int syscall_setdomainname(ThreadState *state);
+int syscall_prctl(ThreadState *state);
+
+/* Memory Operations (Priority 3) */
+int syscall_madvise(ThreadState *state);
+int syscall_mincore(ThreadState *state);
+int syscall_mlock(ThreadState *state);
+int syscall_munlock(ThreadState *state);
+int syscall_msync(ThreadState *state);
+int syscall_prlimit(ThreadState *state);
+int syscall_getrlimit(ThreadState *state);
+int syscall_getrusage(ThreadState *state);
+int syscall_times(ThreadState *state);
+int syscall_sysinfo(ThreadState *state);
+
+/* Additional Syscalls */
+int syscall_pause(ThreadState *state);
+int syscall_getcpu(ThreadState *state);
+int syscall_clock_getres(ThreadState *state);
+int syscall_set_robust_list(ThreadState *state);
+int syscall_get_robust_list(ThreadState *state);
+int syscall_eventfd2(ThreadState *state);
+int syscall_signalfd4(ThreadState *state);
+int syscall_accept4(ThreadState *state);
+int syscall_getsockopt(ThreadState *state);
+int syscall_setsockopt(ThreadState *state);
+int syscall_timerfd_create(ThreadState *state);
+int syscall_clock_nanosleep(ThreadState *state);
+int syscall_clone(ThreadState *state);
+int syscall_execve(ThreadState *state);
+int syscall_epoll_pwait(ThreadState *state);
 
 /* ============================================================================
  * Syscall Translation Functions

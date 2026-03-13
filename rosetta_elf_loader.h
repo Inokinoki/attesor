@@ -14,6 +14,7 @@
 #include "rosetta_types.h"
 #include <stdint.h>
 #include <stddef.h>
+#include <time.h>
 
 /* ============================================================================
  * ELF Constants
@@ -380,6 +381,22 @@ typedef struct {
     int              is_static;  /* Static binary (no interpreter) */
     int              is_pie;     /* Position independent executable */
 
+    /* Performance optimization: Symbol hash table */
+    struct {
+        uint32_t    *buckets;        /* Hash buckets */
+        uint32_t    *chains;         /* Hash chains */
+        uint32_t     nbuckets;       /* Number of buckets */
+        uint32_t     nchains;        /* Number of chains */
+        int          initialized;    /* Whether hash table is ready */
+    } symbol_hash;
+
+    /* Performance optimization: Symbol cache */
+    struct {
+        char       *name;            /* Cached symbol name */
+        uint64_t    value;           /* Cached symbol value */
+        int         valid;           /* Whether cache entry is valid */
+    } symbol_cache[16];              /* 16-entry LRU cache */
+
 } rosetta_elf_binary_t;
 
 /* ============================================================================
@@ -481,5 +498,59 @@ void *rosetta_elf_guest_to_host(rosetta_elf_binary_t *binary,
  * @return 1 if static, 0 if dynamic
  */
 int rosetta_elf_is_static(rosetta_elf_binary_t *binary);
+
+/* ============================================================================
+ * ELF Binary Cache
+ * ============================================================================ */
+
+/**
+ * ELF binary cache entry for performance optimization
+ */
+typedef struct {
+    char *filename;             /* Binary filename */
+    uint64_t file_size;         /* File size for validation */
+    time_t mtime;               /* File modification time */
+    rosetta_elf_binary_t *binary; /* Cached binary structure */
+    int valid;                  /* Whether cache entry is valid */
+} rosetta_elf_cache_entry_t;
+
+/**
+ * ELF binary cache structure
+ */
+typedef struct {
+    rosetta_elf_cache_entry_t entries[8];  /* 8-entry cache */
+    int count;                  /* Number of valid entries */
+    int enabled;                /* Whether cache is enabled */
+    uint64_t hits;              /* Cache hits */
+    uint64_t misses;            /* Cache misses */
+} rosetta_elf_cache_t;
+
+/**
+ * Initialize ELF binary cache
+ */
+void rosetta_elf_cache_init(void);
+
+/**
+ * Clean up ELF binary cache
+ */
+void rosetta_elf_cache_cleanup(void);
+
+/**
+ * Enable or disable ELF binary cache
+ * @param enabled 1 to enable, 0 to disable
+ */
+void rosetta_elf_cache_set_enabled(int enabled);
+
+/**
+ * Get cache statistics
+ * @param hits Output: cache hits
+ * @param misses Output: cache misses
+ */
+void rosetta_elf_cache_stats(uint64_t *hits, uint64_t *misses);
+
+/**
+ * Clear ELF binary cache
+ */
+void rosetta_elf_cache_clear(void);
 
 #endif /* ROSETTA_ELF_LOADER_H */

@@ -17,6 +17,143 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <time.h>
+
+/* ============================================================================
+ * ELF Binary Cache Implementation
+ * ============================================================================ */
+
+/* Global cache instance */
+static rosetta_elf_cache_t elf_cache = {
+    .count = 0,
+    .enabled = 1,
+    .hits = 0,
+    .misses = 0
+};
+
+/**
+ * Initialize ELF binary cache
+ */
+void rosetta_elf_cache_init(void)
+{
+    memset(&elf_cache, 0, sizeof(elf_cache));
+    elf_cache.enabled = 1;
+}
+
+/**
+ * Clean up ELF binary cache
+ */
+void rosetta_elf_cache_cleanup(void)
+{
+    for (int i = 0; i < 8; i++) {
+        if (elf_cache.entries[i].valid) {
+            if (elf_cache.entries[i].filename) {
+                free(elf_cache.entries[i].filename);
+            }
+            if (elf_cache.entries[i].binary) {
+                rosetta_elf_unload(elf_cache.entries[i].binary);
+            }
+            elf_cache.entries[i].valid = 0;
+        }
+    }
+    elf_cache.count = 0;
+}
+
+/**
+ * Enable or disable ELF binary cache
+ */
+void rosetta_elf_cache_set_enabled(int enabled)
+{
+    elf_cache.enabled = enabled;
+}
+
+/**
+ * Get cache statistics
+ */
+void rosetta_elf_cache_stats(uint64_t *hits, uint64_t *misses)
+{
+    if (hits) *hits = elf_cache.hits;
+    if (misses) *misses = elf_cache.misses;
+}
+
+/**
+ * Clear ELF binary cache
+ */
+void rosetta_elf_cache_clear(void)
+{
+    rosetta_elf_cache_cleanup();
+}
+
+/**
+ * Find cache entry by filename
+ */
+static rosetta_elf_cache_entry_t *cache_find(const char *filename)
+{
+    for (int i = 0; i < 8; i++) {
+        if (elf_cache.entries[i].valid &&
+            elf_cache.entries[i].filename &&
+            strcmp(elf_cache.entries[i].filename, filename) == 0) {
+            return &elf_cache.entries[i];
+        }
+    }
+    return NULL;
+}
+
+/**
+ * Validate cache entry against current file
+ */
+static int cache_validate(rosetta_elf_cache_entry_t *entry, const char *filename)
+{
+    struct stat st;
+    if (stat(filename, &st) < 0) {
+        return 0;  /* File doesn't exist or can't stat */
+    }
+
+    /* Check if file size or modification time changed */
+    if ((uint64_t)st.st_size != entry->file_size ||
+        st.st_mtime != entry->mtime) {
+        return 0;  /* File changed */
+    }
+
+    return 1;  /* Cache entry is still valid */
+}
+
+/**
+ * Add entry to cache (LRU eviction)
+ */
+static void cache_add(const char *filename, struct stat *st, rosetta_elf_binary_t *binary)
+{
+    /* Find empty slot or evict LRU entry */
+    int slot = -1;
+    for (int i = 0; i < 8; i++) {
+        if (!elf_cache.entries[i].valid) {
+            slot = i;
+            break;
+        }
+    }
+
+    /* If no empty slot, evict the first entry (simple LRU) */
+    if (slot < 0) {
+        slot = 0;
+        if (elf_cache.entries[slot].filename) {
+            free(elf_cache.entries[slot].filename);
+        }
+        if (elf_cache.entries[slot].binary) {
+            rosetta_elf_unload(elf_cache.entries[slot].binary);
+        }
+    }
+
+    /* Add new entry */
+    elf_cache.entries[slot].filename = strdup(filename);
+    elf_cache.entries[slot].file_size = st->st_size;
+    elf_cache.entries[slot].mtime = st->st_mtime;
+    elf_cache.entries[slot].binary = binary;
+    elf_cache.entries[slot].valid = 1;
+
+    if (elf_cache.count < 8) {
+        elf_cache.count++;
+    }
+}
 
 /* ============================================================================
  * ELF Helper Macros
@@ -134,6 +271,25 @@ int rosetta_elf_load(const char *filename, rosetta_elf_binary_t **out_binary)
     if (!filename || !out_binary) {
         fprintf(stderr, "Invalid arguments to rosetta_elf_load\n");
         return -1;
+    }
+
+    /* Check cache first if enabled */
+    if (elf_cache.enabled) {
+        rosetta_elf_cache_entry_t *entry = cache_find(filename);
+        if (entry && cache_validate(entry, filename)) {
+            /* Cache hit - return cached binary */
+            elf_cache.hits++;
+            *out_binary = entry->binary;
+            return 0;
+        }
+        elf_cache.misses++;
+    }
+
+    /* Get file stats for cache validation */
+    struct stat st;
+    if (stat(filename, &st) < 0) {
+        /* File doesn't exist, will fail in map_file */
+        memset(&st, 0, sizeof(st));
     }
 
     /* Allocate binary structure */
@@ -342,6 +498,37 @@ int rosetta_elf_load(const char *filename, rosetta_elf_binary_t **out_binary)
 
     binary->is_static = (binary->interp == NULL);
 
+    /* Initialize symbol hash table for performance */
+    /* Check for DT_HASH or DT_GNU_HASH in dynamic section */
+    if (binary->dynamic) {
+        for (uint32_t i = 0; i < binary->dynamic_count; i++) {
+            elf64_dyn_t *dyn = &binary->dynamic[i];
+            if (dyn->d_tag == DT_NULL) {
+                break;
+            }
+
+            if (dyn->d_tag == DT_HASH) {
+                /* Initialize SYSV hash table */
+                uint32_t *hash_data = (uint32_t *)(binary->file_data +
+                    (dyn->d_un.d_ptr - binary->header.e_phoff));
+
+                binary->symbol_hash.nbuckets = hash_data[0];
+                binary->symbol_hash.nchains = hash_data[1];
+                binary->symbol_hash.buckets = &hash_data[2];
+                binary->symbol_hash.chains = &hash_data[2 + binary->symbol_hash.nbuckets];
+                binary->symbol_hash.initialized = 1;
+                break;
+            } else if (dyn->d_tag == DT_GNU_HASH) {
+                /* GNU hash table is more complex - for now skip it */
+                /* TODO: Implement GNU_HASH support */
+                break;
+            }
+        }
+    }
+
+    /* Initialize symbol cache */
+    memset(binary->symbol_cache, 0, sizeof(binary->symbol_cache));
+
     /* Determine base address */
     uint64_t min_vaddr = UINT64_MAX;
     for (uint32_t i = 0; i < binary->phdr_count; i++) {
@@ -362,6 +549,12 @@ int rosetta_elf_load(const char *filename, rosetta_elf_binary_t **out_binary)
     }
 
     binary->is_loaded = 1;
+
+    /* Add to cache if enabled */
+    if (elf_cache.enabled) {
+        cache_add(filename, &st, binary);
+    }
+
     *out_binary = binary;
     return 0;
 
@@ -374,6 +567,17 @@ void rosetta_elf_unload(rosetta_elf_binary_t *binary)
 {
     if (!binary) {
         return;
+    }
+
+    /* Check if binary is in cache - don't actually free it */
+    if (elf_cache.enabled) {
+        for (int i = 0; i < 8; i++) {
+            if (elf_cache.entries[i].valid &&
+                elf_cache.entries[i].binary == binary) {
+                /* Binary is cached, don't free it */
+                return;
+            }
+        }
     }
 
     if (binary->filename) {
@@ -401,6 +605,15 @@ void rosetta_elf_unload(rosetta_elf_binary_t *binary)
 
     if (binary->relas) {
         free(binary->relas);
+    }
+
+    /* Clean up symbol cache */
+    for (int i = 0; i < 16; i++) {
+        if (binary->symbol_cache[i].name) {
+            free(binary->symbol_cache[i].name);
+            binary->symbol_cache[i].name = NULL;
+            binary->symbol_cache[i].valid = 0;
+        }
     }
 
     free(binary);
@@ -450,11 +663,57 @@ rosetta_elf_section_t *rosetta_elf_get_section(rosetta_elf_binary_t *binary,
     return NULL;
 }
 
+/**
+ * Simple hash function for symbol names
+ */
+static uint32_t hash_symbol_name(const char *name)
+{
+    uint32_t h = 0;
+    uint32_t g;
+
+    while (*name) {
+        h = (h << 4) + (*name++);
+        if ((g = h & 0xf0000000) != 0) {
+            h ^= g >> 24;
+        }
+        h &= ~g;
+    }
+
+    return h;
+}
+
+/**
+ * Simple implementation without cache for debugging
+ */
 uint64_t rosetta_elf_lookup_symbol(rosetta_elf_binary_t *binary,
                                    const char *name)
 {
     if (!binary || !name) {
         return 0;
+    }
+
+    /* Use hash table if available (fast path) */
+    if (binary->symbol_hash.initialized &&
+        binary->dynsym && binary->dynstr) {
+
+        uint32_t hash = hash_symbol_name(name) % binary->symbol_hash.nbuckets;
+        uint32_t idx = binary->symbol_hash.buckets[hash];
+
+        while (idx != 0 && idx < binary->dynsym_count) {
+            elf64_sym_t *sym = &binary->dynsym[idx];
+            if (sym->st_name > 0 && sym->st_name < binary->dynstr_size) {
+                const char *sym_name = binary->dynstr + sym->st_name;
+                if (strcmp(sym_name, name) == 0) {
+                    return sym->st_value;
+                }
+            }
+
+            if (idx < binary->symbol_hash.nchains) {
+                idx = binary->symbol_hash.chains[idx];
+            } else {
+                break;
+            }
+        }
     }
 
     /* Search dynamic symbol table */
@@ -485,6 +744,144 @@ uint64_t rosetta_elf_lookup_symbol(rosetta_elf_binary_t *binary,
 
     return 0;
 }
+
+#if 0  /* Disabled for debugging - cache implementation has memory issues */
+/**
+ * Optimized symbol lookup with hash table and LRU cache
+ */
+uint64_t rosetta_elf_lookup_symbol(rosetta_elf_binary_t *binary,
+                                   const char *name)
+{
+    if (!binary || !name) {
+        return 0;
+    }
+
+    /* Check LRU cache first (fastest path) */
+    for (int i = 0; i < 16; i++) {
+        if (binary->symbol_cache[i].valid &&
+            binary->symbol_cache[i].name &&
+            strcmp(binary->symbol_cache[i].name, name) == 0) {
+            /* Cache hit - update LRU */
+            uint64_t value = binary->symbol_cache[i].value;
+
+            /* Move to front (simple LRU) - but only if not already at front */
+            if (i > 0) {
+                /* Save the entry we want to move */
+                char *temp_name = binary->symbol_cache[i].name;
+                uint64_t temp_value = binary->symbol_cache[i].value;
+                int temp_valid = binary->symbol_cache[i].valid;
+
+                /* Shift entries down, but be careful not to lose pointers */
+                for (int j = i; j > 0; j--) {
+                    binary->symbol_cache[j].name = binary->symbol_cache[j - 1].name;
+                    binary->symbol_cache[j].value = binary->symbol_cache[j - 1].value;
+                    binary->symbol_cache[j].valid = binary->symbol_cache[j - 1].valid;
+                }
+
+                /* Place moved entry at front */
+                binary->symbol_cache[0].name = temp_name;
+                binary->symbol_cache[0].value = temp_value;
+                binary->symbol_cache[0].valid = temp_valid;
+            }
+
+            return value;
+        }
+    }
+
+    uint64_t result = 0;
+
+    /* Use hash table if available (fast path) */
+    if (binary->symbol_hash.initialized &&
+        binary->dynsym && binary->dynstr) {
+
+        uint32_t hash = hash_symbol_name(name) % binary->symbol_hash.nbuckets;
+        uint32_t idx = binary->symbol_hash.buckets[hash];
+
+        while (idx != 0 && idx < binary->dynsym_count) {
+            elf64_sym_t *sym = &binary->dynsym[idx];
+            if (sym->st_name > 0 && sym->st_name < binary->dynstr_size) {
+                const char *sym_name = binary->dynstr + sym->st_name;
+                if (strcmp(sym_name, name) == 0) {
+                    result = sym->st_value;
+                    break;
+                }
+            }
+
+            if (idx < binary->symbol_hash.nchains) {
+                idx = binary->symbol_hash.chains[idx];
+            } else {
+                break;
+            }
+        }
+    }
+
+    /* Fall back to linear search if hash table not available or symbol not found */
+    if (result == 0) {
+        /* Search dynamic symbol table */
+        if (binary->dynsym && binary->dynstr) {
+            for (uint32_t i = 0; i < binary->dynsym_count; i++) {
+                elf64_sym_t *sym = &binary->dynsym[i];
+                if (sym->st_name > 0 && sym->st_name < binary->dynstr_size) {
+                    const char *sym_name = binary->dynstr + sym->st_name;
+                    if (strcmp(sym_name, name) == 0) {
+                        result = sym->st_value;
+                        break;
+                    }
+                }
+            }
+        }
+
+        /* Search regular symbol table */
+        if (result == 0 && binary->symtab && binary->strtab) {
+            for (uint32_t i = 0; i < binary->symtab_count; i++) {
+                elf64_sym_t *sym = &binary->symtab[i];
+                if (sym->st_name > 0 && sym->st_name < binary->strtab_size) {
+                    const char *sym_name = binary->strtab + sym->st_name;
+                    if (strcmp(sym_name, name) == 0) {
+                        result = sym->st_value;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    /* Update LRU cache if we found a symbol */
+    if (result != 0) {
+        /* Shift cache entries to make room - preserve ownership of pointers */
+        for (int i = 15; i > 0; i--) {
+            /* Just copy pointers, not free them */
+            binary->symbol_cache[i].name = binary->symbol_cache[i - 1].name;
+            binary->symbol_cache[i].value = binary->symbol_cache[i - 1].value;
+            binary->symbol_cache[i].valid = binary->symbol_cache[i - 1].valid;
+        }
+
+        /* The last entry now has a duplicate pointer - free it to avoid leak */
+        if (binary->symbol_cache[15].name) {
+            free(binary->symbol_cache[15].name);
+            binary->symbol_cache[15].name = NULL;
+            binary->symbol_cache[15].valid = 0;
+        }
+
+        /* Store in cache[0] - free old name first if it exists */
+        if (binary->symbol_cache[0].name) {
+            free(binary->symbol_cache[0].name);
+            binary->symbol_cache[0].name = NULL;
+        }
+
+        binary->symbol_cache[0].name = strdup(name);
+        if (binary->symbol_cache[0].name) {  /* Only set if strdup succeeded */
+            binary->symbol_cache[0].value = result;
+            binary->symbol_cache[0].valid = 1;
+        } else {
+            /* If strdup failed, invalidate the cache entry */
+            binary->symbol_cache[0].valid = 0;
+        }
+    }
+
+    return result;
+}
+#endif  /* Disabled for debugging */
 
 int rosetta_elf_map_segments(rosetta_elf_binary_t *binary)
 {

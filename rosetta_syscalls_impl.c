@@ -7,6 +7,9 @@
  * host OS (macOS/ARM64) equivalents.
  * ============================================================================ */
 
+#define _GNU_SOURCE
+#define _DEFAULT_SOURCE
+
 #include "rosetta_syscalls_impl.h"
 #include "rosetta_refactored_helpers.h"
 #include "rosetta_types.h"
@@ -29,11 +32,15 @@
 #include <sys/select.h>
 #include <sys/uio.h>
 #include <sys/socket.h>
+#include <sys/syscall.h>
 #ifdef __linux__
 #include <sys/epoll.h>
+#include <sys/prctl.h>
+#include <linux/sysctl.h>
 #endif
 #if defined(__APPLE__)
 #include <mach/mach_time.h>
+#include <sys/sysctl.h>
 #endif
 
 /* x86_64 syscall argument registers */
@@ -1824,15 +1831,5 @@ void helper_interrupt(ThreadState *state, int vector)
     }
     (void)vector;
     /* Handle hardware/software interrupts */
-}
-
-/**
- * init_syscall_table - Initialize syscall table
- */
-void init_syscall_table(void)
-{
-    /* Initialize syscall handler table */
-    /* In a full implementation, this would create a mapping from
-     * ARM64 Linux syscall numbers to handlers */
 }
 

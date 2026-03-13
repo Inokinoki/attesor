@@ -181,7 +181,7 @@ void test_signal_to_exception_mapping(void)
     TEST_ASSERT(type == ROS_EXCEPTION_FP,
                 "SIGFPE should map to FP exception");
 
-    type = rosetta_signal_to_exception(SIGTRAP, TRAP_BRKPT);
+    type = rosetta_signal_to_exception(SIGTRAP, 1);  /* 1 = TRAP_BRKPT */
     TEST_ASSERT(type == ROS_EXCEPTION_TRAP,
                 "SIGTRAP should map to TRAP");
 

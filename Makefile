@@ -34,6 +34,7 @@ CORE_SRCS = \
     rosetta_context.c \
     rosetta_memmgmt.c \
     rosetta_x86_decode.c \
+    rosetta_insn_cache.c \
     rosetta_codegen.c \
     rosetta_arm64_emit.c
 
