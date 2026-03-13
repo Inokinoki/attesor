@@ -92,21 +92,32 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
         op == 0xD0 || op == 0xD1 || op == 0xD2 || op == 0xD3 ||
         op == 0xF6 || op == 0xF7 || op == 0xFF ||
         op == 0x80 || op == 0x81 || op == 0x82 || op == 0x83) {
-        has_modrm = 1;
+        /* Single-byte opcodes - skip if this is a 0F XX opcode */
+        if (op2 == 0) {
+            has_modrm = 1;
+        }
     }
     if (op2 != 0 && (
-        (op2 >= 0x00 && op2 <= 0x07) ||
+        (op2 >= 0x00 && op2 <= 0x04) || /* 0x05 SYSCALL, 0x06 CLTS, 0x07 SYSRET have no ModR/M */
         (op2 >= 0x10 && op2 <= 0x17) ||
-        (op2 >= 0x20 && op2 <= 0x27) ||
+        (op2 >= 0x20 && op2 <= 0x27 && op2 != 0x34 && op2 != 0x35) ||
         (op2 >= 0x40 && op2 <= 0x4F) ||
         (op2 >= 0x50 && op2 <= 0x7F) ||
         (op2 >= 0x80 && op2 <= 0x8F) ||
         (op2 >= 0x90 && op2 <= 0x9F) ||
         op2 == 0x1F ||
-        op2 == 0xA0 || op2 == 0xA1 || op2 == 0xA2 || op2 == 0xA3 ||
+        op2 == 0xA0 || op2 == 0xA1 || /* 0xA2 CPUID has no ModR/M */
+        op2 == 0xA3 ||
+        op2 == 0xAB ||
         op2 == 0xB0 || op2 == 0xB1 || op2 == 0xB3 ||
+        op2 == 0xB8 || op2 == 0xBB || op2 == 0xBC || op2 == 0xBD ||
         op2 == 0xB6 || op2 == 0xB7 || op2 == 0xBE || op2 == 0xBF ||
         op2 == 0xC0 || op2 == 0xC1)) {
+        has_modrm = 1;
+    }
+
+    /* Special case: 0F BA (BT/BTS/BTR/BTC with immediate) has ModR/M + imm8 */
+    if (op2 == 0xBA) {
         has_modrm = 1;
     }
 
@@ -197,6 +208,10 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
             insn->imm = *(const int8_t *)p;
             p += 1;
         }
+    } else if (op == 0xE4 || op == 0xE5 || op == 0xE6 || op == 0xE7) {
+        /* IN/OUT with immediate port */
+        insn->imm = *(const int8_t *)p;
+        p += 1;
     } else if (op == 0xE8 || op == 0xE9) {
         insn->imm = *(const int32_t *)p;
         p += 4;
@@ -209,6 +224,10 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
     } else if (op2 >= 0x80 && op2 <= 0x8F) {
         insn->imm = *(const int32_t *)p;
         p += 4;
+    } else if (op2 == 0xBA) {
+        /* BT/BTS/BTR/BTC with immediate */
+        insn->imm = *(const int8_t *)p;
+        p += 1;
     }
 
     insn->length = (uint8_t)(p - insn_ptr);
