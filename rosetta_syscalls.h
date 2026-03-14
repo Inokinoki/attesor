@@ -87,6 +87,10 @@
 #define X86_64_SYS_ACCEPT4      288
 #define X86_64_SYS_GETSOCKOPT   55
 #define X86_64_SYS_SETSOCKOPT   54
+#define X86_64_SYS_GETPEERNAME  52
+#define X86_64_SYS_SHUTDOWN      48
+#define X86_64_SYS_SENDMSG      46
+#define X86_64_SYS_RECVMSG      47
 #define X86_64_SYS_GETEGID      108
 #define X86_64_SYS_GETEUID      107
 #define X86_64_SYS_GETGID       104
@@ -245,6 +249,10 @@
 #define ARM64_SYS_RECVFROM      208
 #define ARM64_SYS_GETSOCKOPT    209
 #define ARM64_SYS_SETSOCKOPT    210
+#define ARM64_SYS_GETPEERNAME   207
+#define ARM64_SYS_SHUTDOWN      205
+#define ARM64_SYS_SENDMSG       211
+#define ARM64_SYS_RECVMSG       212
 #define ARM64_SYS_SCHED_YIELD   124
 #define ARM64_SYS_ARCH_PRCTL    160
 #define ARM64_SYS_GETPGID       155
@@ -475,6 +483,10 @@ int syscall_signalfd4(ThreadState *state);
 int syscall_accept4(ThreadState *state);
 int syscall_getsockopt(ThreadState *state);
 int syscall_setsockopt(ThreadState *state);
+int syscall_getpeername(ThreadState *state);
+int syscall_shutdown(ThreadState *state);
+int syscall_sendmsg(ThreadState *state);
+int syscall_recvmsg(ThreadState *state);
 int syscall_timerfd_create(ThreadState *state);
 int syscall_clock_nanosleep(ThreadState *state);
 int syscall_clone(ThreadState *state);

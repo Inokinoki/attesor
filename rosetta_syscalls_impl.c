@@ -2267,6 +2267,81 @@ void helper_syscall_exit(ThreadState *state, int64_t result)
     /* Hook for syscall tracing/debugging */
 }
 
+/* ============================================================================
+ * Network Syscalls - Iteration 53 Coverage Extension
+ * ============================================================================ */
+
+/**
+ * syscall_getpeername - Get name of connected peer socket
+ */
+int syscall_getpeername(ThreadState *state)
+{
+    int sockfd = (int)GUEST_ARG0(state);
+    struct sockaddr *addr = (struct sockaddr *)GUEST_ARG1(state);
+    socklen_t *addrlen = (socklen_t *)GUEST_ARG2(state);
+
+    int ret = getpeername(sockfd, addr, addrlen);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_shutdown - Shutdown part of a full-duplex connection
+ */
+int syscall_shutdown(ThreadState *state)
+{
+    int sockfd = (int)GUEST_ARG0(state);
+    int how = GUEST_ARG1(state);
+
+    int ret = shutdown(sockfd, how);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = 0;
+    return 0;
+}
+
+/**
+ * syscall_sendmsg - Send message on socket
+ */
+int syscall_sendmsg(ThreadState *state)
+{
+    int sockfd = (int)GUEST_ARG0(state);
+    const struct msghdr *msg = (const struct msghdr *)GUEST_ARG1(state);
+    int flags = GUEST_ARG2(state);
+
+    ssize_t ret = sendmsg(sockfd, msg, flags);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = ret;
+    return 0;
+}
+
+/**
+ * syscall_recvmsg - Receive message from socket
+ */
+int syscall_recvmsg(ThreadState *state)
+{
+    int sockfd = (int)GUEST_ARG0(state);
+    struct msghdr *msg = (struct msghdr *)GUEST_ARG1(state);
+    int flags = GUEST_ARG2(state);
+
+    ssize_t ret = recvmsg(sockfd, msg, flags);
+    if (ret < 0) {
+        state->syscall_result = -errno;
+        return -1;
+    }
+    state->syscall_result = ret;
+    return 0;
+}
+
 /**
  * helper_interrupt - Interrupt handler
  */
