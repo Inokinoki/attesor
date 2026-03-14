@@ -8,6 +8,7 @@
 
 #include "rosetta_x86_decode.h"
 #include "rosetta_insn_cache.h"
+#include "rosetta_optimizations.h"
 #include <stdint.h>
 #include <string.h>
 
@@ -669,7 +670,7 @@ static inline int categorize_ultra_fast(const uint8_t *p)
  * @param insn Output: decoded instruction info
  * @return Number of bytes decoded
  */
-int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
+int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn) HOT_PATH
 {
     const uint8_t *p = insn_ptr;
     uint8_t rex = 0;
@@ -677,7 +678,7 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
     memset(insn, 0, sizeof(x86_insn_t));
 
     /* ITERATION 11: Fast-path optimization for PUSH/POP instructions */
-    if (is_simple_push_pop(p)) {
+    if (LIKELY(is_simple_push_pop(p))) {
         insn->opcode = *p++;
         insn->is_64bit = 1;
 
@@ -690,12 +691,12 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
     }
 
     /* ITERATION 8: Fast-path optimization for memory operations */
-    if (is_simple_memory_insn(p)) {
+    if (LIKELY(is_simple_memory_insn(p))) {
         return decode_memory_insn_fast(p, insn);
     }
 
     /* ITERATION 8: Fast-path optimization for ALU operations */
-    if (is_reg_to_reg_alu(p)) {
+    if (LIKELY(is_reg_to_reg_alu(p))) {
         return decode_alu_insn_fast(p, insn);
     }
 
@@ -1146,10 +1147,10 @@ int decode_x86_insn(const uint8_t *insn_ptr, x86_insn_t *insn)
  * This function provides a cached version of decode_x86_insn that
  * can significantly improve performance for repeated instruction decoding.
  */
-int decode_x86_insn_cached(const uint8_t *insn_ptr, x86_insn_t *insn)
+int decode_x86_insn_cached(const uint8_t *insn_ptr, x86_insn_t *insn) HOT_PATH
 {
     /* Check if instruction cache is available */
-    if (!insn_cache_is_enabled()) {
+    if (UNLIKELY(!insn_cache_is_enabled())) {
         /* Cache not enabled, fall back to normal decode */
         return decode_x86_insn(insn_ptr, insn);
     }
@@ -1157,7 +1158,7 @@ int decode_x86_insn_cached(const uint8_t *insn_ptr, x86_insn_t *insn)
     /* Try cache lookup first */
     u64 guest_pc = (u64)insn_ptr;
 
-    if (insn_cache_lookup(guest_pc, insn)) {
+    if (LIKELY(insn_cache_lookup(guest_pc, insn))) {
         /* Cache hit - return cached instruction */
         return insn->length;
     }
@@ -1165,7 +1166,7 @@ int decode_x86_insn_cached(const uint8_t *insn_ptr, x86_insn_t *insn)
     /* Cache miss - decode normally and insert into cache */
     int length = decode_x86_insn(insn_ptr, insn);
 
-    if (length > 0) {
+    if (LIKELY(length > 0)) {
         /* Insert decoded instruction into cache */
         insn_cache_insert(guest_pc, insn);
     }
