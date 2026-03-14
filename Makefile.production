@@ -185,7 +185,7 @@ librosetta.a: $(MODULAR_OBJS)
 	ar rcs $@ $^
 	@echo "✅ Production library built successfully"
 	@echo "Object files: $(words $(MODULAR_OBJS))"
-	@echo "Total size: $$((ar t $@ | xargs ls -l 2>/dev/null | awk '{sum+=$$5} END {print sum}))' bytes"
+	@ls -lh $@
 
 # Individual object compilation
 %.o: %.c $(HEADERS)
