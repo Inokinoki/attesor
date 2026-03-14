@@ -1,0 +1,220 @@
+# Rosetta Binary Translator - Production Build Makefile
+#
+# This is the PRODUCTION build configuration that excludes test-specific
+# code and focuses on the core translation functionality.
+#
+# For development/testing, use Makefile.devel which includes additional
+# test utilities
+#
+
+CC = gcc
+CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wno-unused-function
+CFLAGS += -O2 -g
+CFLAGS += -std=c11
+CFLAGS += -D_GNU_SOURCE
+
+# macOS-specific flags
+ifeq ($(shell uname -s), Darwin)
+    CFLAGS += -D_DARWIN_C_SOURCE
+endif
+
+# Linux-specific flags
+ifeq ($(shell uname -s), Linux)
+    CFLAGS += -D_LINUX_C_SOURCE
+endif
+
+# ============================================================================
+# Core library - x86_64 decoding and codegen
+# ============================================================================
+
+CORE_SRCS = \
+    rosetta_utils.c \
+    rosetta_hash.c \
+    rosetta_vector.c \
+    rosetta_cache.c \
+    rosetta_transcache.c \
+    rosetta_context.c \
+    rosetta_memmgmt.c \
+    rosetta_x86_decode.c \
+    rosetta_insn_cache.c \
+    rosetta_codegen.c \
+    rosetta_arm64_emit.c
+
+# ============================================================================
+# Translation modules (REFactored versions only - no duplicates)
+# ============================================================================
+
+# Primary translation modules (refactored versions)
+TRANSLATE_SRCS = \
+    rosetta_trans_alu.c \
+    rosetta_trans_mem.c \
+    rosetta_trans_branch.c \
+    rosetta_trans_bit.c \
+    rosetta_trans_string.c \
+    rosetta_trans_special.c \
+    rosetta_trans_cond.c \
+    rosetta_trans_mul_ext.c \
+    rosetta_trans_dispatch.c
+
+# Floating point and NEON translation
+FP_SRCS = \
+    rosetta_fp_translate.c \
+    rosetta_fp_helpers.c \
+    rosetta_trans_neon.c
+
+# System instruction translation
+SYSTEM_SRCS = \
+    rosetta_trans_system.c
+
+# Cryptographic extensions
+CRYPTO_SRCS = \
+    rosetta_crypto.c
+
+# SIMD and string utilities
+SIMD_SRCS = \
+    rosetta_simd.c \
+    rosetta_simd_mem.c \
+    rosetta_string_simd.c \
+    rosetta_simd_mem_helpers.c
+
+# JIT compilation
+JIT_SRCS = \
+    rosetta_jit.c \
+    rosetta_jit_emit_simd.c
+
+# ============================================================================
+# Refactored components
+# ============================================================================
+
+# Utilities
+REFACTORED_UTILS_SRCS = \
+    rosetta_refactored_utils.c \
+    rosetta_refactored_vector.c \
+    rosetta_refactored_helpers.c \
+    rosetta_memory_utils.c \
+    rosetta_string_utils.c \
+    rosetta_trans_helpers.c
+
+# Instruction implementations (refactored - no duplicates with trans_*.c)
+REFACTORED_INSN_SRCS = \
+    rosetta_refactored_alu.c \
+    rosetta_refactored_control.c
+
+# Syscall implementation
+SYSCALLS_SRCS = \
+    rosetta_syscalls.c \
+    rosetta_syscalls_impl.c
+
+# ============================================================================
+# Runtime components
+# ============================================================================
+
+# ELF binary loaders
+LOADER_SRCS = \
+    rosetta_elf_loader.c \
+    rosetta_macho_loader.c
+
+# Exception and signal handling
+EXCEPTION_SRCS = \
+    rosetta_refactored_exception.c \
+    rosetta_refactored_signal.c
+
+# /proc filesystem emulation
+PROCFS_SRCS = \
+    rosetta_procfs.c
+
+# Runtime and execution
+RUNTIME_SRCS = \
+    rosetta_runtime.c \
+    rosetta_memmgr.c \
+    rosetta_runner.c \
+    rosetta_execute_fixed.c \
+    rosetta_execute_stubs.c \
+    rosetta_exec_helpers.c
+
+# Additional components
+X86_INSNS_SRCS = \
+    rosetta_x86_insns.c
+
+ALU_FULL_SRCS = \
+    rosetta_translate_alu_full.c
+
+# ============================================================================
+# All source files (PRODUCTION BUILD - no test utilities)
+# ============================================================================
+
+# PRODUCTION BUILD NOTES:
+# - Excluded: rosetta_translate.c (test-only ARM64 code generator)
+# - Excluded: rosetta_translate_dispatch.c (test-only)
+# - Excluded: All rosetta_translate_*.c files (use rosetta_trans_*.c instead)
+# - Excluded: rosetta_refactored_mem_insns.c (duplicates rosetta_trans_mem.c)
+
+MODULAR_SRCS = \
+    $(CORE_SRCS) \
+    $(TRANSLATE_SRCS) \
+    $(FP_SRCS) \
+    $(SYSTEM_SRCS) \
+    $(CRYPTO_SRCS) \
+    $(SIMD_SRCS) \
+    $(JIT_SRCS) \
+    $(REFACTORED_UTILS_SRCS) \
+    $(REFACTORED_INSN_SRCS) \
+    $(SYSCALLS_SRCS) \
+    $(LOADER_SRCS) \
+    $(EXCEPTION_SRCS) \
+    $(PROCFS_SRCS) \
+    $(RUNTIME_SRCS) \
+    $(X86_INSNS_SRCS) \
+    $(ALU_FULL_SRCS)
+
+# Object files
+MODULAR_OBJS = $(MODULAR_SRCS:.c=.o)
+
+# Header files
+HEADERS = $(wildcard *.h)
+
+# ============================================================================
+# Production targets
+# ============================================================================
+
+# Default target: build library only (no tests)
+all: librosetta.a
+
+# Static library
+librosetta.a: $(MODULAR_OBJS)
+	ar rcs $@ $^
+	@echo "✅ Production library built successfully"
+	@echo "Object files: $(words $(MODULAR_OBJS))"
+	@echo "Total size: $$((ar t $@ | xargs ls -l 2>/dev/null | awk '{sum+=$$5} END {print sum}))' bytes"
+
+# Individual object compilation
+%.o: %.c $(HEADERS)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+# Production build with -O3 optimization
+production: CFLAGS += -O3 -DNDEBUG
+production: clean all
+	@echo "✅ Production build complete (optimized)"
+
+# Clean build artifacts
+clean:
+	rm -f $(MODULAR_OBJS) librosetta.a
+
+# Phony targets
+.PHONY: all clean production
+
+# Help target
+help:
+	@echo "Rosetta Binary Translator - PRODUCTION Build System"
+	@echo ""
+	@echo "This is the PRODUCTION build configuration"
+	@echo "For development, use the regular Makefile"
+	@echo ""
+	@echo "Targets:"
+	@echo "  all        - Build static library (default)"
+	@echo "  production - Build optimized production library (-O3)"
+	@echo "  clean      - Remove build artifacts"
+	@echo "  help       - Show this help message"
+	@echo ""
+	@echo "Source files: $(words $(MODULAR_SRCS)) files"
+	@echo "Build type: PRODUCTION (no test utilities)"

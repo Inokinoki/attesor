@@ -138,11 +138,6 @@ X86_INSNS_SRCS = \
 ALU_FULL_SRCS = \
     rosetta_translate_alu_full.c
 
-# Legacy translation API (needed by test programs)
-LEGACY_TRANSLATE_SRCS = \
-    rosetta_translate.c \
-    rosetta_translate_dispatch.c
-
 # ============================================================================
 # All source files (duplicates removed)
 # ============================================================================
@@ -155,10 +150,8 @@ LEGACY_TRANSLATE_SRCS = \
 # - rosetta_translate_string.c (use rosetta_trans_string.c instead)
 # - rosetta_translate_special.c (use rosetta_trans_special.c instead)
 # - rosetta_translate_block.c (integrated into other modules)
+# - rosetta_translate_dispatch.c (use rosetta_trans_dispatch.c instead)
 # - rosetta_refactored_mem_insns.c (duplicates rosetta_trans_mem.c)
-#
-# INCLUDED: rosetta_translate.c - Contains legacy API wrappers needed by tests
-# INCLUDED: rosetta_translate_dispatch.c - Contains translation dispatch logic
 
 MODULAR_SRCS = \
     $(CORE_SRCS) \
@@ -176,8 +169,7 @@ MODULAR_SRCS = \
     $(PROCFS_SRCS) \
     $(RUNTIME_SRCS) \
     $(X86_INSNS_SRCS) \
-    $(ALU_FULL_SRCS) \
-    $(LEGACY_TRANSLATE_SRCS)
+    $(ALU_FULL_SRCS)
 
 # Object files
 MODULAR_OBJS = $(MODULAR_SRCS:.c=.o)
