@@ -6,10 +6,11 @@
  * ============================================================================ */
 
 #include "rosetta_trans_mem.h"
+#include "rosetta_optimizations.h"
 #include <stddef.h>
 
 /* Forward declaration - memory translation function */
-static void *memory_translate_addr(uint64_t guest_addr);
+static void *memory_translate_addr(uint64_t guest_addr) HOT_PATH;
 
 static void *memory_translate_addr(uint64_t guest_addr)
 {
@@ -22,7 +23,7 @@ static void *memory_translate_addr(uint64_t guest_addr)
  * Load/Store Translation Functions
  * ============================================================================ */
 
-int translate_ldr(ThreadState *state, const uint8_t *insn)
+int translate_ldr(ThreadState *state, const uint8_t *insn) HOT_PATH
 {
     uint8_t rt = (insn[0] >> 0) & 0x1F;
     uint8_t rn = (insn[1] >> 5) & 0x1F;
@@ -32,7 +33,7 @@ int translate_ldr(ThreadState *state, const uint8_t *insn)
     uint64_t addr = state->host.x[rn] + (imm12 << size);
 
     void *host_addr = memory_translate_addr(addr);
-    if (host_addr == NULL) {
+    if (UNLIKELY(host_addr == NULL)) {
         return -1;
     }
 
