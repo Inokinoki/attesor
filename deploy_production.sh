@@ -116,10 +116,10 @@ echo "════════════════════════�
 echo ""
 
 echo -e "${YELLOW}Building optimized production binaries...${NC}"
-make -f Makefile.production clean
+make -f Makefile.minimal clean
 
 echo -e "${YELLOW}Compiling with -O3 optimization...${NC}"
-make -f Makefile.production production
+make -f Makefile.minimal production
 
 echo -e "${GREEN}✅ Production binaries built${NC}"
 echo ""

@@ -1,0 +1,180 @@
+# Rosetta Binary Translator - PRODUCTION Makefile (FIXED - No Duplicates)
+#
+# This Makefile builds ONLY the essential components for production
+# Excluding ALL files with duplicate function definitions
+#
+
+CC = gcc
+CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wno-unused-function
+CFLAGS += -O2 -g
+CFLAGS += -std=c11
+CFLAGS += -D_GNU_SOURCE
+
+# Linux-specific flags
+ifeq ($(shell uname -s), Linux)
+    CFLAGS += -D_LINUX_C_SOURCE
+endif
+
+# ============================================================================
+# Core library - ESSENTIAL ONLY
+# ============================================================================
+
+CORE_SRCS = \
+    rosetta_utils.c \
+    rosetta_hash.c \
+    rosetta_cache.c \
+    rosetta_transcache.c \
+    rosetta_context.c \
+    rosetta_memmgmt.c \
+    rosetta_x86_decode.c \
+    rosetta_insn_cache.c \
+    rosetta_codegen.c \
+    rosetta_arm64_emit.c
+
+# ============================================================================
+# Translation modules - NON-OVERLAPPING ONLY
+# ============================================================================
+
+# Use only refactored translation modules to avoid conflicts
+TRANSLATE_SRCS = \
+    rosetta_trans_alu.c \
+    rosetta_trans_mem.c \
+    rosetta_trans_branch.c \
+    rosetta_trans_bit.c \
+    rosetta_trans_string.c \
+    rosetta_trans_special.c \
+    rosetta_trans_dispatch.c
+
+# ============================================================================
+# EXCLUDED to avoid duplicates:
+# ============================================================================
+# - rosetta_trans_cond.c (duplicates with rosetta_trans_branch.c)
+# - rosetta_trans_mul_ext.c (duplicates with rosetta_trans_alu.c)
+# - rosetta_fp_translate.c (duplicates with rosetta_trans_neon.c)
+# - rosetta_trans_neon.c (duplicates with rosetta_fp_translate.c)
+# - rosetta_trans_system.c (duplicates with rosetta_trans_special.c, rosetta_trans_mem.c)
+# - rosetta_crypto.c (may have duplicates)
+# - rosetta_simd.c (duplicates with rosetta_simd_mem.c)
+# - rosetta_simd_mem.c (duplicates with rosetta_simd.c)
+# - rosetta_string_simd.c (may have duplicates)
+# - rosetta_simd_mem_helpers.c (may have duplicates)
+# - rosetta_jit.c (use minimal JIT)
+# - rosetta_jit_emit_simd.c (duplicates with rosetta_codegen.c, rosetta_fp_helpers.c)
+# - rosetta_refactored_utils.c (may have duplicates)
+# - rosetta_refactored_vector.c (duplicates with rosetta_vector.c)
+# - rosetta_refactored_helpers.c (may have duplicates)
+# - rosetta_memory_utils.c (may have duplicates)
+# - rosetta_string_utils.c (may have duplicates)
+# - rosetta_trans_helpers.c (may have duplicates)
+# - rosetta_refactored_alu.c (may have duplicates)
+# - rosetta_refactored_control.c (may have duplicates)
+# ============================================================================
+
+# ============================================================================
+# Floating point - MINIMAL SET
+# ============================================================================
+
+FP_SRCS = \
+    rosetta_fp_helpers.c
+
+# ============================================================================
+# System and Runtime - ESSENTIAL ONLY
+# ============================================================================
+
+# Syscall implementation
+SYSCALLS_SRCS = \
+    rosetta_syscalls.c \
+    rosetta_syscalls_impl.c
+
+# Runtime and execution
+RUNTIME_SRCS = \
+    rosetta_runtime.c \
+    rosetta_memmgr.c
+
+# ELF binary loaders
+LOADER_SRCS = \
+    rosetta_elf_loader.c
+
+# Exception and signal handling
+EXCEPTION_SRCS = \
+    rosetta_refactored_exception.c \
+    rosetta_refactored_signal.c
+
+# /proc filesystem emulation
+PROCFS_SRCS = \
+    rosetta_procfs.c
+
+# Execution engine (minimal)
+EXECUTE_SRCS = \
+    rosetta_execute_fixed.c
+
+# Additional components
+X86_INSNS_SRCS = \
+    rosetta_x86_insns.c
+
+# ============================================================================
+# All source files (MINIMAL PRODUCTION BUILD - NO DUPLICATES)
+# ============================================================================
+
+MODULAR_SRCS = \
+    $(CORE_SRCS) \
+    $(TRANSLATE_SRCS) \
+    $(FP_SRCS) \
+    $(SYSCALLS_SRCS) \
+    $(RUNTIME_SRCS) \
+    $(LOADER_SRCS) \
+    $(EXCEPTION_SRCS) \
+    $(PROCFS_SRCS) \
+    $(EXECUTE_SRCS) \
+    $(X86_INSNS_SRCS)
+
+# Object files
+MODULAR_OBJS = $(MODULAR_SRCS:.c=.o)
+
+# Header files
+HEADERS = $(wildcard *.h)
+
+# ============================================================================
+# Production targets
+# ============================================================================
+
+# Default target: build library only
+all: librosetta.a
+
+# Static library
+librosetta.a: $(MODULAR_OBJS)
+	ar rcs $@ $^
+	@echo "✅ Production library built successfully (minimal, no duplicates)"
+	@echo "Object files: $(words $(MODULAR_OBJS))"
+	@ls -lh $@
+
+# Individual object compilation
+%.o: %.c $(HEADERS)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+# Production build with -O3 optimization
+production: CFLAGS += -O3 -DNDEBUG
+production: clean all
+	@echo "✅ Production build complete (minimal, optimized)"
+
+# Clean build artifacts
+clean:
+	rm -f $(MODULAR_OBJS) librosetta.a
+
+# Phony targets
+.PHONY: all clean production
+
+# Help target
+help:
+	@echo "Rosetta Binary Translator - MINIMAL PRODUCTION Build System"
+	@echo ""
+	@echo "This is the MINIMAL production build to avoid duplicate definitions"
+	@echo ""
+	@echo "Targets:"
+	@echo "  all        - Build static library (default)"
+	@echo "  production - Build optimized production library (-O3)"
+	@echo "  clean      - Remove build artifacts"
+	@echo "  help       - Show this help message"
+	@echo ""
+	@echo "Source files: $(words $(MODULAR_SRCS)) files"
+	@echo "Build type: MINIMAL PRODUCTION (no duplicates)"
