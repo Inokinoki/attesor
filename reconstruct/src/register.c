@@ -1,4 +1,5 @@
 #include "oah/register.h"
+#include "oah/guest.h"
 
 #include <stdint.h>
 
@@ -40,6 +41,25 @@ u8 oah_host_xn_for_x86_gpr(oah_x86_gpr g)
         return 0xff;
     }
     return map[g];
+}
+
+void oah_pack_runtime_x(u64 x[16], const oah_guest *g)
+{
+    unsigned i;
+    for (i = 0; i < 16; i++) {
+        x[i] = 0;
+    }
+    for (i = 0; i < OAH_X86_GPR_COUNT; i++) {
+        x[oah_host_xn_for_x86_gpr((oah_x86_gpr)i)] = g->gpr[i];
+    }
+}
+
+void oah_unpack_runtime_x(oah_guest *g, const u64 x[16])
+{
+    unsigned i;
+    for (i = 0; i < OAH_X86_GPR_COUNT; i++) {
+        g->gpr[i] = x[oah_host_xn_for_x86_gpr((oah_x86_gpr)i)];
+    }
 }
 
 const char *oah_register_to_string(u64 reg)

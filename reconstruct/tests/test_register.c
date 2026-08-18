@@ -1,4 +1,5 @@
 #include "oah/register.h"
+#include "oah/guest.h"
 
 #include <stdint.h>
 
@@ -60,6 +61,23 @@ int main(void)
     CHECK_STREQ(oah_segment_register_to_string(1), "CS");
     CHECK_STREQ(oah_segment_register_to_string(5), "GS");
     CHECK(oah_segment_register_to_string(6) == 0);
+
+    {
+        oah_guest g;
+        u64 x[16];
+        oah_guest_init(&g, 0, 0);
+        g.gpr[OAH_X86_RAX] = 0xa1;
+        g.gpr[OAH_X86_RDI] = 0xb2;
+        g.gpr[OAH_X86_R13] = 0xc3;
+        oah_pack_runtime_x(x, &g);
+        CHECK_EQ_U64(x[8], 0xa1);
+        CHECK_EQ_U64(x[15], 0xb2);
+        CHECK_EQ_U64(x[0], 0xc3);
+        g.gpr[OAH_X86_RAX] = 0;
+        oah_unpack_runtime_x(&g, x);
+        CHECK_EQ_U64(g.gpr[OAH_X86_RAX], 0xa1);
+        CHECK_EQ_U64(g.gpr[OAH_X86_RDI], 0xb2);
+    }
 
     return test_report("register");
 }

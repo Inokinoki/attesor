@@ -29,6 +29,7 @@ reconstruct/tests/test_binary
 reconstruct/tests/test_decode_insn
 reconstruct/tests/test_interp
 reconstruct/tests/test_elf_map
+reconstruct/tests/test_translate
 reconstruct/tests/hello.x86_64
 reconstruct/tests/hello.got
 reconstruct/oah

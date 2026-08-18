@@ -1,6 +1,6 @@
 #include "oah/elf_map.h"
 #include "oah/guest.h"
-#include "oah/interp.h"
+#include "oah/translate.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
     }
 
     oah_guest_init(&guest, img.entry, rsp);
-    run = oah_interp_run(&guest, &img, OAH_INTERP_MAX_INSNS);
+    run = oah_jit_run(&guest, &img, OAH_INTERP_MAX_INSNS);
     oah_unmap_elf(&img);
 
     if (run.status == OAH_INTERP_EXIT) {

@@ -50,11 +50,11 @@ reconstruct/
 | 3 | Linux ABI: `/proc` paths, open flags, fake cpuinfo | Format strings + path compares |
 | 4 | Flags (x86 RFLAGS ↔ NZCV), condition codes, x86 decoder `read_int` | Bit copies + 15-byte insn limit |
 | 5 | ELF rodata/text: CC table, `register_to_string`, host syscall NRs | Ghidra collapsed `svc` immediates |
-| 6 | New ELF `oah`: map x86_64 guest, interpret a nolibc slice, syscall bridge | First *runnable* equivalent, not a JIT |
+| 6 | New ELF `oah`: map x86_64 guest, **x86→ARM translate**, runtime syscall shuffle, ARM exec | First runnable equivalent |
 
-`oah` is a **new** program (not Apple's binary). It loads an x86_64 Linux ELF the way `ElfMapper.cpp` requires (first `PT_LOAD` at file offset 0) and runs a small long-mode subset (`mov`, `xor`, `lea [rip]`, `syscall`, `push`/`pop`/`call`/`ret`/`jmp`) until `exit`. Syscall numbers are translated with the public Linux x86_64→AArch64 map when the host is ARM.
+`oah` is a **new** program. It maps an x86_64 Linux ELF (`ElfMapper`: first `PT_LOAD` at file offset 0), translates a long-mode slice to ARM64 using the recovered runtime GPR map (X8–X15 = RAX–RDI, …), emits a `runtime_syscall` shuffle + `svc #0`, and runs that fragment.
 
-This is still not glibc-capable and not a translator. The original JIT / `runtime_*` stubs remain the later replacement for `interp.c`.
+On Apple Silicon the fragment is native ARM; this CI is x86_64, so `arm_exec.c` interprets the same encodings. Glibc guests are still out of scope.
 
 ```
 make -C reconstruct test

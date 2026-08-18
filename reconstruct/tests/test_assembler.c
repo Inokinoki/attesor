@@ -65,6 +65,13 @@ int main(void)
         CHECK(buf.capacity >= buf.size);
     }
 
+    CHECK(oah_emit_movz(&buf, true, 8, 0, 56));
+    CHECK_EQ_U64(last(&buf), 0xd2800708u); /* wrappers: movz x8, #56 */
+    CHECK(oah_emit_svc(&buf, 0));
+    CHECK_EQ_U64(last(&buf), 0xd4000001u);
+    CHECK(oah_emit_movz(&buf, false, 8, 0, 1));
+    CHECK_EQ_U64(last(&buf), 0x52800028u); /* movz w8, #1  (RAX) */
+
     oah_asm_buf_destroy(&buf);
     return test_report("assembler");
 }

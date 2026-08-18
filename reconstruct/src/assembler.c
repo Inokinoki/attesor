@@ -140,3 +140,100 @@ bool oah_emit_ldr_literal_pc(oah_asm_buf *buf, oah_gpr rt)
     oah_asm_emit32(buf, t | 0x58000000u);
     return true;
 }
+
+bool oah_emit_movz(oah_asm_buf *buf, bool is_64, oah_gpr rd, u32 hw, u32 imm16)
+{
+    u8 d;
+    if (hw > 3 || !oah_gpr_to_num(rd, &d)) {
+        return false;
+    }
+    oah_asm_emit32(buf, (is_64 ? 0xd2800000u : 0x52800000u) |
+                            (hw & 3) << 21 | (imm16 & 0xffffu) << 5 | d);
+    return true;
+}
+
+bool oah_emit_movk(oah_asm_buf *buf, bool is_64, oah_gpr rd, u32 hw, u32 imm16)
+{
+    u8 d;
+    if (hw > 3 || !oah_gpr_to_num(rd, &d)) {
+        return false;
+    }
+    oah_asm_emit32(buf, (is_64 ? 0xf2800000u : 0x72800000u) |
+                            (hw & 3) << 21 | (imm16 & 0xffffu) << 5 | d);
+    return true;
+}
+
+bool oah_emit_mov_reg(oah_asm_buf *buf, bool is_64, oah_gpr rd, oah_gpr rm)
+{
+    u8 d, m;
+    if (!oah_gpr_to_num(rd, &d) || !oah_gpr_to_num(rm, &m)) {
+        return false;
+    }
+    /* ORR Rd, XZR, Rm */
+    oah_asm_emit32(buf, (is_64 ? 0xaa0003e0u : 0x2a0003e0u) | (u32)m << 16 | d);
+    return true;
+}
+
+bool oah_emit_eor(oah_asm_buf *buf, bool is_64, oah_gpr rd, oah_gpr rn, oah_gpr rm)
+{
+    u8 d, n, m;
+    if (!oah_gpr_to_num(rd, &d) || !oah_gpr_to_num(rn, &n) || !oah_gpr_to_num(rm, &m)) {
+        return false;
+    }
+    oah_asm_emit32(buf, (is_64 ? 0xca000000u : 0x4a000000u) |
+                            (u32)m << 16 | (u32)n << 5 | d);
+    return true;
+}
+
+bool oah_emit_add_sub_imm(oah_asm_buf *buf, bool is_64, bool is_sub,
+                          oah_gpr rd, oah_gpr rn, u32 imm12)
+{
+    u8 d, n;
+    if (imm12 > 0xfff || !oah_gpr_to_num(rd, &d) || !oah_gpr_to_num_sp(rn, &n)) {
+        return false;
+    }
+    oah_asm_emit32(buf, (is_64 ? 0x91000000u : 0x11000000u) |
+                            (u32)is_sub << 30 | (imm12 & 0xfffu) << 10 |
+                            (u32)n << 5 | d);
+    return true;
+}
+
+bool oah_emit_ldr_str_uoff(oah_asm_buf *buf, bool is_store,
+                           oah_gpr rt, oah_gpr rn, u32 imm_bytes)
+{
+    u8 t, n;
+    if ((imm_bytes & 7) != 0 || imm_bytes > (0xfffu << 3) ||
+        !oah_gpr_to_num(rt, &t) || !oah_gpr_to_num_sp(rn, &n)) {
+        return false;
+    }
+    oah_asm_emit32(buf, (is_store ? 0xf9000000u : 0xf9400000u) |
+                            (imm_bytes >> 3) << 10 | (u32)n << 5 | t);
+    return true;
+}
+
+bool oah_emit_svc(oah_asm_buf *buf, u16 imm)
+{
+    oah_asm_emit32(buf, 0xd4000001u | ((u32)imm << 5));
+    return true;
+}
+
+bool oah_emit_ret(oah_asm_buf *buf)
+{
+    oah_asm_emit32(buf, 0xd65f03c0u);
+    return true;
+}
+
+bool oah_emit_mov_u64(oah_asm_buf *buf, oah_gpr rd, u64 val)
+{
+    u32 hw;
+    if (!oah_emit_movz(buf, true, rd, 0, (u32)(val & 0xffffu))) {
+        return false;
+    }
+    for (hw = 1; hw < 4; hw++) {
+        u32 bits = (u32)((val >> (hw * 16)) & 0xffffu);
+        if (bits != 0 && !oah_emit_movk(buf, true, rd, hw, bits)) {
+            return false;
+        }
+    }
+    return true;
+}

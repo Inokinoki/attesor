@@ -21,7 +21,11 @@ SRC = \
     src/elf_map.c \
     src/decode_insn.c \
     src/interp.c \
-    src/syscall_bridge.c
+    src/syscall_bridge.c \
+    src/runtime_syscall.c \
+    src/translate.c \
+    src/arm_exec.c \
+    src/jit.c
 
 OBJ = $(SRC:.c=.o)
 
@@ -35,7 +39,8 @@ TESTS = \
     tests/test_binary \
     tests/test_decode_insn \
     tests/test_interp \
-    tests/test_elf_map
+    tests/test_elf_map \
+    tests/test_translate
 
 .PHONY: all test clean inventory inventory-binary oah
 

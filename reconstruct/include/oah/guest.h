@@ -28,6 +28,13 @@ typedef struct {
 
 void oah_guest_init(oah_guest *g, u64 entry, u64 rsp);
 
+/*
+ * derived: FUN_800000040650
+ * Copy RAX..R15 into the host Xn that hold them at runtime (and back).
+ */
+void oah_pack_runtime_x(u64 x[16], const oah_guest *g);
+void oah_unpack_runtime_x(oah_guest *g, const u64 x[16]);
+
 #ifdef __cplusplus
 }
 #endif
