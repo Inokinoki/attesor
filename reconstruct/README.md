@@ -61,7 +61,7 @@ make -C reconstruct test
 ./reconstruct/oah reconstruct/tests/hello.x86_64
 ```
 
-Later layers: full x86 decode, JIT in place of `interp.c`, `runtime_*` stubs, glibc guests.
+Later layers: jump into RX fragments on aarch64 (drop `arm_exec` there), full x86 decode, glibc guests.
 
 ## What we will not do
 
