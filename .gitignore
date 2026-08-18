@@ -30,6 +30,10 @@ reconstruct/tests/test_decode_insn
 reconstruct/tests/test_interp
 reconstruct/tests/test_elf_map
 reconstruct/tests/test_translate
+reconstruct/tests/test_arm_native
+reconstruct/tests/test_arm_native-aarch64
 reconstruct/tests/hello.x86_64
 reconstruct/tests/hello.got
+reconstruct/tests/hello.qemu.got
 reconstruct/oah
+reconstruct/oah-aarch64

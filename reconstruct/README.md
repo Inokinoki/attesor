@@ -54,14 +54,19 @@ reconstruct/
 
 `oah` is a **new** program. It maps an x86_64 Linux ELF (`ElfMapper`: first `PT_LOAD` at file offset 0), translates a long-mode slice to ARM64 using the recovered runtime GPR map (X8–X15 = RAX–RDI, …), emits a `runtime_syscall` shuffle + `svc #0`, and runs that fragment.
 
-On Apple Silicon the fragment is native ARM; this CI is x86_64, so `arm_exec.c` interprets the same encodings. Glibc guests are still out of scope.
+On this x86_64 CI, `arm_exec.c` interprets the emitted encodings so `make test` needs no ARM CPU. On aarch64 — Apple Silicon, or `qemu-user` — `oah` mmaps the fragment RX and `blr`s into it; `svc #0` is a real Linux syscall after an x86→asm-generic NR remap. Unit tests keep the interpreter so `exit` does not kill the test process.
 
 ```
 make -C reconstruct test
 ./reconstruct/oah reconstruct/tests/hello.x86_64
+
+# cross-compile + qemu-user (needs gcc-aarch64-linux-gnu, qemu-user-static)
+make -C reconstruct test-qemu
 ```
 
-Later layers: jump into RX fragments on aarch64 (drop `arm_exec` there), full x86 decode, glibc guests.
+Glibc guests are still out of scope.
+
+Later layers: full x86 decode, glibc guests.
 
 ## What we will not do
 

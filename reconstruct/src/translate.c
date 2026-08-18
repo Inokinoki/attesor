@@ -27,8 +27,15 @@ static bool emit_mov_imm(oah_asm_buf *buf, oah_x86_gpr g, u8 opsize, u64 imm)
 
 bool oah_translate_block(oah_asm_buf *buf, oah_image *img, u64 rip, u64 *next_rip)
 {
+    return oah_translate_block_flags(buf, img, rip, next_rip, 0);
+}
+
+bool oah_translate_block_flags(oah_asm_buf *buf, oah_image *img, u64 rip,
+                               u64 *next_rip, u32 flags)
+{
     unsigned n = 0;
     u64 cur = rip;
+    int host_svc = (flags & OAH_XLAT_HOST_SVC) != 0;
 
     if (next_rip) {
         *next_rip = rip;
@@ -99,7 +106,11 @@ bool oah_translate_block(oah_asm_buf *buf, oah_image *img, u64 rip, u64 *next_ri
             }
             break;
         case OAH_OP_SYSCALL:
-            if (!oah_emit_runtime_syscall(buf)) {
+            if (host_svc) {
+                if (!oah_emit_runtime_syscall_host(buf)) {
+                    return false;
+                }
+            } else if (!oah_emit_runtime_syscall(buf)) {
                 return false;
             }
             break;

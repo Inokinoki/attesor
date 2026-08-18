@@ -88,5 +88,35 @@ int main(void)
         close(p[0]);
     }
 
+    {
+        /* Host remap: cmp x8,#1 / movz x8,#64 before svc. */
+        oah_asm_buf buf;
+        u32 w;
+        unsigned i;
+        int saw_cmp1 = 0;
+        int saw_mov64 = 0;
+        int saw_svc = 0;
+
+        oah_asm_buf_init(&buf);
+        CHECK(oah_emit_runtime_syscall_host(&buf));
+        CHECK((buf.size & 3u) == 0);
+        for (i = 0; i + 4 <= buf.size; i += 4) {
+            memcpy(&w, buf.data + i, 4);
+            if (w == 0xf100051fu) {
+                saw_cmp1 = 1;
+            }
+            if (w == 0xd2800808u) {
+                saw_mov64 = 1;
+            }
+            if (w == 0xd4000001u) {
+                saw_svc = 1;
+            }
+        }
+        CHECK(saw_cmp1);
+        CHECK(saw_mov64);
+        CHECK(saw_svc);
+        oah_asm_buf_destroy(&buf);
+    }
+
     return test_report("translate");
 }

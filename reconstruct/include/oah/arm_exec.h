@@ -22,11 +22,21 @@ typedef struct {
  * emitted runtime_syscall shuffle). Exit/exit_group are intercepted so we
  * do not kill the host.
  *
- * On this x86_64 CI the fragment cannot run natively; this is the stand-in
- * for jumping into RX memory on Apple Silicon.
+ * Used by unit tests on every host. `oah` on aarch64 (including qemu-user)
+ * jumps into RX memory via oah_arm_exec_native instead.
  */
 oah_interp_result oah_arm_exec(oah_arm_state *st, const u8 *code, u64 code_size,
                                oah_image *img, u64 max_insns);
+
+/*
+ * mmap the fragment RX and BLR into it. Loads/stores X0–X15 around the call.
+ * RET in the fragment returns here. A live `svc` (exit/exit_group) terminates
+ * the process — that is intentional for `oah`, not for unit tests.
+ *
+ * On non-aarch64 hosts returns OAH_INTERP_DECODE without executing.
+ */
+oah_interp_result oah_arm_exec_native(oah_arm_state *st, const u8 *code,
+                                      u64 code_size);
 
 #ifdef __cplusplus
 }
