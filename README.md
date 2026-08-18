@@ -208,6 +208,10 @@ On Apple Silicon Macs, Rosetta 2 is **not** installed by default. It's triggered
 
 ## This Project
 
+**Current reconstruction lives in [`reconstruct/`](reconstruct/README.md).** It starts from the Ghidra dump (`rosetta_decomp.c`) and only keeps behavior backed by assertion strings, opcode bits, or literal format strings. The older `rosetta_*.c` tree in the repo root is a parallel rewrite and is **not** treated as ground truth.
+
+To reproduce: `make -C reconstruct test` (C interpreter of emitted ARM on any Linux host). On x86_64, `make -C reconstruct test-qemu` cross-compiles `oah-aarch64` and runs the same `hello` guest under `qemu-aarch64-static` so the translated fragment is real AArch64 (`blr` + `svc #0`). Commands, expected output, and ELF checks are in [`reconstruct/README.md`](reconstruct/README.md#build-and-verify).
+
 This repository contains reverse-engineered implementations of functions from the Rosetta 2 binaries. Through careful analysis and decompilation, we've identified and documented the semantic purpose of hundreds of functions.
 
 ### Goals

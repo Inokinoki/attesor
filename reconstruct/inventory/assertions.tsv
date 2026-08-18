@@ -1,0 +1,975 @@
+file	line	function	condition	message	kind	decomp_func	decomp_addr	decomp_line
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_8000000278c4	0x8000000278c4	3247
+Register.h	51	gpr_to_num			assert_partial	FUN_8000000278c4	0x8000000278c4	3268
+Register.h	56	gpr_to_num_sp			assert_partial	FUN_8000000278c4	0x8000000278c4	3285
+Register.h	56	gpr_to_num_sp	gpr != Gpr::XZR	XZR used in unexpected context	assert	FUN_8000000278c4	0x8000000278c4	3286
+Register.h	56	gpr_to_num_sp			assert_partial	FUN_800000027cf8	0x800000027cf8	3412
+Register.h	56	gpr_to_num_sp	gpr != Gpr::XZR	XZR used in unexpected context	assert	FUN_800000027cf8	0x800000027cf8	3413
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000027cf8	0x800000027cf8	3443
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_8000000280d0	0x8000000280d0	3592
+Register.h	56	gpr_to_num_sp			assert_partial	FUN_8000000280d0	0x8000000280d0	3621
+Register.h	56	gpr_to_num_sp	gpr != Gpr::XZR	XZR used in unexpected context	assert	FUN_8000000280d0	0x8000000280d0	3622
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_80000002821c	0x80000002821c	3659
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000028410	0x800000028410	3751
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_8000000284d4	0x8000000284d4	3781
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_80000002861c	0x80000002861c	3846
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000028684	0x800000028684	3866
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_8000000286e0	0x8000000286e0	3886
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000028738	0x800000028738	3902
+Register.h	51	gpr_to_num			assert_partial	FUN_800000028738	0x800000028738	3946
+Register.h	56	gpr_to_num_sp			assert_partial	FUN_800000028738	0x800000028738	3974
+Register.h	56	gpr_to_num_sp	gpr != Gpr::XZR	XZR used in unexpected context	assert	FUN_800000028738	0x800000028738	3975
+AssemblerBase.hpp	1239	ldp_post			assert_partial	FUN_800000028970	0x800000028970	3986
+AssemblerBase.hpp	1239	ldp_post	size == MemSize::S64 || size == MemSize::S32	invalid MemSize for LDP	assert	FUN_800000028970	0x800000028970	3987
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000028970	0x800000028970	3997
+Register.h	56	gpr_to_num_sp			assert_partial	FUN_800000028970	0x800000028970	4035
+Register.h	56	gpr_to_num_sp	gpr != Gpr::XZR	XZR used in unexpected context	assert	FUN_800000028970	0x800000028970	4036
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000028c04	0x800000028c04	4099
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000028c50	0x800000028c50	4112
+AssemblerBase.hpp	1286	ldr_post			assert_partial	FUN_800000028c50	0x800000028c50	4125
+AssemblerBase.hpp	1286	ldr_post	Rt != Rn	unpredictable writeback LDR encoding	assert	FUN_800000028c50	0x800000028c50	4126
+Register.h	56	gpr_to_num_sp			assert_partial	FUN_800000028c50	0x800000028c50	4196
+Register.h	56	gpr_to_num_sp	gpr != Gpr::XZR	XZR used in unexpected context	assert	FUN_800000028c50	0x800000028c50	4197
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000028f70	0x800000028f70	4298
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_8000000290c8	0x8000000290c8	4313
+Register.h	56	gpr_to_num_sp			assert_partial	FUN_8000000290c8	0x8000000290c8	4370
+Register.h	56	gpr_to_num_sp	gpr != Gpr::XZR	XZR used in unexpected context	assert	FUN_8000000290c8	0x8000000290c8	4371
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000029308	0x800000029308	4403
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000029364	0x800000029364	4428
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_8000000293d0	0x8000000293d0	4448
+AssemblerBase.hpp	1859	shl_vec	immh != 0	invalid SHL immh	assert	FUN_800000029428	0x800000029428	4468
+Register.h	51	gpr_to_num			assert_partial	FUN_800000029428	0x800000029428	4488
+AssemblerBase.hpp	2037	stp_pre			assert_partial	FUN_800000029428	0x800000029428	4501
+AssemblerBase.hpp	2037	stp_pre	size == MemSize::S64 || size == MemSize::S32	invalid MemSize for STP	assert	FUN_800000029428	0x800000029428	4502
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000029428	0x800000029428	4513
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_8000000296f8	0x8000000296f8	4569
+AssemblerBase.hpp	2092	str_pre			assert_partial	FUN_8000000296f8	0x8000000296f8	4579
+AssemblerBase.hpp	2092	str_pre	Rt != Rn	unpredictable writeback STR encoding	assert	FUN_8000000296f8	0x8000000296f8	4580
+Register.h	56	gpr_to_num_sp			assert_partial	FUN_8000000296f8	0x8000000296f8	4595
+Register.h	56	gpr_to_num_sp	gpr != Gpr::XZR	XZR used in unexpected context	assert	FUN_8000000296f8	0x8000000296f8	4596
+AssemblerBase.hpp	2196	smov_64			assert_partial	FUN_8000000297e4	0x8000000297e4	4607
+AssemblerBase.hpp	2196	smov_64	(index & 0b11) == index	Invalid index for smov_64	assert	FUN_8000000297e4	0x8000000297e4	4608
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_8000000297e4	0x8000000297e4	4616
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000029878	0x800000029878	4632
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_8000000298d8	0x8000000298d8	4677
+AssemblerBase.hpp	2434	ushr_vec	immh != 0	invalid USHR immh	assert	FUN_800000029a00	0x800000029a00	4702
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000029a80	0x800000029a80	4716
+Repatch.cpp	33	repatch_branch_26			assert_partial	FUN_800000029ad0	0x800000029ad0	4727
+Repatch.cpp	33	repatch_branch_26	(branch_offset & 0b11) == 0	target for branch is not 4B-aligned	assert	FUN_800000029ad0	0x800000029ad0	4728
+Decoder.cpp	636	effects_for_instruction		Invalid opcode for asisdlse: %x	assert_msg	FUN_800000029ba8	0x800000029ba8	4873
+Decoder.cpp	669	effects_for_instruction		Invalid opcode for asisdlse: %x	assert_msg	FUN_800000029ba8	0x800000029ba8	4897
+Decoder.cpp	918	effects_for_instruction			assert_partial	FUN_800000029ba8	0x800000029ba8	5128
+Decoder.cpp	918	effects_for_instruction	inst.u.systemmove.o0 == 0b1	unexpected systemmove encoding	assert	FUN_800000029ba8	0x800000029ba8	5129
+Decoder.cpp	933	effects_for_instruction			assert_partial	FUN_800000029ba8	0x800000029ba8	5137
+Decoder.cpp	933	effects_for_instruction	inst.u.systemmove.op2 == 0b000 || inst.u.systemmove.op2 == 0b001	unexpected systemmove encoding	assert	FUN_800000029ba8	0x800000029ba8	5139
+Decoder.cpp	979	effects_for_instruction		unexpected systemmove encoding	assert_msg	FUN_800000029ba8	0x800000029ba8	5155
+Fixup.cpp	74	fixup_absolute		unrecognized FixupKind	assert_msg	FUN_80000002a500	0x80000002a500	5247
+AssemblerHelpers.cpp	171	is_bitmask_immediate			assert_partial	FUN_80000002a6bc	0x80000002a6bc	5349
+Operand.cpp	44	condition_code_to_string			assert_partial	FUN_80000002ac58	0x80000002ac58	5711
+Operand.cpp	44	condition_code_to_string	cc_index < 16	invalid condition code	assert	FUN_80000002ac58	0x80000002ac58	5712
+Operand.cpp	61	segment_register_to_string			assert_partial	FUN_80000002ac58	0x80000002ac58	5726
+Operand.cpp	61	segment_register_to_string	index < 6	invalid segment register	assert	FUN_80000002ac58	0x80000002ac58	5727
+ThreadContextFcntl.cpp	256	open_auxv_tmp			assert_partial	FUN_80000002bf60	0x80000002bf60	7405
+ThreadContextFcntl.cpp	256	open_auxv_tmp	gStackAuxv != nullptr	Saved stack auxiliary vector is null	assert	FUN_80000002bf60	0x80000002bf60	7406
+ThreadContextFcntl.cpp	333	create_fake_cpuinfo_file			assert_partial	FUN_80000002bf60	0x80000002bf60	7429
+ThreadContextFcntl.cpp	333	create_fake_cpuinfo_file	!memfd_create_result.is_error	Could not memfd_create rosetta_fake_cpuinfo	assert	FUN_80000002bf60	0x80000002bf60	7431
+ThreadContextFcntl.cpp	341	create_fake_cpuinfo_file			assert_partial	FUN_80000002bf60	0x80000002bf60	7447
+ThreadContextFcntl.cpp	341	create_fake_cpuinfo_file	!lseek_result.is_error	Could not lseek rosetta_fake_cpuinfo	assert	FUN_80000002bf60	0x80000002bf60	7448
+ThreadContextFcntl.cpp	300	number_of_processors			assert_partial	FUN_80000002bf60	0x80000002bf60	7453
+ThreadContextFcntl.cpp	300	number_of_processors	!open_result.is_error	Could not open /proc/cpuinfo	assert	FUN_80000002bf60	0x80000002bf60	7454
+ThreadContextFcntl.cpp	311	number_of_processors			assert_partial	FUN_80000002bf60	0x80000002bf60	7464
+ThreadContextFcntl.cpp	311	number_of_processors	!result.is_error	Could not read /proc/cpuinfo	assert	FUN_80000002bf60	0x80000002bf60	7465
+ThreadContextFcntl.cpp	160	is_rosetta_process			assert_partial	FUN_80000002bf60	0x80000002bf60	7493
+ThreadContextFcntl.cpp	178	is_rosetta_process			assert_partial	FUN_80000002bf60	0x80000002bf60	7510
+ThreadContextFcntl.cpp	178	is_rosetta_process	true_path_length_self >= 0	true_path_length_self underflowed!	assert	FUN_80000002bf60	0x80000002bf60	7511
+ThreadContextFcntl.cpp	179	is_rosetta_process	true_path_length_other >= 0	true_path_length_other underflowed!	assert	FUN_80000002bf60	0x80000002bf60	7516
+InitStack.cpp	262	get_argv_skip_for_other_rosetta			assert_partial	FUN_80000002bf60	0x80000002bf60	7527
+InitStack.cpp	262	get_argv_skip_for_other_rosetta	!auxv_fd.is_error	Could not open %s: %lu	assert	FUN_80000002bf60	0x80000002bf60	7528
+InitStack.cpp	268	get_argv_skip_for_other_rosetta			assert_partial	FUN_80000002bf60	0x80000002bf60	7536
+InitStack.cpp	268	get_argv_skip_for_other_rosetta	!read_result.is_error	Could not read: %s %lx	assert	FUN_80000002bf60	0x80000002bf60	7537
+ThreadContextFcntl.cpp	85	create_tempfile			assert_partial	FUN_80000002c750	0x80000002c750	7658
+ThreadContextFcntl.cpp	85	create_tempfile	!result.is_error	Failed to create temporary file	assert	FUN_80000002c750	0x80000002c750	7659
+ThreadContextFcntl.cpp	88	create_tempfile			assert_partial	FUN_80000002c750	0x80000002c750	7666
+ThreadContextFcntl.cpp	88	create_tempfile	!unlinkat_errno(AT_FDCWD, fname, 0).is_error	Failed to unlink temporary file	assert	FUN_80000002c750	0x80000002c750	7667
+ThreadContextFcntl.cpp	142	was_rosetta_process_invoked_directly			assert_partial	FUN_80000002c824	0x80000002c824	7692
+ThreadContextFcntl.cpp	463	fcntl			assert_partial	FUN_80000002cc20	0x80000002cc20	7885
+ThreadContextFcntl.cpp	463	fcntl	cmd == F_GETFL || cmd == F_SETFL	Runtime handler for fcntl should only be called for F_GETFL andF_SETFL	assert	FUN_80000002cc20	0x80000002cc20	7886
+RedBlackTree.h	214	find_parent_for_insertion_no_duplicates		expected no duplicates	assert_msg	FUN_80000002cce4	0x80000002cce4	7983
+RedBlackTree.h	214	find_parent_for_insertion_no_duplicates		expected no duplicates	assert_msg	FUN_80000002d140	0x80000002d140	8145
+TranslationCacheAot.cpp	176	operator()		invalid fragment kind in aot free list	assert_msg	FUN_80000002d50c	0x80000002d50c	8412
+TranslationCacheAot.cpp	244	operator()		invalid fragment kind in aot free list	assert_msg	FUN_80000002d5ec	0x80000002d5ec	8448
+Thread.cpp	18	is_thread_alive			assert_partial	FUN_80000002db70	0x80000002db70	8780
+Thread.cpp	18	is_thread_alive	!result.is_error || result.value == ESRCH	cannot determine if thread %x is valid	assert	FUN_80000002db70	0x80000002db70	8782
+Thread.cpp	50	suspend_all_threads			assert_partial	FUN_80000002dbf8	0x80000002dbf8	8818
+Thread.cpp	50	suspend_all_threads	_suspend_count == 0	only one suspend() allowed	assert	FUN_80000002dbf8	0x80000002dbf8	8819
+ThreadContext.cpp	242	request_suspend			assert_partial	FUN_80000002dbf8	0x80000002dbf8	8862
+ThreadContext.cpp	242	request_suspend	ret.value == ESRCH	unexpected error %lu from rt_tgsigqueueinfo	assert	FUN_80000002dbf8	0x80000002dbf8	8863
+Thread.cpp	28	register_thread_context			assert_partial	FUN_80000002df8c	0x80000002df8c	9067
+Thread.cpp	28	register_thread_context	thread->thread_id == 0	duplicate thread entry found	assert	FUN_80000002df8c	0x80000002df8c	9068
+Thread.cpp	30	register_thread_context			assert_partial	FUN_80000002df8c	0x80000002df8c	9073
+ThreadContext.cpp	218	request_suspend_no_signal			assert_partial	FUN_80000002e360	0x80000002e360	9144
+ThreadContext.cpp	218	request_suspend_no_signal	_suspend_owner == 0	hit a suspend race condition	assert	FUN_80000002e360	0x80000002e360	9145
+ThreadContext.cpp	312	resume			assert_partial	FUN_80000002e428	0x80000002e428	9181
+ThreadContext.cpp	312	resume	_suspend_owner == current_thread	suspend owner does not match thread id used to unlock _suspend_lock	assert	FUN_80000002e428	0x80000002e428	9182
+TranslationCacheAot.cpp	146	operator()		invalid fragment kind in aot free list	assert_msg	FUN_80000002e700	0x80000002e700	9365
+ThreadContextRuntimeSignals.cpp	123	handle_runtime_breakpoints			assert_partial	FUN_80000002e700	0x80000002e700	9475
+ThreadContextRuntimeSignals.cpp	123	handle_runtime_breakpoints	!_is_single_stepping	unexpectedly hit a jit breakpoint while single stepping	assert	FUN_80000002e700	0x80000002e700	9477
+TranslationCacheJit.cpp	189	handle_jit_breakpoint			assert_partial	FUN_80000002e700	0x80000002e700	9501
+TranslationCacheJit.cpp	189	handle_jit_breakpoint	code_fragment->kind == CodeFragmentKind::InvalidJit	metadata kind is not CodeFragmentKind::InvalidJit	assert	FUN_80000002e700	0x80000002e700	9503
+TranslationCacheJit.cpp	209	handle_jit_breakpoint			assert_partial	FUN_80000002e700	0x80000002e700	9519
+TranslationCacheJit.cpp	209	handle_jit_breakpoint	new_arm_address != arm_address	returning to the same address after a jit breakpoint fault	assert	FUN_80000002e700	0x80000002e700	9521
+ThreadContextRuntimeSignals.cpp	371	translate_sigtrap			assert_partial	FUN_80000002edb8	0x80000002edb8	9558
+ThreadContextRuntimeSignals.cpp	371	translate_sigtrap	arm::is_brk_instruction(instruction)	SIGTRAP from kernel was not from a BRK	assert	FUN_80000002edb8	0x80000002edb8	9559
+AssemblerHelpers.cpp	184	brk_inst_to_kind			assert_partial	FUN_80000002edb8	0x80000002edb8	9565
+AssemblerHelpers.cpp	184	brk_inst_to_kind	0 < imm16 && imm16 <= uint16_t(BrkKind::kLastBrkKind)	brk immediate doesn\'t match a BrkKind	assert	FUN_80000002edb8	0x80000002edb8	9567
+ThreadContextRuntimeSignals.cpp	494	runtime_signal_handler			assert_partial	FUN_80000002f0f0	0x80000002f0f0	9728
+ThreadContextRuntimeSignals.cpp	494	runtime_signal_handler	thread_context != nullptr	ThreadContext == nullptr in runtime signal trampoline	assert	FUN_80000002f0f0	0x80000002f0f0	9730
+ThreadContextRuntimeSignals.cpp	501	runtime_signal_handler			assert_partial	FUN_80000002f0f0	0x80000002f0f0	9735
+ThreadContextRuntimeSignals.cpp	501	runtime_signal_handler	signum == info->si_signo	signal numbers differ	assert	FUN_80000002f0f0	0x80000002f0f0	9736
+ThreadContextRuntimeSignals.cpp	507	runtime_signal_handler			assert_partial	FUN_80000002f0f0	0x80000002f0f0	9741
+ThreadContextRuntimeSignals.cpp	507	runtime_signal_handler	ucontext_fault_addr == siginfo_fault_addr	fault address from ucontext and siginfo differ	assert	FUN_80000002f0f0	0x80000002f0f0	9743
+ThreadContextRuntimeSignals.cpp	33	esr_context_from_extended_state		Could not find esr_context from extended state	assert_msg	FUN_80000002f0f0	0x80000002f0f0	9756
+ThreadContextVm.cpp	223	mremap			assert_partial	FUN_80000002f0f0	0x80000002f0f0	10103
+ThreadContextVm.cpp	223	mremap	old_size != 0	mremap with old_size 0 is unsupported.	assert	FUN_80000002f0f0	0x80000002f0f0	10104
+VMAllocationTracker.cpp	705	remap			assert_partial	FUN_80000002f0f0	0x80000002f0f0	10109
+VMAllocationTracker.cpp	705	remap	is_page_aligned(old_interval.left) && is_page_aligned(old_interval.right)	old interval being remapped in VmTracker is not page aligned	assert	FUN_80000002f0f0	0x80000002f0f0	10110
+VMAllocationTracker.cpp	708	remap			assert_partial	FUN_80000002f0f0	0x80000002f0f0	10114
+VMAllocationTracker.cpp	708	remap	is_page_aligned(new_interval.left) && is_page_aligned(new_interval.right)	new interval being remapped in VmTracker is not page aligned	assert	FUN_80000002f0f0	0x80000002f0f0	10116
+VMAllocationTracker.cpp	711	remap			assert_partial	FUN_80000002f0f0	0x80000002f0f0	10129
+VMAllocationTracker.cpp	711	remap	node->is_allocated()	Unable to find existing allocation to remap	assert	FUN_80000002f0f0	0x80000002f0f0	10130
+VMAllocationTracker.cpp	716	remap	metadata.shmid == kInvalidShmID	Attempt to remap the mapping of a shared memory segment	assert	FUN_80000002f0f0	0x80000002f0f0	10135
+VMAllocationTracker.cpp	735	remove_shared_mem			assert_partial	FUN_80000003007c	0x80000003007c	10404
+VMAllocationTracker.cpp	735	remove_shared_mem	is_page_aligned(address)	address of shared memory segment mapping being removed is not page aligned	assert	FUN_80000003007c	0x80000003007c	10405
+VMAllocationTracker.cpp	745	remove_shared_mem			assert_partial	FUN_80000003007c	0x80000003007c	10493
+VMAllocationTracker.cpp	745	remove_shared_mem	rem_idx != -1	Unable to find existing allocation for shared memory segment to unmap	assert	FUN_80000003007c	0x80000003007c	10494
+ThreadContextVm.cpp	392	io_setup			assert_partial	FUN_800000030314	0x800000030314	10522
+ThreadContextVm.cpp	392	io_setup	aio_region	Failed to discover aio region after allocation	assert	FUN_800000030314	0x800000030314	10523
+ThreadContextVm.cpp	412	io_destroy			assert_partial	FUN_8000000303ec	0x8000000303ec	10555
+ThreadContextVm.cpp	412	io_destroy	aio_region	Failed to discover aio region before deletion	assert	FUN_8000000303ec	0x8000000303ec	10556
+Vdso.cpp	18	get_vdso_elf_header		Failed to find vdso elf header in aux vector	assert_msg	FUN_8000000303ec	0x8000000303ec	10673
+Vdso.cpp	31	get_vdso_load_offset		Failed to calculate vdso load offset	assert_msg	FUN_8000000303ec	0x8000000303ec	10681
+Vdso.cpp	45	get_vdso_dynsym_shdr		Failed to find vdso SHT_DYNSYM	assert_msg	FUN_8000000303ec	0x8000000303ec	10701
+Vdso.cpp	59	get_vdso_strtab		Failed to find vdso SHT_STRTAB	assert_msg	FUN_8000000303ec	0x8000000303ec	10710
+VMAllocationTracker.cpp	284	calculate_slab_allocator_size			assert_partial	FUN_8000000303ec	0x8000000303ec	10889
+VMAllocationTracker.cpp	284	calculate_slab_allocator_size	slab_allocator_size < num_ram_bytes	Not enough space on machine to initialize memory tracker.	assert	FUN_8000000303ec	0x8000000303ec	10891
+ProcMapsParser.cpp	139	init_vm_allocation_tracker_from_procmaps			assert_partial	FUN_8000000303ec	0x8000000303ec	10946
+ProcMapsParser.cpp	139	init_vm_allocation_tracker_from_procmaps	!pread_result.is_error	pread failed: %lu	assert	FUN_8000000303ec	0x8000000303ec	10947
+VMAllocationTracker.cpp	268	calculate_slab_allocator_size			assert_partial	FUN_8000000303ec	0x8000000303ec	11002
+VMAllocationTracker.cpp	268	calculate_slab_allocator_size	!result.is_error	Failed to read available memory from sysinfo.	assert	FUN_8000000303ec	0x8000000303ec	11003
+ThreadContextSignals.cpp	255	init_signal_mask_from_kernel			assert_partial	FUN_8000000303ec	0x8000000303ec	11314
+ThreadContextSignals.cpp	255	init_signal_mask_from_kernel	!result.is_error	__rt_sigprocmask failed to get initial signal mask	assert	FUN_8000000303ec	0x8000000303ec	11315
+ThreadContextSignals.cpp	279	init_signal_mask_from_kernel			assert_partial	FUN_8000000303ec	0x8000000303ec	11322
+ThreadContextSignals.cpp	279	init_signal_mask_from_kernel	!result.is_error	__rt_sigprocmask failed to set signal mask	assert	FUN_8000000303ec	0x8000000303ec	11323
+Vdso.cpp	84	initialize_function_table_entry		Failed to find symbol: %s	assert_msg	FUN_800000031e04	0x800000031e04	11677
+ThreadContextSyscalls.cpp	91	before_clone_thread			assert_partial	FUN_800000032040	0x800000032040	11760
+ThreadContextSyscalls.cpp	179	clone_process			assert_partial	FUN_8000000321b0	0x8000000321b0	11843
+ThreadContextSyscalls.cpp	179	clone_process	(flags & CLONE_VM) == 0 || (flags & CLONE_VFORK)	bad set of flags passed to clone process	assert	FUN_8000000321b0	0x8000000321b0	11845
+ThreadContextSyscalls.cpp	467	alarm			assert_partial	FUN_800000032984	0x800000032984	12250
+ThreadContextSyscalls.cpp	467	alarm	setitimer(ITIMER_REAL, &new_val, &old_val) == 0	setitimer failed	assert	FUN_800000032984	0x800000032984	12251
+Thread.cpp	159	is_valid_x86_thread			assert_partial	FUN_8000000331fc	0x8000000331fc	12771
+Thread.cpp	159	is_valid_x86_thread	!thread->is_runtime_thread	runtime thread has a thread context	assert	FUN_8000000331fc	0x8000000331fc	12772
+ThreadContext.cpp	223	translate_indirect_branch			assert_partial	FUN_800000033814	0x800000033814	13094
+ThreadContext.cpp	223	translate_indirect_branch	!_is_single_stepping	Unexpected indirect branch while single stepping	assert	FUN_800000033814	0x800000033814	13095
+ThreadContext.cpp	232	branch_slot_miss			assert_partial	FUN_800000033860	0x800000033860	13111
+ThreadContext.cpp	232	branch_slot_miss	!_is_single_stepping	unexpected branch slot miss while single stepping	assert	FUN_800000033860	0x800000033860	13112
+TranslationCacheJit.cpp	125	iterate_fragments_in_x86_interval_holding_lock			assert_partial	FUN_800000033920	0x800000033920	13154
+TranslationCacheJit.cpp	125	iterate_fragments_in_x86_interval_holding_lock	is_page_aligned(interval.left) && is_page_aligned(interval.right)	interval is not page aligned	assert	FUN_800000033920	0x800000033920	13156
+ThreadContext.cpp	275	request_evict			assert_partial	FUN_800000033a68	0x800000033a68	13324
+ThreadContext.cpp	275	request_evict	ret.value == ESRCH	unexpected error %lu from rt_tgsigqueueinfo	assert	FUN_800000033a68	0x800000033a68	13325
+TranslationCacheAot.cpp	199	remove_aot_fragments			assert_partial	FUN_800000033e60	0x800000033e60	13463
+TranslationCacheAot.cpp	199	remove_aot_fragments	segment_meta->kind == CodeFragmentKind::Aot	found non aot metadata for an aot segment	assert	FUN_800000033e60	0x800000033e60	13465
+TranslationCacheAot.cpp	215	remove_aot_fragments			assert_partial	FUN_800000033e60	0x800000033e60	13491
+TranslationCacheAot.cpp	215	remove_aot_fragments	runtime_routines->kind == CodeFragmentKind::RuntimeRoutines	found non RuntimeRoutines fragment kind=%hhu	assert	FUN_800000033e60	0x800000033e60	13493
+TranslationCacheJit.cpp	349	remove_fragment		invalid fragment type	assert_msg	FUN_800000033e60	0x800000033e60	13560
+TaggedPointer.h	33	set_pointer			assert_partial	FUN_80000003498c	0x80000003498c	14089
+TaggedPointer.h	33	set_pointer	(pointer_value & kValueMask) == 0	pointer uses bits expected for value storage	assert	FUN_80000003498c	0x80000003498c	14090
+TranslationCacheJit.cpp	458	remove_arm_tree_only_translation			assert_partial	FUN_8000000349d8	0x8000000349d8	14109
+TranslationCacheJit.cpp	458	remove_arm_tree_only_translation	fragment != nullptr	translation not found	assert	FUN_8000000349d8	0x8000000349d8	14110
+TranslationCacheJit.cpp	466	remove_arm_tree_only_translation			assert_partial	FUN_8000000349d8	0x8000000349d8	14120
+TranslationCacheJit.cpp	466	remove_arm_tree_only_translation	fragment->kind == CodeFragmentKind::Jit	invalid code fragment kind for translation kind=%hhu	assert	FUN_8000000349d8	0x8000000349d8	14122
+TranslationCacheJit.cpp	468	remove_arm_tree_only_translation			assert_partial	FUN_8000000349d8	0x8000000349d8	14142
+TranslationCacheJit.cpp	468	remove_arm_tree_only_translation	fragment->num_branch_slots == 0	translation unexpectedly had branch slots	assert	FUN_8000000349d8	0x8000000349d8	14144
+TranslationCacheJit.cpp	506	operator()			assert_partial	FUN_800000034b64	0x800000034b64	14179
+TranslationCacheJit.cpp	506	operator()	entry->kind == CodeFragmentKind::InvalidJit	non jit code fragment in jit free list	assert	FUN_800000034b64	0x800000034b64	14181
+TranslationCacheJit.cpp	278	swap_permissions			assert_partial	FUN_800000034da8	0x800000034da8	14475
+TranslationCacheJit.cpp	278	swap_permissions	x86_interval_crosses_pages	x86 translation interval does not span multiple pages	assert	FUN_800000034da8	0x800000034da8	14477
+Operand.cpp	44	condition_code_to_string			assert_partial	FUN_800000034da8	0x800000034da8	14632
+Operand.cpp	44	condition_code_to_string	cc_index < 16	invalid condition code	assert	FUN_800000034da8	0x800000034da8	14633
+Opcode.cpp	680	opcode_to_string			assert_partial	FUN_800000034da8	0x800000034da8	14686
+Opcode.cpp	680	opcode_to_string	index < 668	out-of-bounds opcode index	assert	FUN_800000034da8	0x800000034da8	14687
+BasicBlock.cpp	295	print		unrecognized BadAccessKind	assert_msg	FUN_800000034da8	0x800000034da8	14705
+TranslatorBase.hpp	167	translate			assert_partial	FUN_800000034da8	0x800000034da8	14907
+TranslatorBase.hpp	167	translate	_pending_internal_fixups.empty()	unresolved pending fixups	assert	FUN_800000034da8	0x800000034da8	14908
+RuntimeLibraryBridgeInternal.cpp	114	translate			assert_partial	FUN_800000034da8	0x800000034da8	14919
+RuntimeLibraryBridgeInternal.cpp	114	translate	did_succeed	unable to find translated offset for basic block	assert	FUN_800000034da8	0x800000034da8	14920
+TranslationCacheJit.cpp	628	jit_translation_for_x86_address			assert_partial	FUN_800000034da8	0x800000034da8	14971
+TranslationCacheJit.cpp	628	jit_translation_for_x86_address	branch_entries.size() != 0	expected nonempty branch data	assert	FUN_800000034da8	0x800000034da8	14972
+TwoLevelOffsetMap.cpp	230	TwoLevelOffsetMapWriter			assert_partial	FUN_800000034da8	0x800000034da8	14997
+TwoLevelOffsetMap.cpp	230	TwoLevelOffsetMapWriter	(entry.x86_offset & kInvalidMask) == 0	x86 offset out of range	assert	FUN_800000034da8	0x800000034da8	14998
+TwoLevelOffsetMap.cpp	231	TwoLevelOffsetMapWriter			assert_partial	FUN_800000034da8	0x800000034da8	15004
+TwoLevelOffsetMap.cpp	231	TwoLevelOffsetMapWriter	(entry.arm_offset & kInvalidMask) == 0	arm offset out of range	assert	FUN_800000034da8	0x800000034da8	15005
+RuntimeLibraryBridgeInternal.cpp	140	instruction_offsets			assert_partial	FUN_800000034da8	0x800000034da8	15491
+RuntimeLibraryBridgeInternal.cpp	140	instruction_offsets	segments.size() == 1	jit translations should never be segmented	assert	FUN_800000034da8	0x800000034da8	15492
+TranslationCacheJit.cpp	634	jit_translation_for_x86_address			assert_partial	FUN_800000034da8	0x800000034da8	15504
+TranslationCacheJit.cpp	634	jit_translation_for_x86_address	instruction_offsets.size() != 0	expected nonempty instruction map	assert	FUN_800000034da8	0x800000034da8	15505
+RuntimeLibraryBridgeInternal.cpp	169	apply_fixups			assert_partial	FUN_800000034da8	0x800000034da8	15562
+RuntimeLibraryBridgeInternal.cpp	169	apply_fixups	fixup.kind == FixupKind::Address	invalid fixup kind	assert	FUN_800000034da8	0x800000034da8	15563
+RuntimeLibraryBridgeInternal.cpp	179	apply_fixups			assert_partial	FUN_800000034da8	0x800000034da8	15572
+RuntimeLibraryBridgeInternal.cpp	179	apply_fixups	fixup.kind == FixupKind::Arm64Page21 || fixup.kind == FixupKind::Arm64PageOffset12	invalid fixup kind	assert	FUN_800000034da8	0x800000034da8	15574
+RuntimeLibraryBridgeInternal.cpp	187	apply_fixups			assert_partial	FUN_800000034da8	0x800000034da8	15584
+RuntimeLibraryBridgeInternal.cpp	187	apply_fixups	fixup.kind == FixupKind::Arm64Branch26 || fixup.kind == FixupKind::Address	invalid fixup kind	assert	FUN_800000034da8	0x800000034da8	15586
+TransactionalList.h	27	move_vector			assert_partial	FUN_800000034da8	0x800000034da8	15748
+TransactionalList.h	27	move_vector	_size == _fixups.size()	calling data on an uncommited fixup list	assert	FUN_800000034da8	0x800000034da8	15749
+DeltaCodedOffsetMap.cpp	526	DeltaCodedOffsetMapWriter			assert_partial	FUN_800000034da8	0x800000034da8	15848
+DeltaCodedOffsetMap.cpp	526	DeltaCodedOffsetMapWriter	entry.x86_size == 0	RIP info entry unexpectedly has a size	assert	FUN_800000034da8	0x800000034da8	15849
+TranslationCache.cpp	311	find_translation_in_tree_x86			assert_partial	FUN_800000037be4	0x800000037be4	16442
+TranslationCache.cpp	311	find_translation_in_tree_x86	metadata->x86_base_address <= x86_address	invalid red-black tree search result	assert	FUN_800000037be4	0x800000037be4	16444
+BuilderBase.h	670	finish_block			assert_partial	FUN_8000000386fc	0x8000000386fc	16689
+BuilderBase.h	670	finish_block	_pending_block != nullptr	finish_block called with no pending block	assert	FUN_8000000386fc	0x8000000386fc	16690
+BuilderBase.h	550	block_for_offset			assert_partial	FUN_80000003880c	0x80000003880c	16797
+BuilderBase.h	550	block_for_offset	block != nullptr	BasicBlock requested for unrecognized address	assert	FUN_80000003880c	0x80000003880c	16798
+IrBuilder_x86.h	104	branch_target_from_operand			assert_partial	FUN_800000038b38	0x800000038b38	16886
+IrBuilder_x86.h	104	branch_target_from_operand	operand.kind == x86::OperandKind::BranchOffset	unexpected OperandKind for branch target	assert	FUN_800000038b38	0x800000038b38	16888
+Translator.cpp	528	translate_terminator_single_step		unexpected terminator in single-step mode	assert_msg	FUN_800000039528	0x800000039528	17743
+Translator.cpp	1374	translate_jcc_single_step			assert_partial	FUN_800000039528	0x800000039528	17750
+Translator.cpp	1374	translate_jcc_single_step	target.kind == BranchTargetKind::AbsoluteAddress	unexpected target kind for single step jcc	assert	FUN_800000039528	0x800000039528	17752
+Translator.cpp	604	translate_call_single_step			assert_partial	FUN_800000039528	0x800000039528	17821
+Translator.cpp	604	translate_call_single_step	target.kind == BranchTargetKind::AbsoluteAddress	unexpected target kind for single step call	assert	FUN_800000039528	0x800000039528	17823
+Translator.cpp	1529	translate_jcxz_single_step			assert_partial	FUN_800000039528	0x800000039528	17862
+Translator.cpp	1529	translate_jcxz_single_step	target.kind == BranchTargetKind::AbsoluteAddress	unexpected target kind for single step LOOP	assert	FUN_800000039528	0x800000039528	17864
+Translator.cpp	1723	translate_loop_single_step			assert_partial	FUN_800000039528	0x800000039528	17919
+Translator.cpp	1723	translate_loop_single_step	target.kind == BranchTargetKind::AbsoluteAddress	unexpected target kind for single step LOOP	assert	FUN_800000039528	0x800000039528	17921
+Translator.cpp	1771	translate_loop_single_step		invalid LOOP instruction	assert_msg	FUN_800000039528	0x800000039528	17964
+Translator.cpp	1110	translate_indirect_jmp_dyld_stub			assert_partial	FUN_800000039528	0x800000039528	17997
+Translator.cpp	1110	translate_indirect_jmp_dyld_stub	_mode == TranslationMode::Aot	Can\'t translate dyld stubs in JIT mode	assert	FUN_800000039528	0x800000039528	17998
+Translator.cpp	1350	translate_jcc			assert_partial	FUN_800000039528	0x800000039528	18064
+Translator.cpp	1350	translate_jcc	target.kind == BranchTargetKind::PicAddress	expected PicAddress branch target	assert	FUN_800000039528	0x800000039528	18066
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_800000039528	0x800000039528	18208
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_800000039528	0x800000039528	18209
+Translator.cpp	1506	translate_jcxz			assert_partial	FUN_800000039528	0x800000039528	18299
+Translator.cpp	1506	translate_jcxz	target.kind == BranchTargetKind::PicAddress	expected PicAddress branch target	assert	FUN_800000039528	0x800000039528	18301
+Translator.cpp	1660	translate_loop		invalid LOOP instruction	assert_msg	FUN_800000039528	0x800000039528	18407
+Translator.cpp	1682	translate_loop			assert_partial	FUN_800000039528	0x800000039528	18429
+Translator.cpp	1682	translate_loop	target.kind == BranchTargetKind::PicAddress	expected PicAddress branch target	assert	FUN_800000039528	0x800000039528	18431
+Translator.cpp	1628	translate_loop		invalid LOOP instruction	assert_msg	FUN_800000039528	0x800000039528	18461
+TranslatorBase.hpp	244	translate_block			assert_partial	FUN_800000039528	0x800000039528	18610
+TranslatorBase.hpp	244	translate_block	inst_index <= num_instructions + 1	inst_index should not point past block terminator	assert	FUN_800000039528	0x800000039528	18612
+TranslatorBase.hpp	375	add_branch_island_if_necessary			assert_partial	FUN_800000039528	0x800000039528	18727
+TranslatorBase.hpp	375	add_branch_island_if_necessary	_current_index <= _next_runtime_routines_hole.left	branch island unexpectedly extends into the runtime routines hole	assert	FUN_800000039528	0x800000039528	18729
+AssemblerBuffer.h	42	append_zero_fill			assert_partial	FUN_800000039528	0x800000039528	18812
+AssemblerBuffer.h	42	append_zero_fill	(zero_fill_size % 4) == 0	zero fill size not a multiple of instruction width	assert	FUN_800000039528	0x800000039528	18813
+AssemblerBuffer.h	44	append_zero_fill			assert_partial	FUN_800000039528	0x800000039528	18818
+AssemblerBuffer.h	44	append_zero_fill	_size + zero_fill_size < _capacity * 2	zero fill larger than twice buffer capacity	assert	FUN_800000039528	0x800000039528	18820
+TransactionalList.h	27	move_vector			assert_partial	FUN_80000003bcf0	0x80000003bcf0	19053
+TransactionalList.h	27	move_vector	_size == _fixups.size()	calling data on an uncommited fixup list	assert	FUN_80000003bcf0	0x80000003bcf0	19054
+TranslatorBase.hpp	494	add_internal_fixup			assert_partial	FUN_80000003be94	0x80000003be94	19155
+TranslatorBase.hpp	494	add_internal_fixup	location < _assembler.index()	Out of bounds instruction location	assert	FUN_80000003be94	0x80000003be94	19156
+TranslatorBase.hpp	531	add_internal_fixup		unrecognized FixupKind	assert_msg	FUN_80000003be94	0x80000003be94	19161
+Repatch.cpp	46	repatch_branch_19			assert_partial	FUN_80000003be94	0x80000003be94	19172
+Repatch.cpp	46	repatch_branch_19	(branch_offset & 0b11) == 0	target for branch is not 4B-aligned	assert	FUN_80000003be94	0x80000003be94	19173
+Repatch.cpp	59	repatch_branch_14			assert_partial	FUN_80000003be94	0x80000003be94	19184
+Repatch.cpp	59	repatch_branch_14	(branch_offset & 0b11) == 0	target for branch is not 4B-aligned	assert	FUN_80000003be94	0x80000003be94	19185
+TranslatorBase.hpp	90	rollback			assert_partial	FUN_80000003c1a4	0x80000003c1a4	19456
+TranslatorBase.hpp	90	rollback	_section_offsets.back().x86_offset == block->offset	only the most recent BasicBlock should be rolled back	assert	FUN_80000003c1a4	0x80000003c1a4	19458
+AssemblerBuffer.h	54	set_size	(size % 4) == 0	new size is misaligned	assert	FUN_80000003c1a4	0x80000003c1a4	19468
+AssemblerBuffer.h	53	set_size	size <= _size	new size larger than current size	assert	FUN_80000003c1a4	0x80000003c1a4	19474
+ExecutableHeap.cpp	119	allocate			assert_partial	FUN_80000003c87c	0x80000003c87c	19608
+ExecutableHeap.cpp	119	allocate	is_aligned(size, 2)	misaligned allocation size	assert	FUN_80000003c87c	0x80000003c87c	19609
+BestFitAllocator.h	247	allocate_from_node			assert_partial	FUN_80000003c9b8	0x80000003c9b8	19664
+BestFitAllocator.h	247	allocate_from_node	size > 0	0 sized allocation request	assert	FUN_80000003c9b8	0x80000003c9b8	19665
+BestFitAllocator.h	252	allocate_from_node			assert_partial	FUN_80000003c9b8	0x80000003c9b8	19684
+BestFitAllocator.h	252	allocate_from_node	is_aligned(allocation_base, kAlignmentPower)	expected allocation to be aligned	assert	FUN_80000003c9b8	0x80000003c9b8	19686
+BestFitAllocator.h	248	allocate_from_node	node->size >= size	allocation is smaller than requested size	assert	FUN_80000003c9b8	0x80000003c9b8	19690
+ExecutableHeap.cpp	150	runtime_routines_for_address			assert_partial	FUN_80000003d514	0x80000003d514	20397
+ExecutableHeap.cpp	150	runtime_routines_for_address	chunk != nullptr	no runtime routines for address 0x%lx	assert	FUN_80000003d514	0x80000003d514	20398
+TranslationCacheAbi.cpp	105	abi_info_for_runtime_routines_address			assert_partial	FUN_80000003d648	0x80000003d648	20453
+TranslationCacheAbi.cpp	105	abi_info_for_runtime_routines_address	kRuntimeRoutinesEntryAddress <= arm_address && arm_address < kRuntimeRoutinesEntryAddress + kRuntimeRoutinesSize	invalid runtime routines address	assert	FUN_80000003d648	0x80000003d648	20455
+TranslationCacheJit.cpp	104	operator()			assert_partial	FUN_80000003e06c	0x80000003e06c	20998
+TranslationCacheJit.cpp	104	operator()	did_remove_jit && !did_remove_aot	unexpected code fragment	assert	FUN_80000003e06c	0x80000003e06c	20999
+BranchTargetFinder.cpp	126	process_jcc			assert_partial	FUN_80000003e37c	0x80000003e37c	21407
+BranchTargetFinder.cpp	126	process_jcc	did_succeed	branch target could not be computed for JCC	assert	FUN_80000003e37c	0x80000003e37c	21408
+BranchTargetFinder.cpp	135	process_jcxz			assert_partial	FUN_80000003e37c	0x80000003e37c	21428
+BranchTargetFinder.cpp	135	process_jcxz	did_succeed	branch target could not be computed for JCXZ	assert	FUN_80000003e37c	0x80000003e37c	21429
+BranchTargetFinder.cpp	184	process_loop			assert_partial	FUN_80000003e37c	0x80000003e37c	21592
+BranchTargetFinder.cpp	184	process_loop	did_succeed	branch target could not be computed for LOOP	assert	FUN_80000003e37c	0x80000003e37c	21593
+IrBuilder_x86.h	73	process_call			assert_partial	FUN_80000003e37c	0x80000003e37c	21982
+IrBuilder_x86.h	73	process_call	inst.operands[0].kind == x86::OperandKind::BranchOffset	invalid OperandKind for call	assert	FUN_80000003e37c	0x80000003e37c	21984
+BuilderBase.h	405	process_jcxz		invalid JCXZ opcode	assert_msg	FUN_80000003e37c	0x80000003e37c	22188
+ThreadState.h	55	set_nzcv			assert_partial	FUN_80000004077c	0x80000004077c	22666
+ThreadState.h	55	set_nzcv	(nzcv & ~arm::kCpsrNZCVMask) == 0	invalid bits in new nzcv value	assert	FUN_80000004077c	0x80000004077c	22667
+ThreadContextRegisterState.cpp	414	guest_gpr_state_from_host_state		arm pc should not be NewThread AbiKind	assert_msg	FUN_8000000407cc	0x8000000407cc	22726
+ThreadContextRegisterState.cpp	547	guest_gpr_state_from_host_state		get state should occur from waiters\' queue	assert_msg	FUN_8000000407cc	0x8000000407cc	22762
+ThreadContextRegisterState.cpp	259	guest_gpr_state_from_host_state			assert_partial	FUN_8000000407cc	0x8000000407cc	22792
+ThreadContextRegisterState.cpp	259	guest_gpr_state_from_host_state	instruction_extents.kind == InstructionOffsetKind::Syscall	in runtime_syscall but instruction is not marked as a syscall	assert	FUN_8000000407cc	0x8000000407cc	22794
+ThreadContextRegisterState.cpp	541	guest_gpr_state_from_host_state		arm pc should not be Sigtramp AbiKind	assert_msg	FUN_8000000407cc	0x8000000407cc	22811
+ThreadContextRegisterState.cpp	435	guest_gpr_state_from_host_state			assert_partial	FUN_8000000407cc	0x8000000407cc	22816
+ThreadContextRegisterState.cpp	435	guest_gpr_state_from_host_state	_is_handling_requests && _is_suspended	thread is unexpectedly in the runtime. arm_pc=0x%lx arm_lr=0x%lx saved_lr=0x%lx	assert	FUN_8000000407cc	0x8000000407cc	22817
+ThreadContextRegisterState.cpp	443	guest_gpr_state_from_host_state			assert_partial	FUN_8000000407cc	0x8000000407cc	22823
+ThreadContextRegisterState.cpp	443	guest_gpr_state_from_host_state	lr_abi_info.kind == AbiKind::TranslatedCode	expected saved LR to be in translated code: lr_abi_kind=%hhu saved_lr=0x%lx arm_pc=0x%lx arm_lr=0x%lx	assert	FUN_8000000407cc	0x8000000407cc	22825
+ThreadContextRegisterState.cpp	515	guest_gpr_state_from_host_state		only exit routines should handle thread requests	assert_msg	FUN_8000000407cc	0x8000000407cc	22845
+ThreadContextRegisterState.cpp	478	guest_gpr_state_from_host_state			assert_partial	FUN_8000000407cc	0x8000000407cc	22856
+ThreadContextRegisterState.cpp	478	guest_gpr_state_from_host_state	instruction_extents.kind == InstructionOffsetKind::Syscall	on syscall exit path but instruction isn\'t marked as a syscall	assert	FUN_8000000407cc	0x8000000407cc	22858
+ThreadContextRegisterState.cpp	488	guest_gpr_state_from_host_state			assert_partial	FUN_8000000407cc	0x8000000407cc	22875
+ThreadContextRegisterState.cpp	488	guest_gpr_state_from_host_state	instruction_extents.kind == InstructionOffsetKind::Syscall	on sigreturn exit path but instruction isn\'t marked as a syscall	assert	FUN_8000000407cc	0x8000000407cc	22877
+ThreadContextRegisterState.cpp	335	guest_gpr_state_from_host_state			assert_partial	FUN_8000000407cc	0x8000000407cc	22920
+ThreadContextRegisterState.cpp	335	guest_gpr_state_from_host_state	abi_info.kind == AbiKind::TranslatedCode	expected next ARM PC to be in translated code: abi_kind=%hhu new_arm_pc=0x%lx	assert	FUN_8000000407cc	0x8000000407cc	22922
+ThreadContextRegisterState.cpp	369	guest_gpr_state_from_host_state			assert_partial	FUN_8000000407cc	0x8000000407cc	22953
+ThreadContextRegisterState.cpp	369	guest_gpr_state_from_host_state	lr_abi_info.u.translated_code.instruction_extents.kind == InstructionOffsetKind::Syscall	on sigreturn exit path but instruction isn\'t marked as a syscall	assert	FUN_8000000407cc	0x8000000407cc	22955
+StateRecovery.cpp	282	check_cfg			assert_partial	FUN_800000040f24	0x800000040f24	23098
+StateRecovery.cpp	282	check_cfg	!ret_index.has_value()	expected at most one RET instructions	assert	FUN_800000040f24	0x800000040f24	23099
+StateRecovery.cpp	306	check_cfg			assert_partial	FUN_800000040f24	0x800000040f24	23144
+StateRecovery.cpp	306	check_cfg	*ret_index + 2 == num_insts	RET should be second last instruction in translation	assert	FUN_800000040f24	0x800000040f24	23145
+StateRecovery.cpp	487	determine_state_recovery_action			assert_partial	FUN_800000040f24	0x800000040f24	23150
+StateRecovery.cpp	487	determine_state_recovery_action	num_insts >= 3	there should be at least 3 instructions in a return translation	assert	FUN_800000040f24	0x800000040f24	23152
+StateRecovery.cpp	500	determine_state_recovery_action			assert_partial	FUN_800000040f24	0x800000040f24	23159
+StateRecovery.cpp	500	determine_state_recovery_action	recovery_action.kind == StateRecoveryActionKind::RollBack	returns should always have a RollBack recovery action	assert	FUN_800000040f24	0x800000040f24	23161
+StateRecovery.cpp	270	check_cfg			assert_partial	FUN_800000040f24	0x800000040f24	23173
+StateRecovery.cpp	270	check_cfg	!backedge.has_value()	unsupported CFG structure	assert	FUN_800000040f24	0x800000040f24	23174
+StateRecovery.cpp	293	check_cfg			assert_partial	FUN_800000040f24	0x800000040f24	23190
+StateRecovery.cpp	293	check_cfg	!ret_index.has_value()	unexpected RET in loop	assert	FUN_800000040f24	0x800000040f24	23191
+StateRecovery.cpp	157	determine_loop_properties			assert_partial	FUN_800000040f24	0x800000040f24	23226
+StateRecovery.cpp	157	determine_loop_properties	!modifies_architectural_state	invalid modification of architectural state	assert	FUN_800000040f24	0x800000040f24	23228
+StateRecovery.cpp	202	determine_loop_properties			assert_partial	FUN_800000040f24	0x800000040f24	23278
+StateRecovery.cpp	202	determine_loop_properties	i + 1 == branch_index	unexpected direct branch in Loop CFG	assert	FUN_800000040f24	0x800000040f24	23279
+StateRecovery.cpp	206	determine_loop_properties		unexpected indirect branch in Loop CFG	assert_msg	FUN_800000040f24	0x800000040f24	23286
+StateRecovery.cpp	215	determine_loop_properties			assert_partial	FUN_800000040f24	0x800000040f24	23295
+StateRecovery.cpp	215	determine_loop_properties	!loop_has_nzcv_def	unexpected Loop CFG	assert	FUN_800000040f24	0x800000040f24	23296
+StateRecovery.cpp	216	determine_loop_properties	has_state_mod	expected state modification for LOCK NEG	assert	FUN_800000040f24	0x800000040f24	23301
+StateRecovery.cpp	221	determine_loop_properties			assert_partial	FUN_800000040f24	0x800000040f24	23318
+StateRecovery.cpp	221	determine_loop_properties	!loop_has_nzcv_def	unexpected Loop CFG	assert	FUN_800000040f24	0x800000040f24	23319
+StateRecovery.cpp	222	determine_loop_properties			assert_partial	FUN_800000040f24	0x800000040f24	23324
+StateRecovery.cpp	222	determine_loop_properties	has_state_mod	expected state modification for string instruction	assert	FUN_800000040f24	0x800000040f24	23325
+StateRecovery.cpp	578	determine_state_recovery_action		unimplemented LoopKind	assert_msg	FUN_800000040f24	0x800000040f24	23360
+ArmInterpreterRuntime.cpp	22	interpret			assert_partial	FUN_800000040f24	0x800000040f24	23446
+ArmInterpreterRuntime.cpp	22	interpret	decoded_instruction.has_value()	Failed to decode instruction: 0x%x	assert	FUN_800000040f24	0x800000040f24	23447
+ArmInterpreter.cpp	197	interpret_systemmove			assert_partial	FUN_800000040f24	0x800000040f24	23455
+ArmInterpreter.cpp	197	interpret_systemmove	inst.u.systemmove.o0 == 0b1	unexpected systemmove encoding	assert	FUN_800000040f24	0x800000040f24	23456
+ArmInterpreter.cpp	167	interpret_loadlit			assert_partial	FUN_800000040f24	0x800000040f24	23518
+ArmInterpreter.cpp	167	interpret_loadlit	inst.u.loadlit.opc == 0b01 && inst.u.loadlit.V == 0	unsupported loadlit instruction	assert	FUN_800000040f24	0x800000040f24	23520
+ArmInterpreter.cpp	106	interpret_branch_reg			assert_partial	FUN_800000040f24	0x800000040f24	23556
+ArmInterpreter.cpp	106	interpret_branch_reg	inst.u.branch_reg.op2 == 0b11111 && inst.u.branch_reg.op3 == 0b000000 && inst.u.branch_reg.op4 == 0b00000	unsupported branch_reg instruction	assert	FUN_800000040f24	0x800000040f24	23558
+ArmInterpreter.cpp	128	interpret_branch_reg		unsupported branch_reg instruction	assert_msg	FUN_800000040f24	0x800000040f24	23578
+ThreadContextRegisterState.cpp	694	move_to_instruction_boundary		emulated forward to an arm pc that isn\'t in translated code. arm_pc=0x%lx abi_kind=%hhu emulation_interval=[0x%lx,0x%lx) instruction_interval=[0x%lx, 0x%lx) x86_rip=0x%lx	assert_msg	FUN_800000040f24	0x800000040f24	23689
+ThreadContextRegisterState.cpp	880	host_gpr_state_from_guest_state		did not find a code fragment for the arm pc	assert_msg	FUN_800000041e4c	0x800000041e4c	23729
+ThreadContextRegisterState.cpp	993	host_gpr_state_from_guest_state		GPR thread_set_state is unimplemented for new threads	assert_msg	FUN_800000041e4c	0x800000041e4c	23734
+ThreadContextRegisterState.cpp	962	host_gpr_state_from_guest_state		state update should occur from waiters\' queue	assert_msg	FUN_800000041e4c	0x800000041e4c	23738
+ThreadContextRegisterState.cpp	986	host_gpr_state_from_guest_state		GPR thread_set_state is unsupported while in sa_tramp	assert_msg	FUN_800000041e4c	0x800000041e4c	23743
+ThreadContextRegisterState.cpp	938	host_gpr_state_from_guest_state			assert_partial	FUN_800000041e4c	0x800000041e4c	23747
+ThreadContextRegisterState.cpp	938	host_gpr_state_from_guest_state	_is_handling_requests && _is_suspended	thread is unexpectedly in the runtime. arm_pc=0x%lx arm_lr=0x%lx saved_lr=0x%lx	assert	FUN_800000041e4c	0x800000041e4c	23748
+ThreadContextRegisterState.cpp	944	host_gpr_state_from_guest_state			assert_partial	FUN_800000041e4c	0x800000041e4c	23753
+ThreadContextRegisterState.cpp	944	host_gpr_state_from_guest_state	_suspend_owner == current_thread	suspend owner and thread trying to set state are different	assert	FUN_800000041e4c	0x800000041e4c	23755
+ThreadContextRegisterState.cpp	948	host_gpr_state_from_guest_state			assert_partial	FUN_800000041e4c	0x800000041e4c	23759
+ThreadContextRegisterState.cpp	948	host_gpr_state_from_guest_state	_suspend_lock == kUnfairLockInit	suspend lock not unlocked by resume() as expected	assert	FUN_800000041e4c	0x800000041e4c	23761
+ThreadContextRegisterState.cpp	910	host_gpr_state_from_guest_state			assert_partial	FUN_800000041e4c	0x800000041e4c	23772
+ThreadContextRegisterState.cpp	910	host_gpr_state_from_guest_state	lr_abi_info.kind == AbiKind::TranslatedCode	expected ARM LR to be in translated code: lr_abi_kind=%hhu arm_pc=0x%lx arm_lr=0x%lx	assert	FUN_800000041e4c	0x800000041e4c	23774
+ThreadContextRegisterState.cpp	989	host_gpr_state_from_guest_state		GPR thread_set_state is unsupported while in sigreturn exit	assert_msg	FUN_800000041e4c	0x800000041e4c	23785
+ThreadContextSignals.cpp	287	rt_sigprocmask			assert_partial	FUN_8000000423f8	0x8000000423f8	24129
+ThreadContextSignals.cpp	287	rt_sigprocmask	sigset_size == sizeof(kernel_sigset_t)	sigset size mismatch	assert	FUN_8000000423f8	0x8000000423f8	24130
+ThreadContextSignals.cpp	370	rt_sigreturn			assert_partial	FUN_8000000427c0	0x8000000427c0	24187
+ThreadContextSignals.cpp	370	rt_sigreturn	x86_ucontext_ptr->uc_link == nullptr	x86 ucontext uc_link not null	assert	FUN_8000000427c0	0x8000000427c0	24188
+ThreadContextSignals.cpp	349	arm_fpr_state_from_extended_state		Could not find fpr state from extended state	assert_msg	FUN_800000042a20	0x800000042a20	24259
+ThreadContextSignals.cpp	452	deliver_signal			assert_partial	FUN_800000042a20	0x800000042a20	24298
+ThreadContextSignals.cpp	452	deliver_signal	signal_handler_is_initialized(signum)	expected signal handler to be initialized	assert	FUN_800000042a20	0x800000042a20	24300
+ThreadContextSignals.cpp	517	deliver_signal			assert_partial	FUN_800000042a20	0x800000042a20	24325
+ThreadContextSignals.cpp	517	deliver_signal	arm_gpr_state_ptr->get_sp() == (arm_gpr_state_ptr->__x[18] & THREAD_CONTEXT_X18_SAVEDREG_CLR_MASK)	unexpectedly delivering signal while arm runtime stack is in use	assert	FUN_800000042a20	0x800000042a20	24327
+Signals.cpp	55	sigaddset			assert_partial	FUN_800000042a20	0x800000042a20	24391
+Signals.cpp	55	sigaddset	0 < sig && sig < NSIG	Invalid signal number	assert	FUN_800000042a20	0x800000042a20	24392
+ThreadContextSignals.cpp	784	sa_sigaction_handler			assert_partial	FUN_800000042f44	0x800000042f44	24460
+ThreadContextSignals.cpp	784	sa_sigaction_handler	0 < signum && signum < NSIG	out of bounds signal	assert	FUN_800000042f44	0x800000042f44	24461
+ThreadContextSignals.cpp	790	sa_sigaction_handler			assert_partial	FUN_800000042f44	0x800000042f44	24473
+ThreadContextSignals.cpp	790	sa_sigaction_handler	thread_context != nullptr	ThreadContext == nullptr in signal trampoline	assert	FUN_800000042f44	0x800000042f44	24474
+ThreadContextSignals.cpp	785	sa_sigaction_handler	arm_sigframe->arm_ucontext.uc_link == nullptr	uc_link not null	assert	FUN_800000042f44	0x800000042f44	24479
+PacketHandlers.cpp	216	get_arm_gpr_state			assert_partial	FUN_80000004336c	0x80000004336c	24662
+PacketHandlers.cpp	216	get_arm_gpr_state	iov.iov_len >= sizeof(arm_gpr_state)	ptrace regset data less than that requested	assert	FUN_80000004336c	0x80000004336c	24664
+PacketHandlers.cpp	233	get_arm_fpr_state			assert_partial	FUN_8000000433fc	0x8000000433fc	24696
+PacketHandlers.cpp	233	get_arm_fpr_state	iov.iov_len >= sizeof(arm_fpregs)	ptrace fp regset data less than that requested	assert	FUN_8000000433fc	0x8000000433fc	24697
+PacketHandlers.cpp	196	convert_arm_neon_state64_to_user_fpsimd			assert_partial	FUN_800000043528	0x800000043528	24749
+PacketHandlers.cpp	196	convert_arm_neon_state64_to_user_fpsimd	in->header.magic == FPSIMD_MAGIC && in->header.size == sizeof(arm_neon_state64_t)	invalid fpr state struct	assert	FUN_800000043528	0x800000043528	24751
+PacketHandlers.cpp	307	handle_H_packet			assert_partial	FUN_800000043608	0x800000043608	24794
+PacketHandlers.cpp	307	handle_H_packet	thread_id.has_value()	no threads found	assert	FUN_800000043608	0x800000043608	24795
+PacketHandlers.cpp	344	handle_last_signal_packet			assert_partial	FUN_8000000437c4	0x8000000437c4	24857
+PacketHandlers.cpp	344	handle_last_signal_packet	_last_signal.translated_sys_signal != -1	Last stop signal can\'t be uninitialised	assert	FUN_8000000437c4	0x8000000437c4	24859
+PacketHandlers.cpp	831	handle_g_packet			assert_partial	FUN_800000043ae8	0x800000043ae8	25092
+PacketHandlers.cpp	831	handle_g_packet	current_thread_context != nullptr	Couldn\'t retrieve thread context for current thread	assert	FUN_800000043ae8	0x800000043ae8	25094
+PacketHandlers.cpp	560	x86_regstate_to_string			assert_partial	FUN_800000043ae8	0x800000043ae8	25281
+PacketHandlers.cpp	560	x86_regstate_to_string	size_left > 0	buffer overflow writing x86-64 register state	assert	FUN_800000043ae8	0x800000043ae8	25282
+PacketHandlers.cpp	864	handle_p_packet			assert_partial	FUN_800000044548	0x800000044548	25522
+PacketHandlers.cpp	864	handle_p_packet	current_thread_context != nullptr	Couldn\'t retrieve thread context for current thread	assert	FUN_800000044548	0x800000044548	25524
+PacketHandlers.cpp	620	x86_gpr_to_string			assert_partial	FUN_800000044548	0x800000044548	25532
+PacketHandlers.cpp	620	x86_gpr_to_string	reg_num <= GdbRegisterNumber::Max	invalid x86-64 register to string	assert	FUN_800000044548	0x800000044548	25533
+PacketHandlers.cpp	712	x86_fpr_to_string			assert_partial	FUN_800000044548	0x800000044548	25859
+PacketHandlers.cpp	712	x86_fpr_to_string	reg_num >= GdbFpRegisterNumber::St0 && reg_num <= GdbFpRegisterNumber::Max	invalid x86-64 register to string	assert	FUN_800000044548	0x800000044548	25861
+PacketHandlers.cpp	1164	handle_P_packet			assert_partial	FUN_800000045810	0x800000045810	26361
+PacketHandlers.cpp	1164	handle_P_packet	current_thread_context != nullptr	Couldn\'t retrieve thread context for current thread	assert	FUN_800000045810	0x800000045810	26363
+PacketHandlers.cpp	1199	handle_P_packet			assert_partial	FUN_800000045810	0x800000045810	26394
+PacketHandlers.cpp	1199	handle_P_packet	i <= 16	data buffer overflow for register write	assert	FUN_800000045810	0x800000045810	26395
+PacketHandlers.cpp	906	write_gpr_register			assert_partial	FUN_800000045810	0x800000045810	26433
+PacketHandlers.cpp	906	write_gpr_register	reg_num <= GdbRegisterNumber::Max	gpr written to must be between 0 and 23	assert	FUN_800000045810	0x800000045810	26435
+PacketHandlers.cpp	1004	write_fpr_register			assert_partial	FUN_800000045810	0x800000045810	26492
+PacketHandlers.cpp	1004	write_fpr_register	reg_num >= GdbFpRegisterNumber::St0 && reg_num <= GdbFpRegisterNumber::Max	fpr written to must be between 24 and 38	assert	FUN_800000045810	0x800000045810	26494
+ThreadContextRegisterState.cpp	1087	host_fpr_state_from_guest_state		state update should occur from waiters\' queue	assert_msg	FUN_800000045810	0x800000045810	26587
+ThreadContextRegisterState.cpp	1080	host_fpr_state_from_guest_state			assert_partial	FUN_800000045810	0x800000045810	26592
+ThreadContextRegisterState.cpp	1080	host_fpr_state_from_guest_state	_is_handling_requests && _is_suspended	thread is unexpectedly in the runtime. arm_pc=0x%lx arm_lr=0x%lx saved_lr=0x%lx	assert	FUN_800000045810	0x800000045810	26594
+ThreadContextRegisterState.cpp	1053	host_fpr_state_from_guest_state			assert_partial	FUN_800000045810	0x800000045810	26610
+ThreadContextRegisterState.cpp	1053	host_fpr_state_from_guest_state	lr_abi_info.kind == AbiKind::TranslatedCode	expected ARM LR to be in translated code: lr_abi_kind=%hhu arm_pc=0x%lx arm_lr=0x%lx	assert	FUN_800000045810	0x800000045810	26612
+ThreadContextRegisterState.cpp	1021	host_fpr_state_from_guest_state		did not find a code fragment for the arm pc	assert_msg	FUN_800000045810	0x800000045810	26626
+PacketHandlers.cpp	1258	handle_memory_read_packet			assert_partial	FUN_800000046064	0x800000046064	26671
+PacketHandlers.cpp	1258	handle_memory_read_packet	packet[0] == \'m\' || packet[0] == \'x\'	memory read handling called on wrong packet	assert	FUN_800000046064	0x800000046064	26673
+PacketHandlers.cpp	1472	handle_M_packet			assert_partial	FUN_800000046328	0x800000046328	26820
+PacketHandlers.cpp	1472	handle_M_packet	written_size == size	Couldn\'t pwrite requested size	assert	FUN_800000046328	0x800000046328	26821
+PacketHandlers.cpp	1548	continue_all_threads			assert_partial	FUN_8000000466e8	0x8000000466e8	26974
+PacketHandlers.cpp	1548	continue_all_threads	_proc_state == ProcessState::Stopped || _proc_state == ProcessState::ShouldRaiseSignal	attempting to continue all threads, but not in stopped state	assert	FUN_8000000466e8	0x8000000466e8	26976
+PacketHandlers.cpp	1613	continue_all_threads		invalid pending action kind	assert_msg	FUN_8000000466e8	0x8000000466e8	26989
+PacketHandlers.cpp	1603	continue_all_threads			assert_partial	FUN_8000000466e8	0x8000000466e8	26999
+PacketHandlers.cpp	1603	continue_all_threads	!_wp_info.has_value()	watchpoint hit detected while previous hasn\'t been reported yet	assert	FUN_8000000466e8	0x8000000466e8	27000
+PacketHandlers.cpp	1564	continue_all_threads			assert_partial	FUN_8000000466e8	0x8000000466e8	27009
+PacketHandlers.cpp	1564	continue_all_threads	stopped_thread_context != nullptr	Couldn\'t retrieve thread context for signal owner	assert	FUN_8000000466e8	0x8000000466e8	27011
+FixedArray.h	29	push_back	_size < _max	size exceeds limits	assert	FUN_800000046a34	0x800000046a34	27078
+PacketHandlers.cpp	1722	handle_vCont_packet			assert_partial	FUN_800000046a90	0x800000046a90	27184
+PacketHandlers.cpp	1722	handle_vCont_packet	tid == target_thread	thread %d returned by wait after injecting signal not expected thread (%d)	assert	FUN_800000046a90	0x800000046a90	27186
+PacketHandlers.cpp	1724	handle_vCont_packet			assert_partial	FUN_800000046a90	0x800000046a90	27191
+PacketHandlers.cpp	1724	handle_vCont_packet	WIFSTOPPED(status) && WSTOPSIG(status) == sys_signal	received signal not the one requeued	assert	FUN_800000046a90	0x800000046a90	27193
+PacketHandlers.cpp	1939	enable_watchpoint			assert_partial	FUN_800000046f20	0x800000046f20	27415
+PacketHandlers.cpp	1939	enable_watchpoint	_num_used_wp_regs < _num_hw_wp_regs	can\'t enable watchpoint; out of hw watchpoint registers	assert	FUN_800000046f20	0x800000046f20	27417
+PacketHandlers.cpp	1941	enable_watchpoint			assert_partial	FUN_800000046f20	0x800000046f20	27421
+PacketHandlers.cpp	1941	enable_watchpoint	size <= 8	size exceeds max watchpoint length	assert	FUN_800000046f20	0x800000046f20	27422
+PacketHandlers.cpp	2015	disable_watchpoint			assert_partial	FUN_800000047284	0x800000047284	27537
+PacketHandlers.cpp	2015	disable_watchpoint	byte_mask != 0	enabled watchpoint has byte mask set to 0	assert	FUN_800000047284	0x800000047284	27538
+GDBServer.cpp	151	GDBServer			assert_partial	FUN_800000047700	0x800000047700	27850
+GDBServer.cpp	151	GDBServer	sys_stop_signal == SIGTRAP	Expected inferior to be stopped by SIGTRAP	assert	FUN_800000047700	0x800000047700	27851
+GDBServer.cpp	59	restore_entry_point_instruction			assert_partial	FUN_800000047700	0x800000047700	27861
+GDBServer.cpp	59	restore_entry_point_instruction	gSavedEntryPointInstruction != 0	Entry point instruction has not been saved	assert	FUN_800000047700	0x800000047700	27863
+GDBServer.cpp	186	GDBServer			assert_partial	FUN_800000047700	0x800000047700	27897
+GDBServer.cpp	186	GDBServer	kNumLoHiMapSlots >= _num_hw_wp_regs	not enough low-high watchpoint map slots	assert	FUN_800000047700	0x800000047700	27898
+GDBServer.cpp	63	restore_entry_point_instruction	*instruction_ptr == arm::brk_encoding(arm::BrkKind::HaltOnLaunch)	Halting instruction is not the one we inserted	assert	FUN_800000047700	0x800000047700	27903
+GDBServer.cpp	234	convert_to_gdb_signal		invalid sys signal to convert	assert_msg	FUN_800000047b84	0x800000047b84	27925
+GDBServer.cpp	294	convert_gdb_to_sys_signal		invalid gdb signal to convert	assert_msg	FUN_800000047bf0	0x800000047bf0	27956
+GDBServer.cpp	299	convert_gdb_to_sys_signal		invalid gdb signal to convert	assert_msg	FUN_800000047bf0	0x800000047bf0	27962
+GDBServer.cpp	334	check_if_thread_in_runtime			assert_partial	FUN_800000047ce8	0x800000047ce8	28061
+GDBServer.cpp	334	check_if_thread_in_runtime	_last_signal.owner == thread_context->thread()	last signal owner and thread for signal injection differ	assert	FUN_800000047ce8	0x800000047ce8	28063
+FixedArray.h	29	push_back	_size < _max	size exceeds limits	assert	FUN_800000047ce8	0x800000047ce8	28070
+GDBServer.cpp	378	operator()			assert_partial	FUN_800000047de4	0x800000047de4	28113
+GDBServer.cpp	378	operator()	!tc->is_suspended()	thread in runtime is already suspended	assert	FUN_800000047de4	0x800000047de4	28114
+GDBServer.cpp	406	operator()			assert_partial	FUN_800000047de4	0x800000047de4	28140
+GDBServer.cpp	406	operator()	event == PTRACE_EVENT_CLONE	on the clone path, but didn\'t get the clone event	assert	FUN_800000047de4	0x800000047de4	28141
+GDBServer.cpp	457	operator()			assert_partial	FUN_800000047de4	0x800000047de4	28182
+GDBServer.cpp	457	operator()	WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP	didn\'t get stopping SIGTRAP after interrupting	assert	FUN_800000047de4	0x800000047de4	28184
+GDBServer.cpp	462	operator()			assert_partial	FUN_800000047de4	0x800000047de4	28188
+GDBServer.cpp	462	operator()	wait_tid == tid	thread returned by wait after interrrupt (%d) not expected thread (%d)	assert	FUN_800000047de4	0x800000047de4	28189
+GDBServer.cpp	492	operator()			assert_partial	FUN_800000047de4	0x800000047de4	28216
+GDBServer.cpp	492	operator()	!result.is_error || result.value == ESRCH	cannot determine if thread %x is valid	assert	FUN_800000047de4	0x800000047de4	28218
+GDBServer.cpp	506	operator()			assert_partial	FUN_800000047de4	0x800000047de4	28234
+GDBServer.cpp	506	operator()	thread_context->is_suspended()	thread in runtime not suspended	assert	FUN_800000047de4	0x800000047de4	28235
+GDBServer.cpp	745	report_watchpoint			assert_partial	FUN_800000048348	0x800000048348	28306
+GDBServer.cpp	745	report_watchpoint	_wp_info.has_value()	watchpoint info hasn\'t been set for reporting	assert	FUN_800000048348	0x800000048348	28307
+GDBServer.cpp	751	report_watchpoint			assert_partial	FUN_800000048348	0x800000048348	28313
+GDBServer.cpp	751	report_watchpoint	wp_owner_thread_context != nullptr	watchpoint owner thread context can\'t be null	assert	FUN_800000048348	0x800000048348	28314
+GDBServer.cpp	781	report_watchpoint			assert_partial	FUN_800000048348	0x800000048348	28331
+GDBServer.cpp	781	report_watchpoint	sys_stop_signal == SIGTRAP	Expected inferior to be stopped by SIGTRAP	assert	FUN_800000048348	0x800000048348	28332
+GDBServer.cpp	793	report_watchpoint			assert_partial	FUN_800000048348	0x800000048348	28353
+GDBServer.cpp	793	report_watchpoint	is_single_step_sigtrap(&sig_info)	signal stopped not due to single step	assert	FUN_800000048348	0x800000048348	28354
+GDBServer.cpp	823	halt_all_threads_except			assert_partial	FUN_800000048754	0x800000048754	28459
+GDBServer.cpp	823	halt_all_threads_except	_threads_in_runtime_list.size() == 0 || _threads_in_runtime_list.size() == 1	threads in runtime list not empty before attempting to halt all threads	assert	FUN_800000048754	0x800000048754	28461
+GDBServer.cpp	828	halt_all_threads_except			assert_partial	FUN_800000048754	0x800000048754	28465
+GDBServer.cpp	828	halt_all_threads_except	_threads_in_runtime_list.front()->thread() == except_tid	thread in runtime is not the except tid	assert	FUN_800000048754	0x800000048754	28467
+GDBServer.cpp	921	add_pending_watchpoint			assert_partial	FUN_800000048924	0x800000048924	28536
+GDBServer.cpp	921	add_pending_watchpoint	(status >> 16) == PTRACE_EVENT_STOP	expected incoming ptrace stop event	assert	FUN_800000048924	0x800000048924	28537
+FixedArray.h	29	push_back	_size < _max	size exceeds limits	assert	FUN_800000048a04	0x800000048a04	28552
+GDBServer.cpp	1098	handle_reportable_signal			assert_partial	FUN_800000048ac0	0x800000048ac0	28730
+GDBServer.cpp	1098	handle_reportable_signal	!is_stop_requested()	called in stop requested state	assert	FUN_800000048ac0	0x800000048ac0	28731
+GDBServer.cpp	1033	handle_signal_stop_requested			assert_partial	FUN_800000048ac0	0x800000048ac0	28748
+GDBServer.cpp	1033	handle_signal_stop_requested	is_stop_requested()	handle_signal_stop_requested called while not in stop requested state	assert	FUN_800000048ac0	0x800000048ac0	28750
+GDBServer.cpp	1053	handle_signal_stop_requested			assert_partial	FUN_800000048ac0	0x800000048ac0	28762
+GDBServer.cpp	1053	handle_signal_stop_requested	(status >> 16) == PTRACE_EVENT_STOP	expected incoming ptrace stop event	assert	FUN_800000048ac0	0x800000048ac0	28764
+GDBServer.cpp	709	handle_sigtrap_and_continue			assert_partial	FUN_800000048ac0	0x800000048ac0	28810
+GDBServer.cpp	709	handle_sigtrap_and_continue	_stop_thread_count > 0	stop thread count uninitialised for stop process packet	assert	FUN_800000048ac0	0x800000048ac0	28812
+GDBServer.cpp	673	handle_sigtrap_and_continue			assert_partial	FUN_800000048ac0	0x800000048ac0	28886
+GDBServer.cpp	673	handle_sigtrap_and_continue	event == PTRACE_EVENT_STOP	newly-cloned thread did not get PTRACE_EVENT_STOP	assert	FUN_800000048ac0	0x800000048ac0	28888
+GDBServer.cpp	998	handle_watchpoint			assert_partial	FUN_800000048ac0	0x800000048ac0	29018
+GDBServer.cpp	998	handle_watchpoint	!_wp_info.has_value()	watchpoint hit detected while previous hasn\'t been reported yet	assert	FUN_800000048ac0	0x800000048ac0	29019
+GDBServer.cpp	1014	handle_watchpoint			assert_partial	FUN_800000048ac0	0x800000048ac0	29054
+GDBServer.cpp	1014	handle_watchpoint	!_wp_info.has_value()	watchpoint hit detected while previous hasn\'t been reported yet	assert	FUN_800000048ac0	0x800000048ac0	29055
+GDBServer.cpp	950	compute_wp_start_addr			assert_partial	FUN_800000048ac0	0x800000048ac0	29070
+GDBServer.cpp	950	compute_wp_start_addr	byte_mask != 0	byte mask of an enabled watchpoint can\'t be 0	assert	FUN_800000048ac0	0x800000048ac0	29071
+GDBServer.cpp	1410	thread_main			assert_partial	FUN_8000000496b0	0x8000000496b0	29086
+GDBServer.cpp	1410	thread_main	gEnvironment.debugserver_port != 0	debugserver port must be set	assert	FUN_8000000496b0	0x8000000496b0	29087
+GDBServer.cpp	1479	write_hex_string			assert_partial	FUN_800000049734	0x800000049734	29116
+GDBServer.cpp	1479	write_hex_string	!__builtin_mul_overflow(data_size, 2, &size_needed) && buffer_size >= data_size * 2	output buffer too small	assert	FUN_800000049734	0x800000049734	29118
+AdditionMultiplication.cpp	17	fma_rs			assert_partial	FUN_8000000497b4	0x8000000497b4	29186
+AdditionMultiplication.cpp	17	fma_rs	left_factor.is_normalized() && right_factor.is_normalized() && addend.is_normalized()	FMA requires normalized input	assert	FUN_8000000497b4	0x8000000497b4	29188
+GuardBits.cpp	83	left_shift_128_s			assert_partial	FUN_8000000497b4	0x8000000497b4	29316
+GuardBits.cpp	83	left_shift_128_s	shift_amount < 128	invalid shift amount	assert	FUN_8000000497b4	0x8000000497b4	29317
+Fprem.cpp	178	fprem			assert_partial	FUN_800000049c4c	0x800000049c4c	29500
+Fprem.cpp	178	fprem	0 <= integer_quotient.exponent && integer_quotient.exponent < 64	integer quotient out of range	assert	FUN_800000049c4c	0x800000049c4c	29502
+Rounding.cpp	84	round_to_float80_rs			assert_partial	FUN_800000049c4c	0x800000049c4c	30316
+Rounding.cpp	84	round_to_float80_rs	extended.is_normalized()	rounding input should be normalized	assert	FUN_800000049c4c	0x800000049c4c	30317
+Rounding.cpp	103	round_to_float80_rs			assert_partial	FUN_800000049c4c	0x800000049c4c	30361
+Rounding.cpp	103	round_to_float80_rs	extended.integer_bit() == 0	integer bit should be zero in subnormal result	assert	FUN_800000049c4c	0x800000049c4c	30362
+Rounding.cpp	118	round_to_float80_rs			assert_partial	FUN_800000049c4c	0x800000049c4c	30410
+Rounding.cpp	118	round_to_float80_rs	extended.mantissa == 0	mantissa should be zero at this point	assert	FUN_800000049c4c	0x800000049c4c	30411
+InternalFloat.cpp	13	unpack_float80			assert_partial	FUN_800000049c4c	0x800000049c4c	30472
+InternalFloat.cpp	13	unpack_float80	!source.is_invalid()	only valid f80 values can be unpacked	assert	FUN_800000049c4c	0x800000049c4c	30473
+Rounding.cpp	62	round_internal_rs			assert_partial	FUN_80000004a2bc	0x80000004a2bc	30505
+Rounding.cpp	62	round_internal_rs	value.is_normalized()	rounding input should be normalized	assert	FUN_80000004a2bc	0x80000004a2bc	30506
+Rounding.cpp	73	round_internal_rs			assert_partial	FUN_80000004a2bc	0x80000004a2bc	30517
+Rounding.cpp	73	round_internal_rs	value.mantissa == 0	mantissa should be zero at this point	assert	FUN_80000004a2bc	0x80000004a2bc	30518
+Rounding.cpp	84	round_to_float80_rs			assert_partial	FUN_80000004a2bc	0x80000004a2bc	30560
+Rounding.cpp	84	round_to_float80_rs	extended.is_normalized()	rounding input should be normalized	assert	FUN_80000004a2bc	0x80000004a2bc	30561
+Rounding.cpp	103	round_to_float80_rs			assert_partial	FUN_80000004a2bc	0x80000004a2bc	30584
+Rounding.cpp	103	round_to_float80_rs	extended.integer_bit() == 0	integer bit should be zero in subnormal result	assert	FUN_80000004a2bc	0x80000004a2bc	30585
+Rounding.cpp	118	round_to_float80_rs			assert_partial	FUN_80000004a2bc	0x80000004a2bc	30616
+Rounding.cpp	118	round_to_float80_rs	extended.mantissa == 0	mantissa should be zero at this point	assert	FUN_80000004a2bc	0x80000004a2bc	30617
+Rounding.cpp	175	round_to_float80_pc_rs			assert_partial	FUN_80000004a2bc	0x80000004a2bc	30719
+Rounding.cpp	175	round_to_float80_pc_rs	extended.is_normalized()	rounding input should be normalized	assert	FUN_80000004a2bc	0x80000004a2bc	30720
+Rounding.cpp	218	round_to_float80_pc_rs			assert_partial	FUN_80000004a2bc	0x80000004a2bc	30770
+Rounding.cpp	218	round_to_float80_pc_rs	extended.integer_bit() == 0	integer bit should be zero in subnormal result	assert	FUN_80000004a2bc	0x80000004a2bc	30771
+Rounding.cpp	234	round_to_float80_pc_rs			assert_partial	FUN_80000004a2bc	0x80000004a2bc	30794
+Rounding.cpp	234	round_to_float80_pc_rs	extended.mantissa == 0	mantissa should be zero at this point	assert	FUN_80000004a2bc	0x80000004a2bc	30795
+Division.cpp	56	divide_rs			assert_partial	FUN_80000004a2bc	0x80000004a2bc	30898
+Division.cpp	56	divide_rs	dividend.is_normalized() && divisor.is_normalized()	division requires normalized inputs	assert	FUN_80000004a2bc	0x80000004a2bc	30900
+Division.cpp	61	divide_rs			assert_partial	FUN_80000004a2bc	0x80000004a2bc	30911
+Division.cpp	61	divide_rs	divisor.mantissa != 0	division requires a non-zero denominator	assert	FUN_80000004a2bc	0x80000004a2bc	30912
+Division.cpp	73	divide_rs	e.exponent < 0	expected |e| < 1	assert	FUN_80000004a2bc	0x80000004a2bc	30938
+Division.cpp	67	divide_rs	e.exponent < 0	expected |e| < 1	assert	FUN_80000004a2bc	0x80000004a2bc	30951
+GuardBits.cpp	65	right_shift_64_rs			assert_partial	FUN_80000004ae70	0x80000004ae70	31006
+GuardBits.cpp	65	right_shift_64_rs	shift_amount != 0	zero shift not supported	assert	FUN_80000004ae70	0x80000004ae70	31007
+IndirectBranchHashMap.cpp	139	remove_holding_lock			assert_partial	FUN_80000004c33c	0x80000004c33c	32777
+IndirectBranchHashMap.cpp	139	remove_holding_lock	key != 0	IndirectBranchHashMap key must be nonzero	assert	FUN_80000004c33c	0x80000004c33c	32778
+IndirectBranchHashMap.cpp	210	insert_if_new			assert_partial	FUN_80000004c724	0x80000004c724	33061
+IndirectBranchHashMap.cpp	210	insert_if_new	key != 0	IndirectBranchHashMap key must be nonzero	assert	FUN_80000004c724	0x80000004c724	33062
+IndirectBranchHashMap.cpp	65	Version			assert_partial	FUN_80000004c724	0x80000004c724	33076
+IndirectBranchHashMap.cpp	65	Version	new_power <= kMaxCapacityPower	invalid IndirectBranchHashMap capacity	assert	FUN_80000004c724	0x80000004c724	33077
+DeltaCodedOffsetMap.cpp	338	find_instruction_ranges			assert_partial	FUN_80000004c9cc	0x80000004c9cc	33263
+DeltaCodedOffsetMap.cpp	338	find_instruction_ranges	entry != last_level1_entry	cannot locate map entry for arm offset in DeltaCodedOffsetMap	assert	FUN_80000004c9cc	0x80000004c9cc	33265
+DeltaCodedOffsetMap.cpp	297	find_instruction_ranges			assert_partial	FUN_80000004c9cc	0x80000004c9cc	33282
+DeltaCodedOffsetMap.cpp	297	find_instruction_ranges	entry != first_level1_entry	first entry had no level 2 entries	assert	FUN_80000004c9cc	0x80000004c9cc	33283
+DeltaCodedOffsetMap.cpp	299	find_instruction_ranges			assert_partial	FUN_80000004c9cc	0x80000004c9cc	33288
+DeltaCodedOffsetMap.cpp	299	find_instruction_ranges	entry != last_level1_entry	cannot locate map entry for arm offset in DeltaCodedOffsetMap	assert	FUN_80000004c9cc	0x80000004c9cc	33289
+OffsetPairArray.cpp	107	find_instruction_ranges			assert_partial	FUN_80000004c9cc	0x80000004c9cc	33329
+OffsetPairArray.cpp	107	find_instruction_ranges	entry_index != (_header.num_entries - 1)	cannot locate map entry for arm offset in OffsetPairMap	assert	FUN_80000004c9cc	0x80000004c9cc	33331
+CodeFragmentMetadata.cpp	20	resolve_branch_target			assert_partial	FUN_80000004c9cc	0x80000004c9cc	33343
+CodeFragmentMetadata.cpp	20	resolve_branch_target	decoded_instruction.has_value()	failed to decode instruction: 0x%x	assert	FUN_80000004c9cc	0x80000004c9cc	33344
+CodeFragmentMetadata.cpp	24	resolve_branch_target			assert_partial	FUN_80000004c9cc	0x80000004c9cc	33349
+CodeFragmentMetadata.cpp	24	resolve_branch_target	inst.encoding_class == arm::EncodingClass::branch_imm && inst.u.branch_imm.op == 0	invalid instruction in branch island	assert	FUN_80000004c9cc	0x80000004c9cc	33351
+CodeFragmentMetadata.cpp	66	instruction_extents_for_arm_address			assert_partial	FUN_80000004c9cc	0x80000004c9cc	33362
+CodeFragmentMetadata.cpp	66	instruction_extents_for_arm_address	offsets.x86_instruction_length.has_value()	instruction map missing metadata for special entry	assert	FUN_80000004c9cc	0x80000004c9cc	33364
+CodeFragmentMetadata.cpp	53	instruction_extents_for_arm_address			assert_partial	FUN_80000004c9cc	0x80000004c9cc	33383
+CodeFragmentMetadata.cpp	53	instruction_extents_for_arm_address	arm_interval().contains(address)	code fragment does not contain the given arm address	assert	FUN_80000004c9cc	0x80000004c9cc	33385
+CodeFragmentMetadata.cpp	90	push_back			assert_partial	FUN_80000004ce68	0x80000004ce68	33400
+CodeFragmentMetadata.cpp	90	push_back	fragment->next_free_fragment == nullptr	fragment is already on a free list	assert	FUN_80000004ce68	0x80000004ce68	33401
+CodeFragmentMetadata.cpp	92	push_back			assert_partial	FUN_80000004ce68	0x80000004ce68	33409
+CodeFragmentMetadata.cpp	92	push_back	_tail == nullptr	free list tail already set	assert	FUN_80000004ce68	0x80000004ce68	33410
+CodeFragmentMetadata.cpp	97	push_back			assert_partial	FUN_80000004ce68	0x80000004ce68	33416
+CodeFragmentMetadata.cpp	97	push_back	_tail->next_free_fragment == nullptr	free list tail unexpectedly has a next entry	assert	FUN_80000004ce68	0x80000004ce68	33418
+ArmInterpreter.cpp	386	gpr_operand			assert_partial	FUN_80000004d2b4	0x80000004d2b4	33552
+ArmInterpreter.cpp	386	gpr_operand	new_gpr != kLastSpareGpr	out of temporary gprs	assert	FUN_80000004d2b4	0x80000004d2b4	33553
+ArmInterpreter.cpp	402	fpr_operand			assert_partial	FUN_80000004d328	0x80000004d328	33575
+ArmInterpreter.cpp	402	fpr_operand	new_fpr != kLastSpareFpr	out of temporary fprs	assert	FUN_80000004d328	0x80000004d328	33576
+ArmInterpreter.cpp	713	jit_instruction			assert_partial	FUN_80000004d38c	0x80000004d38c	33717
+ArmInterpreter.cpp	713	jit_instruction	(uint8_t(Rn.new_reg.fpr) + 1) == uint8_t(Rn1->new_reg.fpr)	unable to generate consecutive temporary FPRs	assert	FUN_80000004d38c	0x80000004d38c	33719
+ArmInterpreter.cpp	718	jit_instruction			assert_partial	FUN_80000004d38c	0x80000004d38c	33736
+ArmInterpreter.cpp	718	jit_instruction	(uint8_t(Rn1->new_reg.fpr) + 1) == uint8_t(Rn2->new_reg.fpr)	unable to generate consecutive temporary FPRs	assert	FUN_80000004d38c	0x80000004d38c	33738
+ArmInterpreter.cpp	723	jit_instruction			assert_partial	FUN_80000004d38c	0x80000004d38c	33750
+ArmInterpreter.cpp	723	jit_instruction	(uint8_t(Rn2->new_reg.fpr) + 1) == uint8_t(Rn3->new_reg.fpr)	unable to generate consecutive temporary FPRs	assert	FUN_80000004d38c	0x80000004d38c	33752
+ArmInterpreter.cpp	424	jit_instruction		These encoding classes should only appear in Full System Rosetta	assert_msg	FUN_80000004d38c	0x80000004d38c	33785
+ArmInterpreter.cpp	465	jit_instruction	inst.u.barriers.Rt == 0b11111	barrier unexpectedly uses Rt	assert	FUN_80000004d38c	0x80000004d38c	33790
+ArmInterpreter.cpp	1099	jit_instruction		interpret_instruction should have handled this class	assert_msg	FUN_80000004d38c	0x80000004d38c	33822
+ArmInterpreter.cpp	1088	jit_instruction		ldst_unpriv not expected in user code	assert_msg	FUN_80000004d38c	0x80000004d38c	33950
+ArmInterpreter.cpp	1051	jit_instruction			assert_partial	FUN_80000004d38c	0x80000004d38c	33974
+ArmInterpreter.cpp	1051	jit_instruction	inst.u.ldstexcl.Rt2 == 0b11111 && inst.u.ldstexcl.o1 == 1	unsupported ldstexcl instruction	assert	FUN_80000004d38c	0x80000004d38c	33976
+ArmInterpreter.cpp	585	jit_instruction			assert_partial	FUN_80000004d38c	0x80000004d38c	34091
+ArmInterpreter.cpp	585	jit_instruction	inst.u.pstate.Rt == 0b11111	pstate unexpectedly uses Rt	assert	FUN_80000004d38c	0x80000004d38c	34092
+ArmInterpreter.cpp	1103	jit_instruction			assert_partial	FUN_80000004d38c	0x80000004d38c	34110
+ArmInterpreter.cpp	1103	jit_instruction	_assembler.buffer().size() <= kInterpreterAllocationSize	interpreter jit allocation too small	assert	FUN_80000004d38c	0x80000004d38c	34112
+FstIeee.cpp	103	convert_to_ieee			assert_partial	FUN_80000004efa8	0x80000004efa8	34851
+FstIeee.cpp	103	convert_to_ieee	(mantissa & (1ull << FloatTypeInfo::kMantissaSize)) == 0	integer bit should be zero in subnormal result	assert	FUN_80000004efa8	0x80000004efa8	34853
+FstIeee.cpp	118	convert_to_ieee			assert_partial	FUN_80000004efa8	0x80000004efa8	34874
+FstIeee.cpp	118	convert_to_ieee	mantissa == (mantissa & kExplicitMantissaMask)	mantissa outside of target range	assert	FUN_80000004efa8	0x80000004efa8	34876
+FstIeee.cpp	103	convert_to_ieee			assert_partial	FUN_80000004f2f4	0x80000004f2f4	35007
+FstIeee.cpp	103	convert_to_ieee	(mantissa & (1ull << FloatTypeInfo::kMantissaSize)) == 0	integer bit should be zero in subnormal result	assert	FUN_80000004f2f4	0x80000004f2f4	35009
+FstIeee.cpp	118	convert_to_ieee			assert_partial	FUN_80000004f2f4	0x80000004f2f4	35031
+FstIeee.cpp	118	convert_to_ieee	mantissa == (mantissa & kExplicitMantissaMask)	mantissa outside of target range	assert	FUN_80000004f2f4	0x80000004f2f4	35033
+x87.cpp	423	x87_fcom_ST		invalid number of pops	assert_msg	FUN_80000004f90c	0x80000004f90c	35284
+x87.cpp	476	x87_fucom		invalid number of pops	assert_msg	FUN_80000004fc50	0x80000004fc50	35441
+Fsqrt.cpp	56	sqrt_rs			assert_partial	FUN_800000052748	0x800000052748	37077
+Fsqrt.cpp	56	sqrt_rs	operand.is_normalized()	expected normalized input	assert	FUN_800000052748	0x800000052748	37078
+Signals.cpp	85	kernel_sigismember			assert_partial	FUN_800000054e14	0x800000054e14	38669
+Signals.cpp	85	kernel_sigismember	0 < sig && sig < NSIG	Invalid signal number	assert	FUN_800000054e14	0x800000054e14	38670
+Mutex.cpp	69	mutex_unlock	!err.is_error	futex wake failed %ld	assert	FUN_800000054ef4	0x800000054ef4	38724
+MmapTracker.cpp	169	mmap_guest_errno			assert_partial	FUN_800000055158	0x800000055158	38868
+MmapTracker.cpp	169	mmap_guest_errno	VmTracker::kGuestAllocationInterval.contains( reinterpret_cast<uint64_t>(addr))	Attempted to mmap a guest region in at a non-guest address %p	assert	FUN_800000055158	0x800000055158	38870
+UnfairLock.cpp	121	unfair_lock_unlock_slow			assert_partial	FUN_800000055374	0x800000055374	38926
+UnfairLock.cpp	121	unfair_lock_unlock_slow	current_value == (thread | FUTEX_WAITERS)	unexpected value in futex when unlocking value=%x expected=%x	assert	FUN_800000055374	0x800000055374	38928
+Operand.h	116	operand_size			assert_partial	FUN_800000055874	0x800000055874	39224
+Operand.h	116	operand_size	operand.kind != OperandKind::ConditionCode	ConditionCode operands have no size	assert	FUN_800000055874	0x800000055874	39225
+Translator.h	553	operand_size_to_data_size			assert_partial	FUN_800000055874	0x800000055874	39231
+Translator.h	553	operand_size_to_data_size	size <= OperandSize::S64	OperandSize does not correspond to a DataSize	assert	FUN_800000055874	0x800000055874	39232
+Translator.h	741	translate_vector_low			assert_partial	FUN_800000055bac	0x800000055bac	39322
+Translator.h	741	translate_vector_low	reg.is_vector() && reg.index < 16	translate_vector_low called on non-vector register	assert	FUN_800000055bac	0x800000055bac	39323
+Translator.cpp	1039	translate_jmp			assert_partial	FUN_800000055d58	0x800000055d58	39453
+Translator.cpp	1039	translate_jmp	mode != TerminatorMode::SingleStep || target.kind == BranchTargetKind::AbsoluteAddress	unexpected target kind for single-step JMP	assert	FUN_800000055d58	0x800000055d58	39455
+Translator.cpp	1189	translate_far_jmp		invalid operand for FAR JMP	assert_msg	FUN_800000056040	0x800000056040	39551
+Operand.h	116	operand_size			assert_partial	FUN_800000056040	0x800000056040	39561
+Operand.h	116	operand_size	operand.kind != OperandKind::ConditionCode	ConditionCode operands have no size	assert	FUN_800000056040	0x800000056040	39563
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_800000056040	0x800000056040	39568
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_800000056040	0x800000056040	39569
+Translator.cpp	1173	translate_far_jmp		unexpected operand size	assert_msg	FUN_800000056040	0x800000056040	39574
+Translator.cpp	715	segment_reg_to_thread_context_offset			assert_partial	FUN_800000056040	0x800000056040	39595
+Translator.cpp	715	segment_reg_to_thread_context_offset	offset % 2 == 0	expect 16-bit-aligned offset	assert	FUN_800000056040	0x800000056040	39596
+Operand.h	116	operand_size			assert_partial	FUN_800000056408	0x800000056408	39666
+Operand.h	116	operand_size	operand.kind != OperandKind::ConditionCode	ConditionCode operands have no size	assert	FUN_800000056408	0x800000056408	39667
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_800000056408	0x800000056408	39680
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_800000056408	0x800000056408	39681
+Translator.cpp	771	translate_far_call		invalid operand for FAR CALL	assert_msg	FUN_800000056608	0x800000056608	39728
+Operand.h	116	operand_size			assert_partial	FUN_800000056608	0x800000056608	39738
+Operand.h	116	operand_size	operand.kind != OperandKind::ConditionCode	ConditionCode operands have no size	assert	FUN_800000056608	0x800000056608	39739
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_800000056608	0x800000056608	39744
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_800000056608	0x800000056608	39745
+Translator.cpp	755	translate_far_call		unexpected operand size	assert_msg	FUN_800000056608	0x800000056608	39750
+Translator.cpp	715	segment_reg_to_thread_context_offset			assert_partial	FUN_800000056608	0x800000056608	39774
+Translator.cpp	715	segment_reg_to_thread_context_offset	offset % 2 == 0	expect 16-bit-aligned offset	assert	FUN_800000056608	0x800000056608	39775
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_800000056a60	0x800000056a60	39827
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_800000056a60	0x800000056a60	39828
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_800000056be8	0x800000056be8	39894
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_800000056be8	0x800000056be8	39895
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_800000056dd4	0x800000056dd4	39973
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_800000056dd4	0x800000056dd4	39974
+Translator.cpp	877	translate_far_ret		unexpected operand size	assert_msg	FUN_800000056dd4	0x800000056dd4	39986
+Translator.cpp	910	translate_far_ret		unexpected operand size	assert_msg	FUN_800000056dd4	0x800000056dd4	40017
+Translator.cpp	1009	translate_far_ret_immediate		unexpected operand size	assert_msg	FUN_800000057120	0x800000057120	40072
+TranslatorHelpers.hpp	136	read_literal_no_xzr			assert_partial	FUN_8000000575f8	0x8000000575f8	40217
+TranslatorHelpers.hpp	136	read_literal_no_xzr	result_reg == dst_reg	unexpected read_literal result register	assert	FUN_8000000575f8	0x8000000575f8	40218
+TranslatorBase.hpp	476	fixup_last_instruction_branch_target			assert_partial	FUN_8000000578b8	0x8000000578b8	40351
+TranslatorBase.hpp	476	fixup_last_instruction_branch_target	target.kind == ir::BranchTargetKind::BasicBlock	unsupported BranchTargetKind for branch fixups	assert	FUN_8000000578b8	0x8000000578b8	40353
+Translator.h	612	translate_condition_code			assert_partial	FUN_800000057bc8	0x800000057bc8	40500
+Translator.h	612	translate_condition_code	static_cast<uint8_t>(cc) < 16	invalid ConditionCode	assert	FUN_800000057bc8	0x800000057bc8	40501
+Translator.h	614	translate_condition_code			assert_partial	FUN_800000057bc8	0x800000057bc8	40507
+Translator.h	614	translate_condition_code	cc != x86::ConditionCode::P && cc != x86::ConditionCode::NP	parity flag conditions must be special-cased	assert	FUN_800000057bc8	0x800000057bc8	40509
+Translator.cpp	715	segment_reg_to_thread_context_offset			assert_partial	FUN_800000057c50	0x800000057c50	40522
+Translator.cpp	715	segment_reg_to_thread_context_offset	offset % 2 == 0	expect 16-bit-aligned offset	assert	FUN_800000057c50	0x800000057c50	40523
+TranslatorBitTest.cpp	389	translate_bt_atomic		unexpected opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	41506
+TranslatorBitTest.cpp	348	translate_bt_atomic		unexpected opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	41546
+TranslatorBitTest.cpp	211	translate_bt		unexpected opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	41618
+TranslatorBitTest.cpp	80	imm_info_for_low_index_mask		invalid OperandSize	assert_msg	FUN_800000057c8c	0x800000057c8c	41694
+TranslatorBitTest.cpp	299	translate_bt		unexpected opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	41750
+TranslatorArithmetic.cpp	380	translate_cmpxchg16b			assert_partial	FUN_800000057c8c	0x800000057c8c	42198
+TranslatorArithmetic.cpp	380	translate_cmpxchg16b	gpr_to_num(src_low) + 1 == gpr_to_num(src_high) && gpr_to_num(tmp1) + 1 == gpr_to_num(tmp2)	non-contiguous temporary registers for CASP	assert	FUN_800000057c8c	0x800000057c8c	42200
+Register.h	51	gpr_to_num			assert_partial	FUN_800000057c8c	0x800000057c8c	42231
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000057c8c	0x800000057c8c	42232
+TranslatorMulDiv.cpp	54	high_reg_is_liveout		invalid OperandSize for mul/div	assert_msg	FUN_800000057c8c	0x800000057c8c	42622
+TranslatorMulDiv.cpp	375	translate_div		invalid OperandSize	assert_msg	FUN_800000057c8c	0x800000057c8c	42627
+TranslatorX87.cpp	386	translate_fcomi_fucomi			assert_partial	FUN_800000057c8c	0x800000057c8c	43024
+TranslatorX87.cpp	386	translate_fcomi_fucomi	st_reg.is_stack()	non stack register for ST(i) op	assert	FUN_800000057c8c	0x800000057c8c	43025
+TranslatorX87.cpp	408	translate_fcomi_fucomi		unexpected opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	43033
+Translator.cpp	4325	translate_instruction		privileged instruction should\'ve been treated as terminator	assert_msg	FUN_800000057c8c	0x800000057c8c	43137
+Translator.cpp	4351	translate_instruction		terminator shouldn\'t be translated as instruction	assert_msg	FUN_800000057c8c	0x800000057c8c	43164
+TranslatorStringOps.cpp	153	translate_movs_string		invalid MOVS variant	assert_msg	FUN_800000057c8c	0x800000057c8c	43373
+Operand.h	116	operand_size			assert_partial	FUN_800000057c8c	0x800000057c8c	43631
+Operand.h	116	operand_size	operand.kind != OperandKind::ConditionCode	ConditionCode operands have no size	assert	FUN_800000057c8c	0x800000057c8c	43632
+Translator.h	553	operand_size_to_data_size			assert_partial	FUN_800000057c8c	0x800000057c8c	43639
+Translator.h	553	operand_size_to_data_size	size <= OperandSize::S64	OperandSize does not correspond to a DataSize	assert	FUN_800000057c8c	0x800000057c8c	43640
+TranslatorRotations.cpp	434	translate_rol		unexpected OperandSize	assert_msg	FUN_800000057c8c	0x800000057c8c	44658
+TranslatorRotations.cpp	542	translate_ror		unexpected OperandSize	assert_msg	FUN_800000057c8c	0x800000057c8c	44783
+TranslatorRotations.cpp	620	translate_ror_imm		unexpected OperandSize	assert_msg	FUN_800000057c8c	0x800000057c8c	44904
+TranslatorShifts.cpp	327	translate_shld		invalid OperandSize for SHLD	assert_msg	FUN_800000057c8c	0x800000057c8c	45779
+TranslatorShifts.cpp	546	translate_shrd		invalid OperandSize for SHRD	assert_msg	FUN_800000057c8c	0x800000057c8c	46248
+Register.h	56	gpr_to_num_sp			assert_partial	FUN_800000057c8c	0x800000057c8c	46455
+Register.h	56	gpr_to_num_sp	gpr != Gpr::XZR	XZR used in unexpected context	assert	FUN_800000057c8c	0x800000057c8c	46456
+TranslatorSseFpComparisons.cpp	761	translate_vtestp		unrecognized VTESTP variant	assert_msg	FUN_800000057c8c	0x800000057c8c	46685
+TranslatorLogical.cpp	378	translate_xor		unexpected register class	assert_msg	FUN_800000057c8c	0x800000057c8c	46979
+TranslatorAes.cpp	29	translate_aesdec			assert_partial	FUN_800000057c8c	0x800000057c8c	47116
+TranslatorAes.cpp	29	translate_aesdec	src2.count == 1 && src1.count == 1 && dst.count() == 1	Unsupported VAES instruction	assert	FUN_800000057c8c	0x800000057c8c	47118
+TranslatorAes.cpp	75	translate_aesdeclast			assert_partial	FUN_800000057c8c	0x800000057c8c	47158
+TranslatorAes.cpp	75	translate_aesdeclast	src2.count == 1 && src1.count == 1 && dst.count() == 1	Unsupported VAES instruction	assert	FUN_800000057c8c	0x800000057c8c	47160
+TranslatorAes.cpp	392	translate_aesenc			assert_partial	FUN_800000057c8c	0x800000057c8c	47199
+TranslatorAes.cpp	392	translate_aesenc	src2.count == 1 && src1.count == 1 && dst.count() == 1	Unsupported VAES instruction	assert	FUN_800000057c8c	0x800000057c8c	47201
+TranslatorAes.cpp	439	translate_aesenclast			assert_partial	FUN_800000057c8c	0x800000057c8c	47250
+TranslatorAes.cpp	439	translate_aesenclast	src2.count == 1 && src1.count == 1 && dst.count() == 1	Unsupported VAES instruction	assert	FUN_800000057c8c	0x800000057c8c	47252
+TranslatorSseFpComparisons.cpp	369	translate_cmps		expected CMPSD or CMPSS	assert_msg	FUN_800000057c8c	0x800000057c8c	48035
+Translator.cpp	4384	translate_crc32		invalid operand size for CRC32	assert_msg	FUN_800000057c8c	0x800000057c8c	48458
+TranslatorSseConversions.cpp	55	translate_cvtpd2i		invalid CVT opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	48514
+TranslatorSseConversions.cpp	158	translate_cvtpd2i		Invalid vector slice count	assert_msg	FUN_800000057c8c	0x800000057c8c	48550
+TranslatorSseConversions.cpp	212	translate_cvtps2i		invalid CVT opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	48685
+TranslatorSseConversions.cpp	314	translate_cvts2i		invalid CVT opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	48817
+Translator.h	567	translate_gpr			assert_partial	FUN_800000057c8c	0x800000057c8c	48846
+Translator.h	567	translate_gpr	reg.is_gpr() && reg.index < 16	translate_gpr called on non-GPR	assert	FUN_800000057c8c	0x800000057c8c	48847
+TranslatorSseMovesShuffles.cpp	286	translate_extractps			assert_partial	FUN_800000057c8c	0x800000057c8c	49322
+TranslatorSseMovesShuffles.cpp	286	translate_extractps	src.count == 1	extractps operand1 is not xmm	assert	FUN_800000057c8c	0x800000057c8c	49323
+TranslatorX87.cpp	204	load_arithmetic_operand		invalid operand size for x87 arithmetic op	assert_msg	FUN_800000057c8c	0x800000057c8c	49371
+TranslatorX87.cpp	105	arithmetic_descriptor		unsupported x87 arithmetic operation	assert_msg	FUN_800000057c8c	0x800000057c8c	49465
+TranslatorX87.cpp	328	translate_fcom_fucom		unexpected opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	49558
+TranslatorX87.cpp	334	translate_fcom_fucom			assert_partial	FUN_800000057c8c	0x800000057c8c	49582
+TranslatorX87.cpp	334	translate_fcom_fucom	st_reg.is_stack()	non stack register for ST(i) op	assert	FUN_800000057c8c	0x800000057c8c	49583
+TranslatorX87.cpp	352	translate_fcom_fucom		unexpected opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	49592
+TranslatorX87.cpp	372	translate_fcom_fucom		unexpected operand size	assert_msg	FUN_800000057c8c	0x800000057c8c	49608
+TranslatorX87.cpp	423	translate_ffree			assert_partial	FUN_800000057c8c	0x800000057c8c	49632
+TranslatorX87.cpp	423	translate_ffree	st_reg.is_stack()	non stack register for ST(i) op	assert	FUN_800000057c8c	0x800000057c8c	49633
+TranslatorX87.cpp	492	translate_fist		invalid size operand for FIST	assert_msg	FUN_800000057c8c	0x800000057c8c	49692
+TranslatorX87.cpp	508	translate_fld			assert_partial	FUN_800000057c8c	0x800000057c8c	49715
+TranslatorX87.cpp	508	translate_fld	inst.num_operands == 2	fld requires two parameters	assert	FUN_800000057c8c	0x800000057c8c	49716
+TranslatorX87.cpp	510	translate_fld			assert_partial	FUN_800000057c8c	0x800000057c8c	49721
+TranslatorX87.cpp	510	translate_fld	st_reg.is_stack()	non stack register for ST(i) op	assert	FUN_800000057c8c	0x800000057c8c	49722
+TranslatorX87.cpp	512	translate_fld	inst.operands[0].reg.reg.index == 0	fld destination must be st(0)	assert	FUN_800000057c8c	0x800000057c8c	49727
+TranslatorX87.cpp	552	translate_fld		invalid size operand for FLD	assert_msg	FUN_800000057c8c	0x800000057c8c	49757
+TranslatorX87.cpp	894	translate_fldconst		invalid x87 constant ld instruction	assert_msg	FUN_800000057c8c	0x800000057c8c	49777
+TranslatorX87.cpp	799	translate_fst		invalid size operand for FST	assert_msg	FUN_800000057c8c	0x800000057c8c	49908
+TranslatorX87.cpp	818	translate_fst_stack			assert_partial	FUN_800000057c8c	0x800000057c8c	49932
+TranslatorX87.cpp	818	translate_fst_stack	st_reg.is_stack()	non stack register for ST(i) op	assert	FUN_800000057c8c	0x800000057c8c	49933
+TranslatorX87.cpp	944	translate_fxch			assert_partial	FUN_800000057c8c	0x800000057c8c	49982
+TranslatorX87.cpp	944	translate_fxch	st_reg.is_stack()	non stack register for ST(i) op	assert	FUN_800000057c8c	0x800000057c8c	49983
+Translator.cpp	5004	translate_l_segment		unexpected operand size	assert_msg	FUN_800000057c8c	0x800000057c8c	50423
+Translator.h	573	translate_xmm			assert_partial	FUN_800000057c8c	0x800000057c8c	50467
+Translator.h	573	translate_xmm	reg.is_xmm() && reg.index < 16	translate_xmm called on non-XMM register	assert	FUN_800000057c8c	0x800000057c8c	50468
+TranslatorSseMovesShuffles.cpp	423	translate_mov_xmm		invalid XMM move	assert_msg	FUN_800000057c8c	0x800000057c8c	50483
+TranslatorSseMovesShuffles.cpp	460	translate_mov_vector		invalid vector move	assert_msg	FUN_800000057c8c	0x800000057c8c	50521
+TranslatorSseMovesShuffles.cpp	384	translate_maskmov		unexpected opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	50636
+TranslatorHelpers.cpp	1207	dst_gpr_or_xzr		unexpected OperandKind	assert_msg	FUN_800000057c8c	0x800000057c8c	50711
+Translator.cpp	4908	translate_mov_segment			assert_partial	FUN_800000057c8c	0x800000057c8c	50745
+Translator.cpp	4908	translate_mov_segment	inst.operands[1].kind == OperandKind::SegmentRegister	expected segment register	assert	FUN_800000057c8c	0x800000057c8c	50747
+TranslatorSseMovesShuffles.cpp	490	translate_movd_movq			assert_partial	FUN_800000057c8c	0x800000057c8c	50822
+TranslatorSseMovesShuffles.cpp	490	translate_movd_movq	(inst.opcode == Opcode::MOVQ || inst.opcode == Opcode::MOVNTQ) && inst.operands[1].reg.reg.is_vector_or_mm()	invalid MOVD/MOVQ/MOVNTQ	assert	FUN_800000057c8c	0x800000057c8c	50824
+TranslatorSseStringOps.cpp	30	translate_pcmpestri		unexpected opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	51756
+TranslatorSseStringOps.cpp	86	translate_pcmpestrm		unexpected opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	51807
+TranslatorSseStringOps.cpp	170	translate_pcmpistri		unexpected opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	51891
+TranslatorSseShifts.cpp	84	translate_psll		unexpected form of PSLL	assert_msg	FUN_800000057c8c	0x800000057c8c	53442
+TranslatorSseShifts.cpp	186	translate_psra		unexpected form of PSRA	assert_msg	FUN_800000057c8c	0x800000057c8c	53625
+Translator.h	130	operator[]			assert_partial	FUN_800000057c8c	0x800000057c8c	54290
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000057c8c	0x800000057c8c	54291
+TranslatorSseConversions.cpp	527	translate_roundp		invalid ROUNDP opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	54402
+TranslatorSseConversions.cpp	478	translate_rounds		invalid ROUNDS opcode	assert_msg	FUN_800000057c8c	0x800000057c8c	54482
+Translator.h	579	translate_xmm_or_mm			assert_partial	FUN_800000079960	0x800000079960	56466
+Translator.h	579	translate_xmm_or_mm	(reg.is_xmm() && reg.index < 16) || (reg.is_mm() && reg.index < 8)	translate_xmm_or_mmx called on non-XMM/MM register	assert	FUN_800000079960	0x800000079960	56468
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_800000079a98	0x800000079a98	56530
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_800000079a98	0x800000079a98	56531
+Operand.h	116	operand_size	operand.kind != OperandKind::ConditionCode	ConditionCode operands have no size	assert	FUN_800000079a98	0x800000079a98	56536
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000079d9c	0x800000079d9c	56716
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007a09c	0x80000007a09c	56810
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007a3a8	0x80000007a3a8	56903
+Translator.h	130	operator[]			assert_partial	FUN_80000007a6bc	0x80000007a6bc	56980
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007a6bc	0x80000007a6bc	56981
+Translator.h	130	operator[]			assert_partial	FUN_80000007b2c4	0x80000007b2c4	57296
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007b2c4	0x80000007b2c4	57297
+Translator.h	130	operator[]			assert_partial	FUN_80000007bec4	0x80000007bec4	57614
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007bec4	0x80000007bec4	57615
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007cb74	0x80000007cb74	57947
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007cd58	0x80000007cd58	58011
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007cf44	0x80000007cf44	58076
+StateRecovery.cpp	338	determine_state_recovery_action_forward_branches			assert_partial	FUN_80000007de84	0x80000007de84	58588
+StateRecovery.cpp	338	determine_state_recovery_action_forward_branches	inst.has_value()	failed to decode instruction: 0x%x	assert	FUN_80000007de84	0x80000007de84	58589
+Translator.h	130	operator[]			assert_partial	FUN_80000007e290	0x80000007e290	58739
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007e290	0x80000007e290	58740
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007e3a4	0x80000007e3a4	58839
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007e62c	0x80000007e62c	58929
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007e8b4	0x80000007e8b4	58993
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007ea24	0x80000007ea24	59057
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007eb94	0x80000007eb94	59121
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007ed04	0x80000007ed04	59197
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007ef48	0x80000007ef48	59261
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007f0b8	0x80000007f0b8	59325
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007f228	0x80000007f228	59398
+Translator.h	130	operator[]			assert_partial	FUN_80000007f404	0x80000007f404	59474
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007f404	0x80000007f404	59475
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007f688	0x80000007f688	59558
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007f868	0x80000007f868	59631
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007fa48	0x80000007fa48	59704
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007fc28	0x80000007fc28	59777
+TranslatorSseInteger.cpp	510	translate_pmovsxb		unexpected ElementSize	assert_msg	FUN_80000007fe08	0x80000007fe08	59826
+Translator.h	130	operator[]			assert_partial	FUN_80000007fe08	0x80000007fe08	59831
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_80000007fe08	0x80000007fe08	59832
+Translator.h	130	operator[]			assert_partial	FUN_800000080040	0x800000080040	59873
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000080040	0x800000080040	59874
+TranslatorSseInteger.cpp	538	translate_pmovsxw		unexpected ElementSize	assert_msg	FUN_800000080040	0x800000080040	59888
+TranslatorSseInteger.cpp	585	translate_pmovzxb		unexpected ElementSize	assert_msg	FUN_8000000801ec	0x8000000801ec	59949
+Translator.h	130	operator[]			assert_partial	FUN_8000000801ec	0x8000000801ec	59954
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_8000000801ec	0x8000000801ec	59955
+Translator.h	130	operator[]			assert_partial	FUN_800000080424	0x800000080424	59996
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000080424	0x800000080424	59997
+TranslatorSseInteger.cpp	613	translate_pmovzxw		unexpected ElementSize	assert_msg	FUN_800000080424	0x800000080424	60011
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_8000000805d0	0x8000000805d0	60087
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000080740	0x800000080740	60161
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000080950	0x800000080950	60225
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000080ac0	0x800000080ac0	60289
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000080c30	0x800000080c30	60353
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000080da0	0x800000080da0	60385
+TranslatorBitTest.cpp	108	imm_info_for_high_index_mask		invalid OperandSize	assert_msg	FUN_800000080ed8	0x800000080ed8	60402
+AssemblerBase.hpp	943	fp_arith_vec		invalid FpArithOp	assert_msg	FUN_800000080fe8	0x800000080fe8	60503
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000080fe8	0x800000080fe8	60521
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_8000000811e0	0x8000000811e0	60589
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000081348	0x800000081348	60695
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000081724	0x800000081724	60857
+Translator.h	130	operator[]			assert_partial	FUN_800000081b00	0x800000081b00	60954
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000081b00	0x800000081b00	60955
+Translator.h	751	translate_vector_or_mm_low			assert_partial	FUN_800000081ca0	0x800000081ca0	61013
+Translator.h	751	translate_vector_or_mm_low	(reg.is_vector() && reg.index < 16) || (reg.is_mm() && reg.index < 8)	translate_vector_or_mm_low called on non-vector/MM register	assert	FUN_800000081ca0	0x800000081ca0	61015
+Translator.h	735	translate_avx_low			assert_partial	FUN_800000081d10	0x800000081d10	61026
+Translator.h	735	translate_avx_low	reg.is_avx() && reg.index < 16	translate_avx_low called on non-AVX register	assert	FUN_800000081d10	0x800000081d10	61027
+TranslatorSseMovesShuffles.cpp	660	translate_movs			assert_partial	FUN_800000081d5c	0x800000081d5c	61084
+TranslatorSseMovesShuffles.cpp	660	translate_movs	is_operand1_reg	unexpected operands for MOVSD/MOVSS	assert	FUN_800000081d5c	0x800000081d5c	61085
+Translator.h	130	operator[]			assert_partial	FUN_800000081d5c	0x800000081d5c	61095
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000081d5c	0x800000081d5c	61096
+TranslatorSseMovesShuffles.cpp	1275	translate_shuffle_from_plan		unexpected ShuffleOpKind::None	assert_msg	FUN_800000081fdc	0x800000081fdc	61148
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_8000000822c8	0x8000000822c8	61245
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_8000000823b4	0x8000000823b4	61287
+TranslatorSseMovesShuffles.cpp	1616	translate_vmaskmov			assert_partial	FUN_8000000824bc	0x8000000824bc	61345
+TranslatorSseMovesShuffles.cpp	1616	translate_vmaskmov	element_size == ElementSize::S64 || element_size == ElementSize::S32	unexpected element size for vmaskmov	assert	FUN_8000000824bc	0x8000000824bc	61347
+Translator.h	130	operator[]			assert_partial	FUN_8000000824bc	0x8000000824bc	61405
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_8000000824bc	0x8000000824bc	61406
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_8000000828b8	0x8000000828b8	61513
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000082afc	0x800000082afc	61598
+TranslatorFlags.cpp	115	generate_z_flag		unexpected OperandSize	assert_msg	FUN_800000082d18	0x800000082d18	61677
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000082f34	0x800000082f34	61695
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000082fc8	0x800000082fc8	61709
+Operand.h	116	operand_size			assert_partial	FUN_80000008319c	0x80000008319c	61801
+Operand.h	116	operand_size	operand.kind != OperandKind::ConditionCode	ConditionCode operands have no size	assert	FUN_80000008319c	0x80000008319c	61802
+Translator.h	553	operand_size_to_data_size			assert_partial	FUN_80000008319c	0x80000008319c	61807
+Translator.h	553	operand_size_to_data_size	size <= OperandSize::S64	OperandSize does not correspond to a DataSize	assert	FUN_80000008319c	0x80000008319c	61808
+TranslatorMulDiv.cpp	452	translate_mul		invalid OperandSize for MUL/IMUL	assert_msg	FUN_80000008319c	0x80000008319c	61847
+Translator.h	567	translate_gpr			assert_partial	FUN_80000008319c	0x80000008319c	61865
+Translator.h	567	translate_gpr	reg.is_gpr() && reg.index < 16	translate_gpr called on non-GPR	assert	FUN_80000008319c	0x80000008319c	61866
+TranslatorMulDiv.cpp	530	translate_mul		invalid OperandSize for MUL/IMUL	assert_msg	FUN_80000008319c	0x80000008319c	61895
+TranslatorMulDiv.cpp	483	translate_mul		invalid OperandSize for MUL/IMUL	assert_msg	FUN_80000008319c	0x80000008319c	61925
+TranslatorMulDiv.cpp	585	translate_mul		invalid OperandSize for MUL/IMUL	assert_msg	FUN_80000008319c	0x80000008319c	62007
+TranslatorSseFpComparisons.cpp	28	translate_cmpp		expected CMPPD or CMPPS	assert_msg	FUN_800000083ac0	0x800000083ac0	62082
+TranslatorSseFpComparisons.cpp	734	translate_comis		unrecognized COMIS variant	assert_msg	FUN_800000085144	0x800000085144	62139
+TranslatorHelpers.cpp	110	allocate_temporary_gpr_num			assert_partial	FUN_800000085460	0x800000085460	62254
+TranslatorHelpers.cpp	110	allocate_temporary_gpr_num	(_unoccupied_temporary_gprs & mask) != 0	invalid temporary request	assert	FUN_800000085460	0x800000085460	62255
+TranslatorHelpers.cpp	224	set_xmm_state_internal			assert_partial	FUN_8000000854c8	0x8000000854c8	62273
+TranslatorHelpers.cpp	224	set_xmm_state_internal	(_unoccupied_temporary_fprs & mask) == 0 && (_unoccupied_temporary_fprs_for_xmm_scalars & mask) == 0	allocated temporary register is not occupied	assert	FUN_8000000854c8	0x8000000854c8	62275
+TranslatorHelpers.cpp	165	allocate_temporary_fpr_num			assert_partial	FUN_800000085604	0x800000085604	62344
+TranslatorHelpers.cpp	165	allocate_temporary_fpr_num	(_unoccupied_temporary_fprs_for_xmm_scalars & mask) == 0 && (_pinned_temporary_scalars & mask) == 0	Invalid temporary request	assert	FUN_800000085604	0x800000085604	62346
+TranslatorHelpers.cpp	289	copy_xmm_state			assert_partial	FUN_800000085704	0x800000085704	62399
+TranslatorHelpers.cpp	289	copy_xmm_state	src.is_vector()	invalid register pair	assert	FUN_800000085704	0x800000085704	62400
+TranslatorHelpers.cpp	396	free_temporary_gpr			assert_partial	FUN_80000008593c	0x80000008593c	62519
+TranslatorHelpers.cpp	396	free_temporary_gpr	reg != arm::Gpr::SP	invalidate argument to free_temporary_gpr	assert	FUN_80000008593c	0x80000008593c	62520
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_80000008599c	0x80000008599c	62537
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_80000008599c	0x80000008599c	62538
+AssemblerHelpers.cpp	14	shift_to_mem_size			assert_partial	FUN_80000008599c	0x80000008599c	62583
+AssemblerHelpers.cpp	14	shift_to_mem_size	shift <= 4	out-of-range value for MemSize	assert	FUN_80000008599c	0x80000008599c	62584
+Translator.h	567	translate_gpr			assert_partial	FUN_80000008599c	0x80000008599c	62592
+Translator.h	567	translate_gpr	reg.is_gpr() && reg.index < 16	translate_gpr called on non-GPR	assert	FUN_80000008599c	0x80000008599c	62593
+Translator.h	553	operand_size_to_data_size			assert_partial	FUN_80000008599c	0x80000008599c	62777
+Translator.h	553	operand_size_to_data_size	size <= OperandSize::S64	OperandSize does not correspond to a DataSize	assert	FUN_80000008599c	0x80000008599c	62778
+Translator.h	553	operand_size_to_data_size			assert_partial	FUN_8000000860a8	0x8000000860a8	62815
+Translator.h	553	operand_size_to_data_size	size <= OperandSize::S64	OperandSize does not correspond to a DataSize	assert	FUN_8000000860a8	0x8000000860a8	62816
+TranslatorHelpers.cpp	1559	compute_operand_address		invalid OperandKind	assert_msg	FUN_8000000860a8	0x8000000860a8	62842
+TranslatorHelpers.cpp	1511	compute_operand_address		expected segment override	assert_msg	FUN_8000000860a8	0x8000000860a8	62905
+Translator.h	567	translate_gpr			assert_partial	FUN_8000000860a8	0x8000000860a8	63214
+Translator.h	567	translate_gpr	reg.is_gpr() && reg.index < 16	translate_gpr called on non-GPR	assert	FUN_8000000860a8	0x8000000860a8	63215
+TranslatorHelpers.cpp	672	read_operand_gpr		invalid OperandKind for instruction source	assert_msg	FUN_800000086a60	0x800000086a60	63241
+Register.h	51	gpr_to_num			assert_partial	FUN_800000086a60	0x800000086a60	63306
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_800000086a60	0x800000086a60	63307
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_800000086a60	0x800000086a60	63418
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_800000086a60	0x800000086a60	63419
+Translator.h	567	translate_gpr			assert_partial	FUN_800000086edc	0x800000086edc	63438
+Translator.h	567	translate_gpr	reg.is_gpr() && reg.index < 16	translate_gpr called on non-GPR	assert	FUN_800000086edc	0x800000086edc	63439
+TranslatorHelpers.cpp	710	read_gpr		unexpected ExtendKind	assert_msg	FUN_800000086edc	0x800000086edc	63466
+TranslatorHelpers.cpp	732	read_gpr		unexpected ExtendKind	assert_msg	FUN_800000086edc	0x800000086edc	63526
+TranslatorHelpers.cpp	775	read_operand_vector			assert_partial	FUN_800000087154	0x800000087154	63579
+TranslatorHelpers.cpp	775	read_operand_vector	operand.reg.reg.is_vector()	Expected vector operand	assert	FUN_800000087154	0x800000087154	63580
+Translator.h	130	operator[]			assert_partial	FUN_800000087154	0x800000087154	63600
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000087154	0x800000087154	63601
+TranslatorHelpers.cpp	806	read_operand_vector		invalid OperandKind for instruction source	assert_msg	FUN_800000087154	0x800000087154	63645
+Translator.h	573	translate_xmm			assert_partial	FUN_800000087424	0x800000087424	63695
+Translator.h	573	translate_xmm	reg.is_xmm() && reg.index < 16	translate_xmm called on non-XMM register	assert	FUN_800000087424	0x800000087424	63696
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_800000087424	0x800000087424	63710
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_800000087424	0x800000087424	63711
+TranslatorHelpers.cpp	1085	read_operand_xmm_helper		invalid OperandKind for instruction source	assert_msg	FUN_800000087424	0x800000087424	63750
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_8000000876f0	0x8000000876f0	63818
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_8000000876f0	0x8000000876f0	63819
+TranslatorHelpers.cpp	1138	read_operand_xmm_or_mm_helper		invalid OperandKind for instruction source	assert_msg	FUN_8000000876f0	0x8000000876f0	63852
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_800000087a7c	0x800000087a7c	63973
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_800000087a7c	0x800000087a7c	63974
+Translator.h	134	operator[]			assert_partial	FUN_800000087a7c	0x800000087a7c	64012
+Translator.h	134	operator[]	i < count	Out of bounds vector slice access	assert	FUN_800000087a7c	0x800000087a7c	64013
+TranslatorHelpers.cpp	973	write_non_reg_operand_vector		invalid OperandKind for non-register FPR destination	assert_msg	FUN_800000087a7c	0x800000087a7c	64038
+TranslatorHelpers.cpp	979	translate_and_invalidate_vector_low			assert_partial	FUN_800000087d58	0x800000087d58	64065
+TranslatorHelpers.cpp	979	translate_and_invalidate_vector_low	op.kind == OperandKind::Register	expected register operand	assert	FUN_800000087d58	0x800000087d58	64066
+TranslatorHelpers.cpp	993	read_and_invalidate_vector_dst			assert_partial	FUN_800000087db0	0x800000087db0	64084
+TranslatorHelpers.cpp	993	read_and_invalidate_vector_dst	operand.kind == OperandKind::Register	expected register operand	assert	FUN_800000087db0	0x800000087db0	64085
+TranslatorHelpers.cpp	1018	read_and_invalidate_vector_dst		Invalid reg_class	assert_msg	FUN_800000087db0	0x800000087db0	64109
+TranslatorHelpers.cpp	1227	translate_and_invalidate_xmm_or_mm_dst			assert_partial	FUN_800000087efc	0x800000087efc	64153
+TranslatorHelpers.cpp	1227	translate_and_invalidate_xmm_or_mm_dst	operand.kind == OperandKind::Register	expected register operand	assert	FUN_800000087efc	0x800000087efc	64154
+TranslatorHelpers.cpp	1188	dst_gpr_for_operand		unexpected OperandKind	assert_msg	FUN_8000000880f4	0x8000000880f4	64219
+Translator.h	567	translate_gpr			assert_partial	FUN_8000000880f4	0x8000000880f4	64227
+Translator.h	567	translate_gpr	reg.is_gpr() && reg.index < 16	translate_gpr called on non-GPR	assert	FUN_8000000880f4	0x8000000880f4	64228
+TranslatorHelpers.cpp	1213	translate_and_invalidate_xmm_dst			assert_partial	FUN_8000000881b0	0x8000000881b0	64253
+TranslatorHelpers.cpp	1213	translate_and_invalidate_xmm_dst	operand.kind == OperandKind::Register	expected register operand	assert	FUN_8000000881b0	0x8000000881b0	64254
+Translator.h	573	translate_xmm			assert_partial	FUN_8000000881b0	0x8000000881b0	64261
+Translator.h	573	translate_xmm	reg.is_xmm() && reg.index < 16	translate_xmm called on non-XMM register	assert	FUN_8000000881b0	0x8000000881b0	64262
+TranslatorHelpers.cpp	1241	reg_data_for_xmm_scalar_fp			assert_partial	FUN_8000000881b0	0x8000000881b0	64287
+TranslatorHelpers.cpp	1241	reg_data_for_xmm_scalar_fp	src1_operand.kind == OperandKind::Register	expected register operand	assert	FUN_8000000881b0	0x8000000881b0	64288
+Translator.h	130	operator[]			assert_partial	FUN_8000000884a8	0x8000000884a8	64388
+Translator.h	130	operator[]	i < count	Out of bounds vector slice access	assert	FUN_8000000884a8	0x8000000884a8	64389
+Register.h	51	gpr_to_num			assert_partial	FUN_80000008864c	0x80000008864c	64448
+Register.h	51	gpr_to_num	gpr != Gpr::SP	SP used in unexpected context	assert	FUN_80000008864c	0x80000008864c	64449
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_80000008864c	0x80000008864c	64458
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_80000008864c	0x80000008864c	64459
+TranslatorHelpers.cpp	1374	write_operand_gpr		invalid OperandKind for instruction destination	assert_msg	FUN_80000008864c	0x80000008864c	64490
+Translator.h	567	translate_gpr			assert_partial	FUN_80000008888c	0x80000008888c	64512
+Translator.h	567	translate_gpr	reg.is_gpr() && reg.index < 16	translate_gpr called on non-GPR	assert	FUN_80000008888c	0x80000008888c	64513
+TranslatorHelpers.cpp	1441	write_non_reg_operand_fpr		invalid OperandKind for non-register FPR destination	assert_msg	FUN_800000088994	0x800000088994	64586
+Translator.h	562	operand_size_to_mem_size			assert_partial	FUN_800000088994	0x800000088994	64592
+Translator.h	562	operand_size_to_mem_size	size <= ir::OperandSize::S128	invalid OperandSize	assert	FUN_800000088994	0x800000088994	64593
+DeltaCodedOffsetMap.cpp	133	entry_for_arm_offset			assert_partial	FUN_80000008a8ac	0x80000008a8ac	65769
+DeltaCodedOffsetMap.cpp	133	entry_for_arm_offset	middle > 0	offset maps should always have a 0,0 entry	assert	FUN_80000008a8ac	0x80000008a8ac	65770
+SlabAllocator.cpp	105	allocate_free_entry			assert_partial	FUN_80000008ac84	0x80000008ac84	66001
+SlabAllocator.cpp	105	allocate_free_entry	_partial_slabs == slab	slab that is now full did not come from partial list	assert	FUN_80000008ac84	0x80000008ac84	66002
+OffsetPairArray.cpp	81	find_x86_entry			assert_partial	FUN_80000008ae80	0x80000008ae80	66143
+OffsetPairArray.cpp	81	find_x86_entry	middle > 0	offset tables are required to have a 0,0 entry	assert	FUN_80000008ae80	0x80000008ae80	66144
+VMAllocationTracker.cpp	240	find_free_space_internal			assert_partial	FUN_80000008afb0	0x80000008afb0	66251
+VMAllocationTracker.cpp	240	find_free_space_internal	found_node != nullptr	could not find free space for allocation size %lx	assert	FUN_80000008afb0	0x80000008afb0	66252
+VMAllocationTracker.cpp	242	find_free_space_internal			assert_partial	FUN_80000008afb0	0x80000008afb0	66268
+VMAllocationTracker.cpp	242	find_free_space_internal	!found_node->is_allocated()	_vm_allocation_tree_by_size_guest contains a node that is in use.	assert	FUN_80000008afb0	0x80000008afb0	66270
+VMAllocationTracker.cpp	659	refill_slab_allocator			assert_partial	FUN_80000008b114	0x80000008b114	66311
+VMAllocationTracker.cpp	659	refill_slab_allocator	_slab_allocator_break >= kSlabAllocatorBase	VmTracker slab allocator has run out of memory. This likely means your program has a memory leak.	assert	FUN_80000008b114	0x80000008b114	66313
+VMAllocationTracker.cpp	649	allocate_node			assert_partial	FUN_80000008b114	0x80000008b114	66347
+VMAllocationTracker.cpp	649	allocate_node	node != nullptr	Allocator out of entries	assert	FUN_80000008b114	0x80000008b114	66348
+RedBlackTree.h	214	find_parent_for_insertion_no_duplicates		expected no duplicates	assert_msg	FUN_80000008b230	0x80000008b230	66729
+VMAllocationTracker.cpp	563	cull_nodes_in_interval			assert_partial	FUN_80000008c844	0x80000008c844	67878
+VMAllocationTracker.cpp	563	cull_nodes_in_interval	is_page_aligned(interval.left) && is_page_aligned(interval.right)	interval being removed from VmTracker is not page aligned	assert	FUN_80000008c844	0x80000008c844	67880
+VMAllocationTracker.cpp	82	find_allocation_or_nearest_right		VmTracker tree is empty	assert_msg	FUN_80000008c844	0x80000008c844	67886
+VMAllocationTracker.cpp	509	remove			assert_partial	FUN_80000008cc7c	0x80000008cc7c	68126
+VMAllocationTracker.cpp	509	remove	is_page_aligned(interval.left) && is_page_aligned(interval.right)	interval being removed from VmTracker is not page aligned	assert	FUN_80000008cc7c	0x80000008cc7c	68128
+VMAllocationTracker.cpp	82	find_allocation_or_nearest_right		VmTracker tree is empty	assert_msg	FUN_80000008cc7c	0x80000008cc7c	68147
+VMAllocationTracker.cpp	670	remove_shm_mapping_entry			assert_partial	FUN_80000008ce48	0x80000008ce48	68246
+VMAllocationTracker.cpp	670	remove_shm_mapping_entry	_shmseg_count >= 0	_shmseg_count fell below 0.	assert	FUN_80000008ce48	0x80000008ce48	68247
+VMAllocationTracker.cpp	684	change_permissions			assert_partial	FUN_80000008ceec	0x80000008ceec	68312
+VMAllocationTracker.cpp	684	change_permissions	node != nullptr	request to change permissions for interval that isn\'t tracked	assert	FUN_80000008ceec	0x80000008ceec	68313
+ProcMapsParser.cpp	42	parse_proc_maps_line			assert_partial	FUN_80000008d0b4	0x80000008d0b4	68364
+ProcMapsParser.cpp	42	parse_proc_maps_line	start_addr_token != nullptr	start_addr_token == nullptr	assert	FUN_80000008d0b4	0x80000008d0b4	68365
+ProcMapsParser.cpp	50	parse_proc_maps_line			assert_partial	FUN_80000008d0b4	0x80000008d0b4	68390
+ProcMapsParser.cpp	50	parse_proc_maps_line	prot_token != nullptr	prot_token == nullptr	assert	FUN_80000008d0b4	0x80000008d0b4	68391
+ProcMapsParser.cpp	46	parse_proc_maps_line	end_addr_token != nullptr	end_addr_token == nullptr	assert	FUN_80000008d0b4	0x80000008d0b4	68396
+ProcMapsParser.cpp	75	procmaps_info_for_address			assert_partial	FUN_80000008d1e8	0x80000008d1e8	68432
+ProcMapsParser.cpp	75	procmaps_info_for_address	!pread_result.is_error	pread failed: %lu	assert	FUN_80000008d1e8	0x80000008d1e8	68433
+Register.cpp	174	register_to_string			assert_partial	FUN_80000008d3d0	0x80000008d3d0	68525
+Register.cpp	174	register_to_string	reg.index < 4	invalid high byte register	assert	FUN_80000008d3d0	0x80000008d3d0	68526
+Register.cpp	200	register_to_string	reg.index == 0	invalid register	assert	FUN_80000008d3d0	0x80000008d3d0	68555
+Decoder.cpp	86	read_int		invalid integer size	assert_msg	FUN_80000008d500	0x80000008d500	68750
+Decoder.cpp	1460	walk_map_select			assert_partial	FUN_80000008d8c0	0x80000008d8c0	69001
+Decoder.cpp	1460	walk_map_select	index < table.num_entries	out-of-bounds decoder table index	assert	FUN_80000008d8c0	0x80000008d8c0	69002
+Decoder.cpp	326	decode_opcode			assert_partial	FUN_80000008d8c0	0x80000008d8c0	69024
+Decoder.cpp	326	decode_opcode	index < table.num_entries	out-of-bounds decoder table index	assert	FUN_80000008d8c0	0x80000008d8c0	69025
+Decoder.cpp	553	decode_dependant_operand			assert_partial	FUN_80000008d8c0	0x80000008d8c0	69055
+Decoder.cpp	553	decode_dependant_operand	index > 0	Invalid DUP operand index	assert	FUN_80000008d8c0	0x80000008d8c0	69056
+Decoder.cpp	556	decode_dependant_operand		Invalid dependant OperandAddrMethod	assert_msg	FUN_80000008d8c0	0x80000008d8c0	69066
+Decoder.cpp	550	decode_dependant_operand		Invalid operand list	assert_msg	FUN_80000008d8c0	0x80000008d8c0	69074
+Decoder.cpp	947	decode_operand_register			assert_partial	FUN_80000008d8c0	0x80000008d8c0	69083
+Decoder.cpp	947	decode_operand_register	value < 16	out-of-bounds XMM/YMM register index	assert	FUN_80000008d8c0	0x80000008d8c0	69084
+Decoder.cpp	878	decode_operand		Invalid OperandAddrMethod	assert_msg	FUN_80000008e060	0x80000008e060	69228
+Decoder.cpp	1170	decode_operand_mem_16			assert_partial	FUN_80000008e6f4	0x80000008e6f4	70160
+Decoder.cpp	1170	decode_operand_mem_16	mod != 3	register-only mode should have been handled	assert	FUN_80000008e6f4	0x80000008e6f4	70161
+Decoder.cpp	992	decode_gpr		unrecognized OperandSize	assert_msg	FUN_80000008e7b8	0x80000008e7b8	70313
+Decoder.cpp	965	decode_gpr	value < 16	out-of-bounds register table index	assert	FUN_80000008e7b8	0x80000008e7b8	70319
+Decoder.cpp	1170	decode_operand_mem_16			assert_partial	FUN_80000008e88c	0x80000008e88c	70504
+Decoder.cpp	1170	decode_operand_mem_16	mod != 3	register-only mode should have been handled	assert	FUN_80000008e88c	0x80000008e88c	70505
+Decoder.cpp	1002	decode_xmm			assert_partial	FUN_80000008ed8c	0x80000008ed8c	70619
+Decoder.cpp	1002	decode_xmm	value < 16	out-of-bounds register table index	assert	FUN_80000008ed8c	0x80000008ed8c	70620
+Decoder.cpp	1016	decode_xmm		unrecognized OperandSize	assert_msg	FUN_80000008ed8c	0x80000008ed8c	70628
+Segmentation.cpp	480	mov_segment		CS can\'t be set with mov_segment	assert_msg	FUN_80000008f0fc	0x80000008f0fc	70792
+ElfMapper.cpp	399	map_elf			assert_partial	FUN_8000000900a0	0x8000000900a0	72985
+ElfMapper.cpp	399	map_elf	segment_file_offset == 0	first load segment not at file offset 0	assert	FUN_8000000900a0	0x8000000900a0	72986
+ElfMapper.cpp	401	map_elf			assert_partial	FUN_8000000900a0	0x8000000900a0	72991
+ElfMapper.cpp	401	map_elf	segment_file_size >= size_of_elf_and_program_headers	first load segment does not span the elf header size	assert	FUN_8000000900a0	0x8000000900a0	72993
+ImageInfo.cpp	71	create_from_header			assert_partial	FUN_800000090a0c	0x800000090a0c	73324
+ImageInfo.cpp	71	create_from_header	aot_hdr->segment_count <= kMaxSegments	AOT header specified too many segments	assert	FUN_800000090a0c	0x800000090a0c	73325
