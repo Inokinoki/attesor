@@ -16,7 +16,12 @@ SRC = \
     src/condition.c \
     src/icache.c \
     src/bitmask_imm.c \
-    src/host_syscall.c
+    src/host_syscall.c \
+    src/guest.c \
+    src/elf_map.c \
+    src/decode_insn.c \
+    src/interp.c \
+    src/syscall_bridge.c
 
 OBJ = $(SRC:.c=.o)
 
@@ -27,11 +32,14 @@ TESTS = \
     tests/test_linux_abi \
     tests/test_decoder \
     tests/test_syscalls \
-    tests/test_binary
+    tests/test_binary \
+    tests/test_decode_insn \
+    tests/test_interp \
+    tests/test_elf_map
 
-.PHONY: all test clean inventory inventory-binary
+.PHONY: all test clean inventory inventory-binary oah
 
-all: $(OBJ)
+all: $(OBJ) oah
 
 src/%.o: src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -39,12 +47,21 @@ src/%.o: src/%.c
 tests/%: tests/%.c $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $< $(OBJ)
 
-test: $(TESTS)
+oah: src/oah_main.o $(OBJ)
+	$(CC) $(CFLAGS) -o $@ src/oah_main.o $(OBJ)
+
+tests/hello.x86_64: tools/mk_hello_elf.py
+	python3 tools/mk_hello_elf.py $@
+
+test: $(TESTS) oah tests/hello.x86_64
 	@fail=0; \
 	for t in $(TESTS); do \
 	    echo "== $$t"; \
 	    ./$$t || fail=1; \
 	done; \
+	echo "== oah tests/hello.x86_64"; \
+	./oah tests/hello.x86_64 > tests/hello.got || fail=1; \
+	printf 'hello\n' | cmp -s - tests/hello.got || { echo "  FAIL hello output"; fail=1; }; \
 	exit $$fail
 
 inventory:
@@ -56,4 +73,4 @@ inventory-binary:
 	    --inc src/host_syscall_table.inc
 
 clean:
-	rm -f $(OBJ) $(TESTS)
+	rm -f $(OBJ) src/oah_main.o $(TESTS) oah tests/hello.x86_64 tests/hello.got
