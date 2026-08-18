@@ -10,6 +10,14 @@ librosetta.a
 # Intermediate Markdown files except README.md
 *.md
 !README.md
+!reconstruct/**/*.md
 
 # Debug
 *.dSYM
+
+# Reconstruction test binaries
+reconstruct/tests/test_register
+reconstruct/tests/test_assembler
+reconstruct/tests/test_flags
+reconstruct/tests/test_linux_abi
+reconstruct/tests/test_decoder

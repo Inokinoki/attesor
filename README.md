@@ -208,6 +208,8 @@ On Apple Silicon Macs, Rosetta 2 is **not** installed by default. It's triggered
 
 ## This Project
 
+**Current reconstruction lives in [`reconstruct/`](reconstruct/README.md).** It starts from the Ghidra dump (`rosetta_decomp.c`) and only keeps behavior backed by assertion strings, opcode bits, or literal format strings. The older `rosetta_*.c` tree in the repo root is a parallel rewrite and is **not** treated as ground truth.
+
 This repository contains reverse-engineered implementations of functions from the Rosetta 2 binaries. Through careful analysis and decompilation, we've identified and documented the semantic purpose of hundreds of functions.
 
 ### Goals
