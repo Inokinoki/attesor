@@ -14,8 +14,12 @@ extern "C" {
  *   value    = (ret > -4096) ? -ret : ret     // positive errno on error
  *   is_error = (unsigned)ret > 0xfffffffffffff000   // Linux -1..-4095
  *
- * Ghidra lost the SVC immediate (x8), so individual syscall stubs cannot be
- * told apart from the dump body. Only the Result packing is recoverable here.
+ * The ELF (not the C dump) recovers the SVC number: `movz x8, #NR; svc #0`.
+ * See oah/host_syscall.h for the NR → name map.
+ *
+ * Two packing styles sit back-to-back for each NR:
+ *   raw    FUN_800000026b94: CMN; CSINV → saturate to -1
+ *   result FUN_800000026cb0: CMN; CSNEG; CSINC → {abs(errno), is_error}
  */
 typedef struct {
     u64 value;
@@ -31,6 +35,9 @@ static inline bool oah_result_is_error(oah_result r)
 
 /* Pack a raw Linux syscall return (negative errno on failure). */
 oah_result oah_result_from_linux_ret(u64 raw);
+
+/* Saturate a Linux syscall return to -1 on error (the "raw" wrappers). */
+u64 oah_raw_from_linux_ret(u64 raw);
 
 #ifdef __cplusplus
 }

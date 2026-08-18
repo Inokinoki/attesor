@@ -71,6 +71,43 @@ typedef enum {
  * derived: FUN_800000040650 (X8-X15 ← RAX-RDI, X0-X7 ← R13,R14,R12,R11,R15,R10,R9,R8) */
 u8 oah_host_xn_for_x86_gpr(oah_x86_gpr g);
 
+/*
+ * orig: Register.cpp:174 register_to_string
+ * decomp: FUN_80000008d3d0
+ *
+ * Packed encoding: (class << 4) | index, with these class nibbles:
+ *   0  g8     al..r15b
+ *   1  gh     ah,ch,dh,bh   (index must be < 4)
+ *   2  g16    ax..r15w
+ *   3  g32    eax..r15d
+ *   4, 0xd    g64   rax..r15
+ *   6         mm0-7 then st0-7 (index 0-15)
+ *   7, 0xe    st0-7
+ *   8         rip (index must be 0)
+ *   10        ymm0-15
+ *   0xc       the value itself is already a C string pointer
+ *   default   xmm0-15
+ *
+ * Original asserts and does not return on a bad high-byte / RIP index.
+ * This reconstruction returns NULL instead.
+ */
+#define OAH_REG_CLASS(r) ((unsigned)(((u64)(r) >> 4) & 0xfu))
+#define OAH_REG_INDEX(r) ((unsigned)((u64)(r) & 0xfu))
+
+static inline u64 oah_reg_encode(unsigned cls, unsigned index)
+{
+    return ((u64)(cls & 0xfu) << 4) | (u64)(index & 0xfu);
+}
+
+const char *oah_register_to_string(u64 reg);
+
+/*
+ * orig: Operand.cpp:0x3d segment_register_to_string
+ * decomp: FUN_80000002ac58 case 6
+ * Names (uppercase, as in rodata): ES CS SS DS FS GS. NULL if index >= 6.
+ */
+const char *oah_segment_register_to_string(unsigned index);
+
 #ifdef __cplusplus
 }
 #endif

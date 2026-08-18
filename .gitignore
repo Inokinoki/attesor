@@ -3,6 +3,9 @@ rosettad
 
 ghidra_projects
 
+# Apple's binary (do not commit). `rosetta` above also matches this path.
+reconstruct/bin/
+
 # Compiled files
 *.o
 librosetta.a
@@ -21,3 +24,5 @@ reconstruct/tests/test_assembler
 reconstruct/tests/test_flags
 reconstruct/tests/test_linux_abi
 reconstruct/tests/test_decoder
+reconstruct/tests/test_syscalls
+reconstruct/tests/test_binary

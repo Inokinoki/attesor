@@ -19,3 +19,15 @@ oah_result oah_result_from_linux_ret(u64 raw)
     }
     return r;
 }
+
+u64 oah_raw_from_linux_ret(u64 raw)
+{
+    /* FUN_800000026b94:
+     *   cmn x0, #0xfff
+     *   csinv x0, x0, xzr, cc    // keep x0 on success; -1 on error
+     */
+    if (raw > OAH_LINUX_ERRNO_LIMIT) {
+        return (u64)-1;
+    }
+    return raw;
+}

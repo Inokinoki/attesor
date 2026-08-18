@@ -15,7 +15,8 @@ SRC = \
     src/decoder.c \
     src/condition.c \
     src/icache.c \
-    src/bitmask_imm.c
+    src/bitmask_imm.c \
+    src/host_syscall.c
 
 OBJ = $(SRC:.c=.o)
 
@@ -24,9 +25,11 @@ TESTS = \
     tests/test_assembler \
     tests/test_flags \
     tests/test_linux_abi \
-    tests/test_decoder
+    tests/test_decoder \
+    tests/test_syscalls \
+    tests/test_binary
 
-.PHONY: all test clean inventory
+.PHONY: all test clean inventory inventory-binary
 
 all: $(OBJ)
 
@@ -46,6 +49,11 @@ test: $(TESTS)
 
 inventory:
 	python3 tools/extract_decomp_map.py ../rosetta_decomp.c -o inventory
+
+inventory-binary:
+	@test -f bin/rosetta || { echo "drop the ELF at reconstruct/bin/rosetta"; exit 1; }
+	python3 tools/extract_from_binary.py bin/rosetta -o inventory/from_binary \
+	    --inc src/host_syscall_table.inc
 
 clean:
 	rm -f $(OBJ) $(TESTS)

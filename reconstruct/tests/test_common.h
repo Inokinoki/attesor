@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static int g_tests_run;
 static int g_tests_failed;
@@ -25,6 +26,19 @@ static int g_tests_failed;
             g_tests_failed++;                                                   \
             fprintf(stderr, "  FAIL %s:%d: %s (%llu) != %s (%llu)\n",           \
                     __FILE__, __LINE__, #a, _va, #b, _vb);                      \
+        }                                                                       \
+    } while (0)
+
+#define CHECK_STREQ(a, b)                                                       \
+    do {                                                                        \
+        const char *_sa = (a);                                                  \
+        const char *_sb = (b);                                                  \
+        g_tests_run++;                                                          \
+        if (!_sa || !_sb || strcmp(_sa, _sb) != 0) {                            \
+            g_tests_failed++;                                                   \
+            fprintf(stderr, "  FAIL %s:%d: %s (%s) != %s (%s)\n",               \
+                    __FILE__, __LINE__, #a, _sa ? _sa : "(null)",               \
+                    #b, _sb ? _sb : "(null)");                                  \
         }                                                                       \
     } while (0)
 

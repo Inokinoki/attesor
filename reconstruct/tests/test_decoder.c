@@ -40,13 +40,37 @@ int main(void)
 
     {
         oah_arm_cc arm;
+        unsigned i;
+        static const oah_arm_cc expect[16] = {
+            OAH_ARM_VS, OAH_ARM_VC, OAH_ARM_CC, OAH_ARM_CS,
+            OAH_ARM_EQ, OAH_ARM_NE, OAH_ARM_LS, OAH_ARM_HI,
+            OAH_ARM_MI, OAH_ARM_PL, OAH_ARM_VS, OAH_ARM_VC,
+            OAH_ARM_LT, OAH_ARM_GE, OAH_ARM_LE, OAH_ARM_GT
+        };
+        static const char *const names[16] = {
+            "o", "no", "b", "ae", "e", "ne", "be", "a",
+            "s", "ns", "p", "np", "l", "ge", "le", "g"
+        };
+
+        CHECK(oah_cc_arm_table[0] == 6 && oah_cc_arm_table[2] == 3);
+        CHECK(oah_cc_arm_table[10] == 6 && oah_cc_arm_table[11] == 7);
         CHECK(oah_translate_condition_code(OAH_CC_E, &arm) && arm == OAH_ARM_EQ);
         CHECK(oah_translate_condition_code(OAH_CC_O, &arm) && arm == OAH_ARM_VS);
         CHECK(oah_translate_condition_code(OAH_CC_B, &arm) && arm == OAH_ARM_CC);
         CHECK(oah_translate_condition_code(OAH_CC_AE, &arm) && arm == OAH_ARM_CS);
+        CHECK(oah_translate_condition_code(OAH_CC_G, &arm) && arm == OAH_ARM_GT);
         CHECK(!oah_translate_condition_code(OAH_CC_P, &arm));
         CHECK(!oah_translate_condition_code(OAH_CC_NP, &arm));
         CHECK(!oah_translate_condition_code((oah_x86_cc)16, &arm));
+        for (i = 0; i < 16; i++) {
+            CHECK_EQ_U64(oah_cc_arm_table[i], (u64)expect[i]);
+            CHECK_STREQ(oah_condition_code_to_string((oah_x86_cc)i), names[i]);
+            if (i != 10 && i != 11) {
+                CHECK(oah_translate_condition_code((oah_x86_cc)i, &arm) &&
+                      arm == expect[i]);
+            }
+        }
+        CHECK(oah_condition_code_to_string((oah_x86_cc)16) == 0);
     }
 
     {

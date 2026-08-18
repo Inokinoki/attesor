@@ -1,5 +1,10 @@
 #include "oah/condition.h"
 
+/* high: DAT_800000012e1c */
+const u8 oah_cc_arm_table[16] = {
+    6, 7, 3, 2, 0, 1, 9, 8, 4, 5, 6, 7, 11, 10, 13, 12
+};
+
 bool oah_translate_condition_code(oah_x86_cc cc, oah_arm_cc *out)
 {
     /* FUN_800000057bc8 Translator.h:0x264 / 0x266 */
@@ -11,25 +16,19 @@ bool oah_translate_condition_code(oah_x86_cc cc, oah_arm_cc *out)
         return false;
     }
 
-    /* Derived from C = ~CF in FUN_800000040650. Original table is rodata. */
-    static const oah_arm_cc table[16] = {
-        OAH_ARM_VS, /* O  */
-        OAH_ARM_VC, /* NO */
-        OAH_ARM_CC, /* B  (CF=1, stored C=0) */
-        OAH_ARM_CS, /* AE */
-        OAH_ARM_EQ, /* E  */
-        OAH_ARM_NE, /* NE */
-        OAH_ARM_LS, /* BE */
-        OAH_ARM_HI, /* A  */
-        OAH_ARM_MI, /* S  */
-        OAH_ARM_PL, /* NS */
-        OAH_ARM_AL, /* P  — unreachable */
-        OAH_ARM_AL, /* NP — unreachable */
-        OAH_ARM_LT, /* L  */
-        OAH_ARM_GE, /* GE */
-        OAH_ARM_LE, /* LE */
-        OAH_ARM_GT  /* G  */
-    };
-    *out = table[cc];
+    *out = (oah_arm_cc)oah_cc_arm_table[cc];
     return true;
+}
+
+const char *oah_condition_code_to_string(oah_x86_cc cc)
+{
+    /* FUN_80000002ac58 Operand.cpp:0x2c — PTR_DAT_800000013240 */
+    static const char *const names[16] = {
+        "o", "no", "b", "ae", "e", "ne", "be", "a",
+        "s", "ns", "p", "np", "l", "ge", "le", "g"
+    };
+    if ((unsigned)cc > 15) {
+        return 0;
+    }
+    return names[cc];
 }
